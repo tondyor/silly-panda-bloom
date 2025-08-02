@@ -54,6 +54,11 @@ const commonFields = {
     "TON",
     "SPL"
   ], { required_error: "Пожалуйста, выберите сеть USDT." }),
+  contactPhone: z // Сделано необязательным
+    .string()
+    .optional()
+    .or(z.literal('')) // Позволяет пустую строку
+    .refine(val => val === undefined || val === '' || /^\+?\d{10,15}$/.test(val), "Неверный формат номера телефона."),
 };
 
 const formSchema = z.discriminatedUnion("deliveryMethod", [
@@ -77,11 +82,6 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
       .string()
       .min(10, "Адрес доставки должен быть подробным.")
       .max(200, "Адрес доставки слишком длинный."),
-    contactPhone: z // Сделано необязательным
-      .string()
-      .optional()
-      .or(z.literal('')) // Позволяет пустую строку
-      .refine(val => val === undefined || val === '' || /^\+?\d{10,15}$/.test(val), "Неверный формат номера телефона."),
   }),
 ]);
 
@@ -103,7 +103,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       usdtNetwork: "TRC20", // Default USDT network
       vndBankAccountNumber: "",
       vndBankName: "",
-      // contactPhone удален, так как он не существует в ветке 'bank'
+      contactPhone: "", // Теперь это общее поле
     },
   });
 
@@ -114,8 +114,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
     setExchangeRate(rate);
-    // usdtAmount теперь всегда число, но может быть NaN если ввод пустой
-    if (typeof usdtAmount === 'number' && usdtAmount > 0) {
+    // usdtAmount теперь всегда число, благодаря z.coerce.number()
+    if (usdtAmount > 0) {
       setCalculatedVND(usdtAmount * rate);
     } else {
       setCalculatedVND(0);
@@ -153,6 +153,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           usdtNetwork: "TRC20", // Reset network
           vndBankAccountNumber: "",
           vndBankName: "",
+          contactPhone: "", // Reset to empty string for optional field
         });
       } else { // deliveryMethod === 'cash'
         form.reset({
@@ -298,6 +299,21 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           )}
         />
 
+        {/* Contact Phone Field - Now always visible after Telegram */}
+        <FormField
+          control={form.control}
+          name="contactPhone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Контактный телефон</FormLabel>
+              <FormControl>
+                <Input placeholder="Введите ваш номер телефона" {...field} className="p-3" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {deliveryMethod === 'bank' && (
           <>
             <FormField
@@ -340,26 +356,13 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Адрес доставки (Дананг/Хойан) <span className="text-red-500">*</span>
+                    Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
                     <span className="block text-xs text-gray-500 font-normal mt-1">
                       Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
                     </span>
                   </FormLabel>
                   <FormControl>
                     <Input placeholder="Введите полный адрес доставки" {...field} className="p-3" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="contactPhone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Контактный телефон</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите ваш номер телефона" {...field} className="p-3" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
