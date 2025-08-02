@@ -104,9 +104,8 @@ export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, su
             </>
           ) : (
             <>
+              {/* Removed the email and Telegram contact lines */}
               <p className="mb-2">Есть вопросы? Мы здесь, чтобы помочь!</p>
-              <p className="font-semibold">Email: support@vietswap.com</p>
-              <p className="font-semibold">Telegram: @VietSwapSupport</p>
             </>
           )}
         </CardContent>
