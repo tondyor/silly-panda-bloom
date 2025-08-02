@@ -70,7 +70,7 @@ export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, su
         <CardContent className="space-y-4 text-gray-700">
           {depositInfo ? (
             deliveryMethodAfterSubmit === 'bank' ? (
-              <p>Ваш банковский перевод придет от 3 до 15 минут.</p>
+              <p>После подтверждения платежа банком, вы получите чек на свой аккаунт Telegram в течение 3-15 минут.</p>
             ) : (
               <p>Курьер приедет по адресу "{submittedDeliveryAddress}" в течение 30 минут.</p>
             )
@@ -87,12 +87,19 @@ export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, su
 
       <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-center text-blue-700">Свяжитесь с нами</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center text-blue-700">
+            {depositInfo ? "Мы в соцсетях" : "Свяжитесь с нами"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="text-center text-gray-700">
           {depositInfo ? (
             <>
-              <p className="mb-2">Курьер свяжется с вами в Telegram за 5 минут до приезда, пожалуйста не пропустите сообщение и держите телефон рядом.</p>
+              {deliveryMethodAfterSubmit === 'cash' && (
+                <p className="mb-2">Курьер свяжется с вами в Telegram за 5 минут до приезда, пожалуйста не пропустите сообщение и держите телефон рядом.</p>
+              )}
+              {deliveryMethodAfterSubmit === 'bank' && (
+                <p className="mb-2">После подтверждения платежа банком, вы получите чек на свой аккаунт Telegram.</p>
+              )}
               <p className="font-semibold">Подпишитесь на нас в телеграм: <a href="https://t.me/vietswap" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@vietswap</a></p>
             </>
           ) : (
