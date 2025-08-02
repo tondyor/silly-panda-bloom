@@ -21,13 +21,22 @@ import { Loader2 } from "lucide-react";
 const OFFICIAL_USDT_VND_RATE = 25000; // 1 USDT = 25,000 VND
 const PROFIT_MARGIN = 0.005; // 0.5% better
 
+const commonFields = {
+  usdtAmount: z.coerce
+    .number()
+    .min(10, "Минимальная сумма обмена 10 USDT.")
+    .max(100000, "Максимальная сумма обмена 100,000 USDT."),
+  telegramContact: z
+    .string()
+    .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
+    .max(32, "Имя пользователя Telegram должно содержать не более 32 символов.")
+    .regex(/^@[a-zA-Z0-9_]{3,32}$/, "Неверный формат имени пользователя Telegram (начните с @)."),
+};
+
 const formSchema = z.discriminatedUnion("deliveryMethod", [
   z.object({
     deliveryMethod: z.literal('bank'),
-    usdtAmount: z.coerce
-      .number()
-      .min(10, "Минимальная сумма обмена 10 USDT.")
-      .max(100000, "Максимальная сумма обмена 100,000 USDT."),
+    ...commonFields,
     vndBankAccountNumber: z
       .string()
       .min(8, "Номер счета должен содержать не менее 8 символов.")
@@ -40,10 +49,7 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
   }),
   z.object({
     deliveryMethod: z.literal('cash'),
-    usdtAmount: z.coerce
-      .number()
-      .min(10, "Минимальная сумма обмена 10 USDT.")
-      .max(100000, "Максимальная сумма обмена 100,000 USDT."),
+    ...commonFields,
     deliveryAddress: z
       .string()
       .min(10, "Адрес доставки должен быть подробным.")
@@ -66,9 +72,9 @@ export function ExchangeForm() {
     defaultValues: {
       usdtAmount: 100, // Default value for demonstration
       deliveryMethod: 'bank', // Default to bank transfer
+      telegramContact: "@", // Default value for Telegram
       vndBankAccountNumber: "",
       vndBankName: "",
-      // Removed deliveryAddress and contactPhone from defaultValues as they are part of 'cash' union
     },
   });
 
@@ -105,6 +111,7 @@ export function ExchangeForm() {
         form.reset({
           usdtAmount: 100,
           deliveryMethod: 'bank',
+          telegramContact: "@",
           vndBankAccountNumber: "",
           vndBankName: "",
         });
@@ -112,6 +119,7 @@ export function ExchangeForm() {
         form.reset({
           usdtAmount: 100,
           deliveryMethod: 'cash',
+          telegramContact: "@",
           deliveryAddress: "",
           contactPhone: "",
         });
@@ -198,6 +206,21 @@ export function ExchangeForm() {
                     </FormLabel>
                   </FormItem>
                 </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Telegram Contact Field - Always visible */}
+        <FormField
+          control={form.control}
+          name="telegramContact"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Ваш Telegram (для связи)</FormLabel>
+              <FormControl>
+                <Input placeholder="@ваш_никнейм" {...field} className="p-3" />
               </FormControl>
               <FormMessage />
             </FormItem>
