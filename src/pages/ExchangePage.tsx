@@ -1,10 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { ExchangeInfoSection } from "@/components/ExchangeInfoSection";
 
 const ExchangePage = () => {
+  const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
+
+  const handleExchangeSuccess = (network: string, address: string) => {
+    setDepositInfo({ network, address });
+  };
+
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4 sm:p-6 lg:p-8"
@@ -28,11 +34,11 @@ const ExchangePage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          <ExchangeForm />
+          <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />
         </CardContent>
       </Card>
       
-      <ExchangeInfoSection />
+      <ExchangeInfoSection depositInfo={depositInfo} />
       <MadeWithDyad />
     </div>
   );

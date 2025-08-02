@@ -28,6 +28,15 @@ import { Loader2 } from "lucide-react";
 const OFFICIAL_USDT_VND_RATE = 25000; // 1 USDT = 25,000 VND
 const PROFIT_MARGIN = 0.005; // 0.5% better
 
+// USDT Wallet Addresses
+const USDT_WALLETS: Record<string, string> = {
+  "BEP20": "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
+  "TON": "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
+  "TRC20": "TAAQEjDBQK5hN1MGumVUjtzX42qRYCjTkB",
+  "ERC20": "0x54C7fA815AE5a5DDEd5DAa4A36CFB6903cE7D896",
+  "SPL": "Адрес для SPL будет предоставлен после подтверждения.", // Placeholder for SPL
+};
+
 const commonFields = {
   usdtAmount: z.coerce
     .number()
@@ -76,7 +85,11 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
   }),
 ]);
 
-export function ExchangeForm() {
+interface ExchangeFormProps {
+  onExchangeSuccess: (network: string, address: string) => void;
+}
+
+export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,6 +108,7 @@ export function ExchangeForm() {
 
   const usdtAmount = form.watch("usdtAmount");
   const deliveryMethod = form.watch("deliveryMethod"); // Watch the delivery method
+  const usdtNetwork = form.watch("usdtNetwork"); // Watch the selected USDT network
 
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
@@ -121,6 +135,15 @@ export function ExchangeForm() {
         description: `Вы обменяли ${values.usdtAmount} USDT на ${calculatedVND.toLocaleString('vi-VN')} VND.`,
       });
       
+      // Get the USDT deposit address based on the selected network
+      const depositAddress = USDT_WALLETS[values.usdtNetwork];
+      if (depositAddress) {
+        onExchangeSuccess(values.usdtNetwork, depositAddress);
+      } else {
+        console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
+        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.");
+      }
+
       // Reset form based on the current delivery method
       if (deliveryMethod === 'bank') {
         form.reset({
