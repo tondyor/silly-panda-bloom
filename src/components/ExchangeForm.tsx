@@ -97,7 +97,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: 100, // Default value for demonstration
+      usdtAmount: 100, // Изменено на число
       deliveryMethod: 'bank', // Default to bank transfer
       telegramContact: "@", // Default value for Telegram
       usdtNetwork: "TRC20", // Default USDT network
@@ -113,7 +113,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
     setExchangeRate(rate);
-    if (usdtAmount && typeof usdtAmount === 'number' && usdtAmount > 0) {
+    // usdtAmount теперь всегда число, но может быть NaN если ввод пустой
+    if (typeof usdtAmount === 'number' && usdtAmount > 0) {
       setCalculatedVND(usdtAmount * rate);
     } else {
       setCalculatedVND(0);
@@ -145,7 +146,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       // Reset form based on the current delivery method
       if (deliveryMethod === 'bank') {
         form.reset({
-          usdtAmount: "100", // Changed to string to match expected type for reset
+          usdtAmount: 100, // Изменено на число
           deliveryMethod: 'bank',
           telegramContact: "@",
           usdtNetwork: "TRC20", // Reset network
@@ -154,7 +155,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         });
       } else { // deliveryMethod === 'cash'
         form.reset({
-          usdtAmount: "100", // Changed to string to match expected type for reset
+          usdtAmount: 100, // Изменено на число
           deliveryMethod: 'cash',
           telegramContact: "@",
           usdtNetwork: "TRC20", // Reset network
@@ -190,9 +191,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // Ensure field.onChange receives a number, as expected by Zod's coerce.number()
+                    // Убедимся, что value всегда число или пустая строка для Input type="number"
+                    value={field.value === undefined || isNaN(field.value as number) ? "" : (field.value as number)}
                     onChange={(e) => {
                       const value = e.target.value;
+                      // Передаем числовое значение. parseFloat('') даст NaN, что Zod обработает.
                       field.onChange(parseFloat(value));
                     }}
                     className="text-lg p-3"
@@ -348,7 +351,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               name="contactPhone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Контактный телефон</FormLabel> {/* Fixed: Added closing tag */}
+                  <FormLabel>Контактный телефон</FormLabel>
                   <FormControl>
                     <Input placeholder="Введите ваш номер телефона" {...field} className="p-3" />
                   </FormControl>
