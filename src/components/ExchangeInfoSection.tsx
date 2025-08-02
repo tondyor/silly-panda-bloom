@@ -25,7 +25,7 @@ export const ExchangeInfoSection = ({ depositInfo }: ExchangeInfoSectionProps) =
               <div className="bg-gray-100 p-4 rounded-md space-y-2">
                 <p><span className="font-semibold">Сеть:</span> {depositInfo.network}</p>
                 <p className="break-all"><span className="font-semibold">Адрес:</span> <span className="text-blue-600 font-mono">{depositInfo.address}</span></p>
-                <p><span className="font-semibold">Минимальная сумма:</span> 0.1 USDT</p>
+                <p><span className="font-semibold">Минимальная сумма:</span> 100 USDT</p> {/* Changed from 0.1 to 100 */}
               </div>
               <div className="flex items-start space-x-2 text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
                 <AlertTriangle className="flex-shrink-0 mt-1" size={20} />

@@ -34,13 +34,13 @@ const USDT_WALLETS: Record<string, string> = {
   "TON": "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
   "TRC20": "TAAQEjDBQK5hN1MGumVUjtzX42qRYCjTkB",
   "ERC20": "0x54C7fA815AE5a5DDEd5DAa4A36CFB6903cE7D896",
-  "SPL": "9vBe1AP3197jP4PSjC2jUsyadr82Sey3nXbxAT3LSQwm", // Added Solana SPL address
+  "SPL": "9vBe1AP3197jP4PSjC2jUsyadr82Sey3nXbxAT3LSQwm",
 };
 
 const commonFields = {
   usdtAmount: z.coerce
     .number()
-    .min(10, "Минимальная сумма обмена 10 USDT.")
+    .min(100, "Минимальная сумма обмена 100 USDT.") // Changed from 10 to 100
     .max(100000, "Максимальная сумма обмена 100,000 USDT."),
   telegramContact: z
     .string()
@@ -52,7 +52,7 @@ const commonFields = {
     "TRC20",
     "ERC20",
     "TON",
-    "SPL" // Added SPL to the enum
+    "SPL"
   ], { required_error: "Пожалуйста, выберите сеть USDT." }),
 };
 
