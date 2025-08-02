@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { ExchangeInfoSection } from "@/components/ExchangeInfoSection";
 import { ExchangeSummary } from "@/components/ExchangeSummary"; // Import the new summary component
+import { BankLogosSection } from "@/components/BankLogosSection"; // Import the new BankLogosSection
 import { toast } from "sonner"; // Import toast from sonner
 
 const ExchangePage = () => {
@@ -92,6 +93,7 @@ const ExchangePage = () => {
         deliveryMethodAfterSubmit={deliveryMethodAfterSubmit}
         submittedDeliveryAddress={submittedDeliveryAddress}
       />
+      <BankLogosSection /> {/* Add the new BankLogosSection here */}
       <MadeWithDyad />
     </div>
   );
