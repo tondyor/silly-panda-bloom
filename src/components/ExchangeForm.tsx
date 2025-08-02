@@ -14,6 +14,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Import Select components
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -31,6 +38,7 @@ const commonFields = {
     .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
     .max(32, "Имя пользователя Telegram должно содержать не более 32 символов.")
     .regex(/^@[a-zA-Z0-9_]{3,32}$/, "Неверный формат имени пользователя Telegram (начните с @)."),
+  usdtNetwork: z.enum(["TRC20", "ERC20", "BEP20"], { required_error: "Пожалуйста, выберите сеть USDT." }),
 };
 
 const formSchema = z.discriminatedUnion("deliveryMethod", [
@@ -73,6 +81,7 @@ export function ExchangeForm() {
       usdtAmount: 100, // Default value for demonstration
       deliveryMethod: 'bank', // Default to bank transfer
       telegramContact: "@", // Default value for Telegram
+      usdtNetwork: "TRC20", // Default USDT network
       vndBankAccountNumber: "",
       vndBankName: "",
     },
@@ -112,6 +121,7 @@ export function ExchangeForm() {
           usdtAmount: 100,
           deliveryMethod: 'bank',
           telegramContact: "@",
+          usdtNetwork: "TRC20", // Reset network
           vndBankAccountNumber: "",
           vndBankName: "",
         });
@@ -120,6 +130,7 @@ export function ExchangeForm() {
           usdtAmount: 100,
           deliveryMethod: 'cash',
           telegramContact: "@",
+          usdtNetwork: "TRC20", // Reset network
           deliveryAddress: "",
           contactPhone: "",
         });
@@ -175,6 +186,30 @@ export function ExchangeForm() {
         <div className="text-center text-sm text-gray-600">
           Текущий курс: 1 USDT = <span className="font-semibold text-blue-600">{exchangeRate.toLocaleString('vi-VN')} VND</span>
         </div>
+
+        {/* USDT Network Selection */}
+        <FormField
+          control={form.control}
+          name="usdtNetwork"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Сеть USDT</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="p-3">
+                    <SelectValue placeholder="Выберите сеть USDT" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="TRC20">TRC20 (Tron)</SelectItem>
+                  <SelectItem value="ERC20">ERC20 (Ethereum)</SelectItem>
+                  <SelectItem value="BEP20">BEP20 (Binance Smart Chain)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Delivery Method Toggle */}
         <FormField
