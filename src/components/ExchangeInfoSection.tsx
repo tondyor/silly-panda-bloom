@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Send } from 'lucide-react'; // Using Send icon for Telegram
+import { toast } from "sonner"; // Import toast for notifications
 
 interface ExchangeInfoSectionProps {
   depositInfo: { network: string; address: string; } | null;
@@ -9,6 +10,23 @@ interface ExchangeInfoSectionProps {
 }
 
 export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, submittedDeliveryAddress }: ExchangeInfoSectionProps) => {
+  const handleCopyAddress = (address: string) => {
+    navigator.clipboard.writeText(address)
+      .then(() => {
+        toast.success("Адрес скопирован в буфер обмена!", {
+          description: address,
+          duration: 3000,
+        });
+      })
+      .catch(err => {
+        console.error('Failed to copy address: ', err);
+        toast.error("Не удалось скопировать адрес.", {
+          description: "Пожалуйста, скопируйте вручную.",
+          duration: 5000,
+        });
+      });
+  };
+
   return (
     <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60 mt-6">
       <CardHeader className="pb-4">
@@ -25,7 +43,15 @@ export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, su
             </p>
             <div className="bg-gray-100 p-4 rounded-md space-y-2">
               <p><span className="font-semibold">Сеть:</span> {depositInfo.network}</p>
-              <p className="break-all"><span className="font-semibold">Адрес:</span> <span className="text-blue-600 font-mono">{depositInfo.address}</span></p>
+              <p className="break-all"><span className="font-semibold">Адрес:</span>{" "}
+                <span
+                  className="text-blue-600 font-mono cursor-pointer hover:underline"
+                  onClick={() => handleCopyAddress(depositInfo.address)}
+                  title="Нажмите, чтобы скопировать"
+                >
+                  {depositInfo.address}
+                </span>
+              </p>
             </div>
             {deliveryMethodAfterSubmit === 'cash' && submittedDeliveryAddress && (
               <div className="bg-gray-100 p-4 rounded-md space-y-2">

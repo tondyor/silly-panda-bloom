@@ -26,7 +26,7 @@ import { Loader2 } from "lucide-react";
 
 // Hypothetical official rate (for demonstration purposes)
 const OFFICIAL_USDT_VND_RATE = 25000; // 1 USDT = 25,000 VND
-const PROFIT_MARGIN = 0.5; // 0.5% better
+const PROFIT_MARGIN = 0.005; // 0.5% better
 
 // USDT Wallet Addresses
 const USDT_WALLETS: Record<string, string> = {
