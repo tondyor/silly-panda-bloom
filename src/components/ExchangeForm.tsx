@@ -20,7 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Import Select components
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -38,7 +38,18 @@ const commonFields = {
     .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
     .max(32, "Имя пользователя Telegram должно содержать не более 32 символов.")
     .regex(/^@[a-zA-Z0-9_]{3,32}$/, "Неверный формат имени пользователя Telegram (начните с @)."),
-  usdtNetwork: z.enum(["TRC20", "ERC20", "BEP20"], { required_error: "Пожалуйста, выберите сеть USDT." }),
+  usdtNetwork: z.enum([
+    "TRC20",
+    "ERC20",
+    "BEP20",
+    "Polygon",
+    "Arbitrum",
+    "Optimism",
+    "Solana",
+    "Avalanche",
+    "Fantom",
+    "Near"
+  ], { required_error: "Пожалуйста, выберите сеть USDT." }),
 };
 
 const formSchema = z.discriminatedUnion("deliveryMethod", [
@@ -204,6 +215,13 @@ export function ExchangeForm() {
                   <SelectItem value="TRC20">TRC20 (Tron)</SelectItem>
                   <SelectItem value="ERC20">ERC20 (Ethereum)</SelectItem>
                   <SelectItem value="BEP20">BEP20 (Binance Smart Chain)</SelectItem>
+                  <SelectItem value="Polygon">Polygon</SelectItem>
+                  <SelectItem value="Arbitrum">Arbitrum</SelectItem>
+                  <SelectItem value="Optimism">Optimism</SelectItem>
+                  <SelectItem value="Solana">Solana</SelectItem>
+                  <SelectItem value="Avalanche">Avalanche (C-Chain)</SelectItem>
+                  <SelectItem value="Fantom">Fantom</SelectItem>
+                  <SelectItem value="Near">Near Protocol (Aurora)</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
