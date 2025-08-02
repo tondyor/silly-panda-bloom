@@ -77,11 +77,11 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
       .string()
       .min(10, "Адрес доставки должен быть подробным.")
       .max(200, "Адрес доставки слишком длинный."),
-    contactPhone: z
+    contactPhone: z // Сделано необязательным
       .string()
-      .min(10, "Номер телефона должен содержать не менее 10 цифр.")
-      .max(15, "Номер телефона должен содержать не более 15 цифр.")
-      .regex(/^\+?\d{10,15}$/, "Неверный формат номера телефона."),
+      .optional()
+      .or(z.literal('')) // Позволяет пустую строку
+      .refine(val => val === undefined || val === '' || /^\+?\d{10,15}$/.test(val), "Неверный формат номера телефона."),
   }),
 ]);
 
@@ -103,6 +103,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       usdtNetwork: "TRC20", // Default USDT network
       vndBankAccountNumber: "",
       vndBankName: "",
+      // contactPhone удален, так как он не существует в ветке 'bank'
     },
   });
 
@@ -160,7 +161,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           telegramContact: "@",
           usdtNetwork: "TRC20", // Reset network
           deliveryAddress: "",
-          contactPhone: "",
+          contactPhone: "", // Reset to empty string for optional field
         });
       }
       setCalculatedVND(0);
@@ -185,7 +186,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             name="usdtAmount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Сумма USDT</FormLabel>
+                <FormLabel>Сумма USDT <span className="text-red-500">*</span></FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -226,7 +227,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           name="usdtNetwork"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Сеть USDT</FormLabel>
+              <FormLabel>Сеть USDT <span className="text-red-500">*</span></FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger className="p-3">
@@ -252,7 +253,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           name="deliveryMethod"
           render={({ field }) => (
             <FormItem className="space-y-3">
-              <FormLabel>Способ получения VND</FormLabel>
+              <FormLabel>Способ получения VND <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <RadioGroup
                   onValueChange={field.onChange}
@@ -288,7 +289,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           name="telegramContact"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Ваш Telegram (для связи)</FormLabel>
+              <FormLabel>Ваш Telegram (для связи) <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <Input placeholder="@ваш_никнейм" {...field} className="p-3" />
               </FormControl>
@@ -304,7 +305,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               name="vndBankAccountNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Номер карты или счета VND</FormLabel>
+                  <FormLabel>Номер карты или счета VND <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
                     <Input placeholder="Введите номер карты или счета" {...field} className="p-3" />
                   </FormControl>
@@ -317,7 +318,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               name="vndBankName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Название банка VND</FormLabel>
+                  <FormLabel>Название банка VND <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
                     <Input placeholder="Например, Vietcombank" {...field} className="p-3" />
                   </FormControl>
@@ -339,7 +340,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Адрес доставки (Дананг/Хойан)
+                    Адрес доставки (Дананг/Хойан) <span className="text-red-500">*</span>
                     <span className="block text-xs text-gray-500 font-normal mt-1">
                       Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
                     </span>
