@@ -39,16 +39,11 @@ const commonFields = {
     .max(32, "Имя пользователя Telegram должно содержать не более 32 символов.")
     .regex(/^@[a-zA-Z0-9_]{3,32}$/, "Неверный формат имени пользователя Telegram (начните с @)."),
   usdtNetwork: z.enum([
+    "BEP20",
     "TRC20",
     "ERC20",
-    "BEP20",
-    "Polygon",
-    "Arbitrum",
-    "Optimism",
-    "Solana",
-    "Avalanche",
-    "Fantom",
-    "Near"
+    "TON",
+    "SPL"
   ], { required_error: "Пожалуйста, выберите сеть USDT." }),
 };
 
@@ -212,16 +207,11 @@ export function ExchangeForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="TRC20">TRC20 (Tron)</SelectItem>
-                  <SelectItem value="ERC20">ERC20 (Ethereum)</SelectItem>
-                  <SelectItem value="BEP20">BEP20 (Binance Smart Chain)</SelectItem>
-                  <SelectItem value="Polygon">Polygon</SelectItem>
-                  <SelectItem value="Arbitrum">Arbitrum</SelectItem>
-                  <SelectItem value="Optimism">Optimism</SelectItem>
-                  <SelectItem value="Solana">Solana</SelectItem>
-                  <SelectItem value="Avalanche">Avalanche (C-Chain)</SelectItem>
-                  <SelectItem value="Fantom">Fantom</SelectItem>
-                  <SelectItem value="Near">Near Protocol (Aurora)</SelectItem>
+                  <SelectItem value="BEP20">BSC (BEP20)</SelectItem>
+                  <SelectItem value="TRC20">TRX (TRC20)</SelectItem>
+                  <SelectItem value="ERC20">ETH (ERC20)</SelectItem>
+                  <SelectItem value="TON">TON (TON)</SelectItem>
+                  <SelectItem value="SPL">SOL (SPL)</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
