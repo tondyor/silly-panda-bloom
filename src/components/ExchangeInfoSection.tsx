@@ -7,9 +7,11 @@ interface ExchangeInfoSectionProps {
     network: string;
     address: string;
   } | null;
+  deliveryMethodAfterSubmit?: 'bank' | 'cash' | null;
+  submittedDeliveryAddress?: string | null;
 }
 
-export const ExchangeInfoSection = ({ depositInfo }: ExchangeInfoSectionProps) => {
+export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, submittedDeliveryAddress }: ExchangeInfoSectionProps) => {
   return (
     <div className="w-full max-w-lg mx-auto mt-8 space-y-6">
       <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
@@ -25,7 +27,7 @@ export const ExchangeInfoSection = ({ depositInfo }: ExchangeInfoSectionProps) =
               <div className="bg-gray-100 p-4 rounded-md space-y-2">
                 <p><span className="font-semibold">Сеть:</span> {depositInfo.network}</p>
                 <p className="break-all"><span className="font-semibold">Адрес:</span> <span className="text-blue-600 font-mono">{depositInfo.address}</span></p>
-                <p><span className="font-semibold">Минимальная сумма:</span> 100 USDT</p> {/* Changed from 0.1 to 100 */}
+                <p><span className="font-semibold">Минимальная сумма:</span> 100 USDT</p>
               </div>
               <div className="flex items-start space-x-2 text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
                 <AlertTriangle className="flex-shrink-0 mt-1" size={20} />
@@ -61,15 +63,25 @@ export const ExchangeInfoSection = ({ depositInfo }: ExchangeInfoSectionProps) =
 
       <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-center text-blue-700">Как это работает?</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center text-blue-700">
+            {depositInfo ? "Информация о получении" : "Как это работает?"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-gray-700">
-          <ol className="list-decimal list-inside space-y-2">
-            <li>Введите сумму USDT и данные для получения VND.</li>
-            <li>Подтвердите детали обмена.</li>
-            <li>Отправьте USDT на указанный адрес.</li>
-            <li>Получите VND на ваш банковский счет или курьером от 15 минут.</li>
-          </ol>
+          {depositInfo ? (
+            deliveryMethodAfterSubmit === 'bank' ? (
+              <p>Ваш банковский перевод придет от 3 до 15 минут.</p>
+            ) : (
+              <p>Курьер приедет по адресу "{submittedDeliveryAddress}" в течение 30 минут.</p>
+            )
+          ) : (
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Введите сумму USDT и данные для получения VND.</li>
+              <li>Подтвердите детали обмена.</li>
+              <li>Отправьте USDT на указанный адрес.</li>
+              <li>Получите VND на ваш банковский счет или курьером от 15 минут.</li>
+            </ol>
+          )}
         </CardContent>
       </Card>
 
@@ -78,9 +90,18 @@ export const ExchangeInfoSection = ({ depositInfo }: ExchangeInfoSectionProps) =
           <CardTitle className="text-2xl font-bold text-center text-blue-700">Свяжитесь с нами</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-gray-700">
-          <p className="mb-2">Есть вопросы? Мы здесь, чтобы помочь!</p>
-          <p className="font-semibold">Email: support@vietswap.com</p>
-          <p className="font-semibold">Telegram: @VietSwapSupport</p>
+          {depositInfo ? (
+            <>
+              <p className="mb-2">Курьер свяжется с вами в Telegram за 5 минут до приезда, пожалуйста не пропустите сообщение и держите телефон рядом.</p>
+              <p className="font-semibold">Подпишитесь на нас в телеграм: <a href="https://t.me/vietswap" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@vietswap</a></p>
+            </>
+          ) : (
+            <>
+              <p className="mb-2">Есть вопросы? Мы здесь, чтобы помочь!</p>
+              <p className="font-semibold">Email: support@vietswap.com</p>
+              <p className="font-semibold">Telegram: @VietSwapSupport</p>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label"; // Ensure Label is imported
 import {
   Form,
   FormControl,
@@ -40,7 +40,7 @@ const USDT_WALLETS: Record<string, string> = {
 const commonFields = {
   usdtAmount: z.coerce
     .number()
-    .min(100, "Минимальная сумма обмена 100 USDT.") // Changed from 10 to 100
+    .min(100, "Минимальная сумма обмена 100 USDT.")
     .max(100000, "Максимальная сумма обмена 100,000 USDT."),
   telegramContact: z
     .string()
@@ -86,7 +86,7 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
 ]);
 
 interface ExchangeFormProps {
-  onExchangeSuccess: (network: string, address: string) => void;
+  onExchangeSuccess: (network: string, address: string, deliveryMethod: 'bank' | 'cash', deliveryAddress?: string) => void;
 }
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
@@ -138,10 +138,10 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       // Get the USDT deposit address based on the selected network
       const depositAddress = USDT_WALLETS[values.usdtNetwork];
       if (depositAddress) {
-        onExchangeSuccess(values.usdtNetwork, depositAddress);
+        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, 'deliveryAddress' in values ? values.deliveryAddress : undefined);
       } else {
         console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
-        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.");
+        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, 'deliveryAddress' in values ? values.deliveryAddress : undefined);
       }
 
       // Reset form based on the current delivery method
@@ -259,17 +259,17 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     <FormControl>
                       <RadioGroupItem value="bank" />
                     </FormControl>
-                    <FormLabel className="font-normal">
+                    <Label className="font-normal"> {/* Changed FormLabel to Label */}
                       На банковский счет
-                    </FormLabel>
+                    </Label>
                   </FormItem>
                   <FormItem className="flex items-center space-x-3 space-y-0">
                     <FormControl>
                       <RadioGroupItem value="cash" />
                     </FormControl>
-                    <FormLabel className="font-normal">
+                    <Label className="font-normal"> {/* Changed FormLabel to Label */}
                       Наличными (доставка)
-                    </FormLabel>
+                    </Label>
                   </FormItem>
                 </RadioGroup>
               </FormControl>

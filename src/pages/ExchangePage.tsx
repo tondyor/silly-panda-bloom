@@ -6,9 +6,13 @@ import { ExchangeInfoSection } from "@/components/ExchangeInfoSection";
 
 const ExchangePage = () => {
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
+  const [deliveryMethodAfterSubmit, setDeliveryMethodAfterSubmit] = useState<'bank' | 'cash' | null>(null);
+  const [submittedDeliveryAddress, setSubmittedDeliveryAddress] = useState<string | null>(null);
 
-  const handleExchangeSuccess = (network: string, address: string) => {
+  const handleExchangeSuccess = (network: string, address: string, method: 'bank' | 'cash', clientAddress?: string) => {
     setDepositInfo({ network, address });
+    setDeliveryMethodAfterSubmit(method);
+    setSubmittedDeliveryAddress(clientAddress || null);
   };
 
   return (
@@ -38,7 +42,11 @@ const ExchangePage = () => {
         </CardContent>
       </Card>
       
-      <ExchangeInfoSection depositInfo={depositInfo} />
+      <ExchangeInfoSection 
+        depositInfo={depositInfo} 
+        deliveryMethodAfterSubmit={deliveryMethodAfterSubmit}
+        submittedDeliveryAddress={submittedDeliveryAddress}
+      />
       <MadeWithDyad />
     </div>
   );
