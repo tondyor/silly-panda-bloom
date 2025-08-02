@@ -11,6 +11,7 @@ const ExchangePage = () => {
   const [submittedDeliveryAddress, setSubmittedDeliveryAddress] = useState<string | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null); // To store all submitted data
+  const [orderCounter, setOrderCounter] = useState<number>(564); // Начинаем счет с 564
 
   const handleExchangeSuccess = (
     network: string,
@@ -18,10 +19,13 @@ const ExchangePage = () => {
     method: 'bank' | 'cash',
     formData: any // Receive all form data
   ) => {
+    const currentOrderId = `AAA${orderCounter}`; // Генерируем номер заказа
+    setOrderCounter(prevCounter => prevCounter + 1); // Увеличиваем счетчик для следующего заказа
+
     setDepositInfo({ network, address });
     setDeliveryMethodAfterSubmit(method);
     setSubmittedDeliveryAddress(formData.deliveryMethod === 'cash' ? formData.deliveryAddress : null);
-    setSubmittedFormData(formData); // Store all submitted data
+    setSubmittedFormData({ ...formData, orderId: currentOrderId }); // Store all submitted data including orderId
     setIsFormSubmitted(true); // Set form as submitted
   };
 

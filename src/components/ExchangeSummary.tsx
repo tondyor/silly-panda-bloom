@@ -6,12 +6,18 @@ interface ExchangeSummaryProps {
 }
 
 export const ExchangeSummary = ({ data }: ExchangeSummaryProps) => {
-  const { usdtAmount, calculatedVND, usdtNetwork, deliveryMethod, telegramContact } = data;
+  const { usdtAmount, calculatedVND, usdtNetwork, deliveryMethod, telegramContact, orderId } = data;
 
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center text-gray-800">Ваш запрос на обмен</h2>
       <p className="text-center text-gray-600">Пожалуйста, проверьте детали вашего обмена:</p>
+
+      {orderId && (
+        <div className="text-center text-3xl font-extrabold text-blue-700 mb-4">
+          Номер вашего заказа: <span className="text-orange-500">{orderId}</span>
+        </div>
+      )}
 
       <div className="bg-gray-50 p-4 rounded-md border border-gray-200 space-y-2">
         <p><span className="font-semibold">Сумма USDT:</span> {usdtAmount} USDT</p>
