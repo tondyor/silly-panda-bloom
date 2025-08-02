@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { ExchangeInfoSection } from "@/components/ExchangeInfoSection";
 import { ExchangeSummary } from "@/components/ExchangeSummary"; // Import the new summary component
+import { toast } from "sonner"; // Import toast from sonner
 
 const ExchangePage = () => {
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
@@ -13,13 +14,30 @@ const ExchangePage = () => {
   const [submittedFormData, setSubmittedFormData] = useState<any>(null); // To store all submitted data
   const [orderCounter, setOrderCounter] = useState<number>(564); // Начинаем счет с 564
 
+  // Helper function to convert number to AAA, AAB, ...
+  const getAlphabeticalPrefix = (index: number): string => {
+    let result = '';
+    let tempIndex = index;
+    for (let i = 0; i < 3; i++) { // For a 3-letter prefix
+      const charCode = 'A'.charCodeAt(0) + (tempIndex % 26);
+      result = String.fromCharCode(charCode) + result;
+      tempIndex = Math.floor(tempIndex / 26);
+    }
+    return result;
+  };
+
   const handleExchangeSuccess = (
     network: string,
     address: string,
     method: 'bank' | 'cash',
-    formData: any // Receive all form data
+    formData: any, // Receive all form data
+    loadingToastId: string // Receive the ID of the loading toast
   ) => {
-    const currentOrderId = `AAA${orderCounter}`; // Генерируем номер заказа
+    // Calculate the alphabetical index based on the starting counter
+    const alphabeticalIndex = orderCounter - 564; // 564 -> 0, 565 -> 1, etc.
+    const prefix = getAlphabeticalPrefix(alphabeticalIndex);
+    const currentOrderId = `${prefix}${orderCounter}`; // Генерируем номер заказа
+
     setOrderCounter(prevCounter => prevCounter + 1); // Увеличиваем счетчик для следующего заказа
 
     setDepositInfo({ network, address });
@@ -27,6 +45,15 @@ const ExchangePage = () => {
     setSubmittedDeliveryAddress(formData.deliveryMethod === 'cash' ? formData.deliveryAddress : null);
     setSubmittedFormData({ ...formData, orderId: currentOrderId }); // Store all submitted data including orderId
     setIsFormSubmitted(true); // Set form as submitted
+
+    // Handle success toast after 3 seconds
+    setTimeout(() => {
+      toast.dismiss(loadingToastId); // Dismiss the loading toast
+      toast.success("Ваш запрос на обмен успешно отправлен!", {
+        description: `Номер вашего заказа: ${currentOrderId}. Вы обменяли ${formData.usdtAmount} USDT на ${formData.calculatedVND.toLocaleString('vi-VN')} VND.`,
+        duration: 10000, // Toast disappears after 10 seconds
+      });
+    }, 3000); // Delay for 3 seconds
   };
 
   return (

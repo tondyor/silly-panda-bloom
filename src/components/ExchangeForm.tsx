@@ -86,7 +86,7 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
 ]);
 
 interface ExchangeFormProps {
-  onExchangeSuccess: (network: string, address: string, deliveryMethod: 'bank' | 'cash', formData: any) => void;
+  onExchangeSuccess: (network: string, address: string, deliveryMethod: 'bank' | 'cash', formData: any, loadingToastId: string) => void;
 }
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
@@ -122,7 +122,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    toast.loading("Обработка вашего запроса на обмен...");
+    const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", {
+      className: "opacity-75", // Apply semi-transparency to the loading toast
+    });
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -130,18 +132,14 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     try {
       console.log("Exchange request submitted:", values);
       console.log("Calculated VND:", calculatedVND);
-
-      toast.success("Ваш запрос на обмен успешно отправлен!", {
-        description: `Вы обменяли ${values.usdtAmount} USDT на ${calculatedVND.toLocaleString('vi-VN')} VND.`,
-      });
       
       // Get the USDT deposit address based on the selected network
       const depositAddress = USDT_WALLETS[values.usdtNetwork];
       if (depositAddress) {
-        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, { ...values, calculatedVND, exchangeRate }); // Pass all form data
+        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId); // Pass loadingToastId
       } else {
         console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
-        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, { ...values, calculatedVND, exchangeRate }); // Pass all form data
+        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId); // Pass loadingToastId
       }
 
       // Reset form based on the current delivery method
@@ -169,7 +167,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       console.error("Exchange failed:", error);
       toast.error("Ошибка при обработке обмена.", {
         description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.",
+        duration: 5000, // Error toasts can disappear after 5 seconds
       });
+      toast.dismiss(loadingToastId); // Dismiss loading toast on error
     } finally {
       setIsSubmitting(false);
     }
