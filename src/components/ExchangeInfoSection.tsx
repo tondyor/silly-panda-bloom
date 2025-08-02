@@ -5,7 +5,7 @@ import { CheckCircle, FastForward, Headset } from "lucide-react";
 export const ExchangeInfoSection = () => {
   return (
     <div className="w-full max-w-lg mx-auto mt-8 space-y-6">
-      <Card className="shadow-lg rounded-lg bg-white/90 backdrop-blur-sm">
+      <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-2xl font-bold text-center text-blue-700">Почему выбирают VietSwap?</CardTitle>
         </CardHeader>
@@ -31,7 +31,7 @@ export const ExchangeInfoSection = () => {
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg rounded-lg bg-white/90 backdrop-blur-sm">
+      <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-2xl font-bold text-center text-blue-700">Как это работает?</CardTitle>
         </CardHeader>
@@ -45,7 +45,7 @@ export const ExchangeInfoSection = () => {
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg rounded-lg bg-white/90 backdrop-blur-sm">
+      <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-2xl font-bold text-center text-blue-700">Свяжитесь с нами</CardTitle>
         </CardHeader>
