@@ -3,16 +3,26 @@ import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { ExchangeInfoSection } from "@/components/ExchangeInfoSection";
+import { ExchangeSummary } from "@/components/ExchangeSummary"; // Import the new summary component
 
 const ExchangePage = () => {
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [deliveryMethodAfterSubmit, setDeliveryMethodAfterSubmit] = useState<'bank' | 'cash' | null>(null);
   const [submittedDeliveryAddress, setSubmittedDeliveryAddress] = useState<string | null>(null);
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+  const [submittedFormData, setSubmittedFormData] = useState<any>(null); // To store all submitted data
 
-  const handleExchangeSuccess = (network: string, address: string, method: 'bank' | 'cash', clientAddress?: string) => {
+  const handleExchangeSuccess = (
+    network: string,
+    address: string,
+    method: 'bank' | 'cash',
+    formData: any // Receive all form data
+  ) => {
     setDepositInfo({ network, address });
     setDeliveryMethodAfterSubmit(method);
-    setSubmittedDeliveryAddress(clientAddress || null);
+    setSubmittedDeliveryAddress(formData.deliveryMethod === 'cash' ? formData.deliveryAddress : null);
+    setSubmittedFormData(formData); // Store all submitted data
+    setIsFormSubmitted(true); // Set form as submitted
   };
 
   return (
@@ -38,7 +48,11 @@ const ExchangePage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />
+          {isFormSubmitted ? (
+            <ExchangeSummary data={submittedFormData} />
+          ) : (
+            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />
+          )}
         </CardContent>
       </Card>
       

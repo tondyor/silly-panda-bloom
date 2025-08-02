@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; // Ensure Label is imported
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -86,7 +86,7 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
 ]);
 
 interface ExchangeFormProps {
-  onExchangeSuccess: (network: string, address: string, deliveryMethod: 'bank' | 'cash', deliveryAddress?: string) => void;
+  onExchangeSuccess: (network: string, address: string, deliveryMethod: 'bank' | 'cash', formData: any) => void;
 }
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
@@ -138,10 +138,10 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       // Get the USDT deposit address based on the selected network
       const depositAddress = USDT_WALLETS[values.usdtNetwork];
       if (depositAddress) {
-        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, 'deliveryAddress' in values ? values.deliveryAddress : undefined);
+        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, { ...values, calculatedVND, exchangeRate }); // Pass all form data
       } else {
         console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
-        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, 'deliveryAddress' in values ? values.deliveryAddress : undefined);
+        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, { ...values, calculatedVND, exchangeRate }); // Pass all form data
       }
 
       // Reset form based on the current delivery method
@@ -259,7 +259,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     <FormControl>
                       <RadioGroupItem value="bank" />
                     </FormControl>
-                    <Label className="font-normal"> {/* Changed FormLabel to Label */}
+                    <Label className="font-normal">
                       На банковский счет
                     </Label>
                   </FormItem>
@@ -267,7 +267,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     <FormControl>
                       <RadioGroupItem value="cash" />
                     </FormControl>
-                    <Label className="font-normal"> {/* Changed FormLabel to Label */}
+                    <Label className="font-normal">
                       Наличными (доставка)
                     </Label>
                   </FormItem>
