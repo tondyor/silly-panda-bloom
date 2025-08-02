@@ -15,7 +15,7 @@ export const WhyChooseUsSection = () => {
           <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
           <div>
             <h3 className="font-semibold text-gray-800">Выгодный курс:</h3>
-            <p className="text-gray-600 text-sm">Мы предлагаем курс на 0.5% лучше официального, чтобы вы получали максимум от каждого обмена.</p>
+            <p className="text-gray-600 text-sm">Мы предлагаем курс на 0.5% лучше официального курса Центробанка, чтобы вы получали максимум от каждого обмена.</p>
           </div>
         </div>
         <div className="flex items-start space-x-3">
