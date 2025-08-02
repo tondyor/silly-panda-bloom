@@ -338,7 +338,12 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               name="deliveryAddress"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Адрес доставки (Дананг/Хойан)</FormLabel>
+                  <FormLabel>
+                    Адрес доставки (Дананг/Хойан)
+                    <span className="block text-xs text-gray-500 font-normal mt-1">
+                      Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
+                    </span>
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Введите полный адрес доставки" {...field} className="p-3" />
                   </FormControl>
