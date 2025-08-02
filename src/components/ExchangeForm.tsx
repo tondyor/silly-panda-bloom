@@ -34,7 +34,7 @@ const USDT_WALLETS: Record<string, string> = {
   "TON": "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
   "TRC20": "TAAQEjDBQK5hN1MGumVUjtzX42qRYCjTkB",
   "ERC20": "0x54C7fA815AE5a5DDEd5DAa4A36CFB6903cE7D896",
-  "SPL": "Адрес для SPL будет предоставлен после подтверждения.", // Placeholder for SPL
+  "SPL": "9vBe1AP3197jP4PSjC2jUsyadr82Sey3nXbxAT3LSQwm", // Added Solana SPL address
 };
 
 const commonFields = {
@@ -52,7 +52,7 @@ const commonFields = {
     "TRC20",
     "ERC20",
     "TON",
-    "SPL"
+    "SPL" // Added SPL to the enum
   ], { required_error: "Пожалуйста, выберите сеть USDT." }),
 };
 
