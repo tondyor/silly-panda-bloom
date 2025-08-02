@@ -28,14 +28,7 @@ const ExchangePage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          <div className="text-center text-lg font-semibold text-gray-700">
-            <p className="mb-2">
-              Получите на <span className="text-green-600 font-bold">0.5% больше</span>, чем по официальному курсу!
-            </p>
-            <p className="text-sm text-gray-500">
-              Мы предлагаем самый выгодный курс для вашего обмена.
-            </p>
-          </div>
+          {/* Removed the text about 0.5% better rate */}
           <ExchangeForm />
         </CardContent>
       </Card>

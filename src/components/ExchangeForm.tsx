@@ -13,6 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -20,26 +21,40 @@ import { Loader2 } from "lucide-react";
 const OFFICIAL_USDT_VND_RATE = 25000; // 1 USDT = 25,000 VND
 const PROFIT_MARGIN = 0.005; // 0.5% better
 
-const formSchema = z.object({
-  usdtAmount: z.coerce
-    .number()
-    .min(10, "Минимальная сумма обмена 10 USDT.")
-    .max(100000, "Максимальная сумма обмена 100,000 USDT."),
-  vndBankAccountNumber: z
-    .string()
-    .min(8, "Номер счета должен содержать не менее 8 символов.")
-    .max(20, "Номер счета должен содержать не более 20 символов.")
-    .regex(/^\d+$/, "Номер счета должен содержать только цифры."),
-  vndBankName: z
-    .string()
-    .min(2, "Название банка должно содержать не менее 2 символов.")
-    .max(50, "Название банка должно содержать не более 50 символов."),
-  usdtWalletAddress: z
-    .string()
-    .min(30, "Адрес кошелька USDT должен содержать не менее 30 символов.")
-    .max(60, "Адрес кошелька USDT должен содержать не более 60 символов.")
-    .regex(/^(0x)?[0-9a-fA-F]{30,60}$/, "Неверный формат адреса USDT кошелька."),
-});
+const formSchema = z.discriminatedUnion("deliveryMethod", [
+  z.object({
+    deliveryMethod: z.literal('bank'),
+    usdtAmount: z.coerce
+      .number()
+      .min(10, "Минимальная сумма обмена 10 USDT.")
+      .max(100000, "Максимальная сумма обмена 100,000 USDT."),
+    vndBankAccountNumber: z
+      .string()
+      .min(8, "Номер счета должен содержать не менее 8 символов.")
+      .max(20, "Номер счета должен содержать не более 20 символов.")
+      .regex(/^\d+$/, "Номер счета должен содержать только цифры."),
+    vndBankName: z
+      .string()
+      .min(2, "Название банка должно содержать не менее 2 символов.")
+      .max(50, "Название банка должно содержать не более 50 символов."),
+  }),
+  z.object({
+    deliveryMethod: z.literal('cash'),
+    usdtAmount: z.coerce
+      .number()
+      .min(10, "Минимальная сумма обмена 10 USDT.")
+      .max(100000, "Максимальная сумма обмена 100,000 USDT."),
+    deliveryAddress: z
+      .string()
+      .min(10, "Адрес доставки должен быть подробным.")
+      .max(200, "Адрес доставки слишком длинный."),
+    contactPhone: z
+      .string()
+      .min(10, "Номер телефона должен содержать не менее 10 цифр.")
+      .max(15, "Номер телефона должен содержать не более 15 цифр.")
+      .regex(/^\+?\d{10,15}$/, "Неверный формат номера телефона."),
+  }),
+]);
 
 export function ExchangeForm() {
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
@@ -50,13 +65,15 @@ export function ExchangeForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       usdtAmount: 100, // Default value for demonstration
+      deliveryMethod: 'bank', // Default to bank transfer
       vndBankAccountNumber: "",
       vndBankName: "",
-      usdtWalletAddress: "",
+      // Removed deliveryAddress and contactPhone from defaultValues as they are part of 'cash' union
     },
   });
 
   const usdtAmount = form.watch("usdtAmount");
+  const deliveryMethod = form.watch("deliveryMethod"); // Watch the delivery method
 
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
@@ -76,15 +93,29 @@ export function ExchangeForm() {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
-      // In a real application, you would send `values` to your backend
-      // and handle the actual exchange process.
       console.log("Exchange request submitted:", values);
       console.log("Calculated VND:", calculatedVND);
 
       toast.success("Ваш запрос на обмен успешно отправлен!", {
         description: `Вы обменяли ${values.usdtAmount} USDT на ${calculatedVND.toLocaleString('vi-VN')} VND.`,
       });
-      form.reset(); // Clear form after successful submission
+      
+      // Reset form based on the current delivery method
+      if (deliveryMethod === 'bank') {
+        form.reset({
+          usdtAmount: 100,
+          deliveryMethod: 'bank',
+          vndBankAccountNumber: "",
+          vndBankName: "",
+        });
+      } else { // deliveryMethod === 'cash'
+        form.reset({
+          usdtAmount: 100,
+          deliveryMethod: 'cash',
+          deliveryAddress: "",
+          contactPhone: "",
+        });
+      }
       setCalculatedVND(0);
     } catch (error) {
       console.error("Exchange failed:", error);
@@ -137,45 +168,106 @@ export function ExchangeForm() {
           Текущий курс: 1 USDT = <span className="font-semibold text-blue-600">{exchangeRate.toLocaleString('vi-VN')} VND</span>
         </div>
 
+        {/* Delivery Method Toggle */}
         <FormField
           control={form.control}
-          name="vndBankAccountNumber"
+          name="deliveryMethod"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Номер банковского счета VND</FormLabel>
+            <FormItem className="space-y-3">
+              <FormLabel>Способ получения VND</FormLabel>
               <FormControl>
-                <Input placeholder="Введите номер счета" {...field} className="p-3" />
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-1"
+                >
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="bank" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      На банковский счет
+                    </FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="cash" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Наличными (доставка)
+                    </FormLabel>
+                  </FormItem>
+                </RadioGroup>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="vndBankName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Название банка VND</FormLabel>
-              <FormControl>
-                <Input placeholder="Например, Vietcombank" {...field} className="p-3" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="usdtWalletAddress"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Ваш адрес кошелька USDT (для отправки)</FormLabel>
-              <FormControl>
-                <Input placeholder="Введите адрес вашего USDT кошелька" {...field} className="p-3" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
+        {deliveryMethod === 'bank' && (
+          <>
+            <FormField
+              control={form.control}
+              name="vndBankAccountNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Номер карты или счета VND</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Введите номер карты или счета" {...field} className="p-3" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="vndBankName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Название банка VND</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Например, Vietcombank" {...field} className="p-3" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
+        {deliveryMethod === 'cash' && (
+          <>
+            <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+              Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
+            </p>
+            <FormField
+              control={form.control}
+              name="deliveryAddress"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Адрес доставки (Дананг/Хойан)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Введите полный адрес доставки" {...field} className="p-3" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="contactPhone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Контактный телефон</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Введите ваш номер телефона" {...field} className="p-3" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
 
         <Button type="submit" className="w-full py-3 text-lg bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
           {isSubmitting ? (
@@ -187,9 +279,6 @@ export function ExchangeForm() {
             "Обменять сейчас"
           )}
         </Button>
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Нажимая "Обменять сейчас", вы соглашаетесь с нашими условиями.
-        </p>
       </form>
     </Form>
   );
