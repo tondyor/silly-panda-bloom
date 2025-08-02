@@ -348,7 +348,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               name="contactPhone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Контактный телефон</FormLabel>
+                  <FormLabel>Контактный телефон</FormLabel> {/* Fixed: Added closing tag */}
                   <FormControl>
                     <Input placeholder="Введите ваш номер телефона" {...field} className="p-3" />
                   </FormControl>

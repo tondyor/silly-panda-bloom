@@ -1,118 +1,62 @@
-import React from "react";
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import * as LucideIcons from "lucide-react"; // Импортируем все иконки под пространством имен LucideIcons
+import { Send } from 'lucide-react'; // Using Send icon for Telegram
 
 interface ExchangeInfoSectionProps {
-  depositInfo?: {
-    network: string;
-    address: string;
-  } | null;
-  deliveryMethodAfterSubmit?: 'bank' | 'cash' | null;
-  submittedDeliveryAddress?: string | null;
+  depositInfo: { network: string; address: string; } | null;
+  deliveryMethodAfterSubmit: 'bank' | 'cash' | null;
+  submittedDeliveryAddress: string | null;
 }
 
 export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, submittedDeliveryAddress }: ExchangeInfoSectionProps) => {
   return (
-    <div className="w-full max-w-lg mx-auto mt-8 space-y-6">
-      <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-center text-blue-700">
-            {depositInfo ? "Пополнение" : "Почему выбирают VietSwap?"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-gray-700">
-          {depositInfo ? (
-            <div className="space-y-4">
-              <p>Для пополнения Вашего баланса USDT, отправьте монеты на адрес указанный ниже.</p>
-              <div className="bg-gray-100 p-4 rounded-md space-y-2">
-                <p><span className="font-semibold">Сеть:</span> {depositInfo.network}</p>
-                <p className="break-all"><span className="font-semibold">Адрес:</span> <span className="text-blue-600 font-mono">{depositInfo.address}</span></p>
-                <p><span className="font-semibold">Минимальная сумма:</span> 100 USDT</p>
-              </div>
-              <div className="flex items-start space-x-2 text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
-                <LucideIcons.AlertTriangle className="flex-shrink-0 mt-1" size={20} />
-                <p className="text-sm">
-                  <span className="font-semibold">Внимание!</span> Пополняйте только USDT в {depositInfo.network}. Если Вы отправите другие монеты либо используете другую сеть, Ваши монеты будут потеряны.
-                </p>
-              </div>
+    <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60 mt-6">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-2xl font-bold text-center text-blue-700">
+          {depositInfo ? "Информация для обмена" : "Свяжитесь с нами"}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6 pt-0 space-y-6">
+        {depositInfo ? (
+          <div className="space-y-4">
+            <p>Для пополнения Вашего баланса USDT, отправьте монеты на адрес указанный ниже.</p>
+            <p className="text-sm text-red-600 font-semibold">
+              Внимание: Курс обмена фиксируется на 15 минут с момента оформления заказа. По истечении этого времени курс может быть скорректирован.
+            </p>
+            <div className="bg-gray-100 p-4 rounded-md space-y-2">
+              <p><span className="font-semibold">Сеть:</span> {depositInfo.network}</p>
+              <p className="break-all"><span className="font-semibold">Адрес:</span> <span className="text-blue-600 font-mono">{depositInfo.address}</span></p>
             </div>
-          ) : (
-            <>
-              <div className="flex items-start space-x-3">
-                <LucideIcons.CheckCircle className="text-green-500 flex-shrink-0 mt-1" size={20} />
-                <p>
-                  <span className="font-semibold">Выгодный курс:</span> Мы предлагаем курс на 0.5% лучше официального, чтобы вы получали максимум от каждого обмена.
+            {deliveryMethodAfterSubmit === 'cash' && submittedDeliveryAddress && (
+              <div className="bg-gray-100 p-4 rounded-md space-y-2">
+                <p><span className="font-semibold">Способ получения:</span> Наличными (доставка)</p>
+                <p><span className="font-semibold">Адрес доставки:</span> {submittedDeliveryAddress}</p>
+                <p className="text-sm text-gray-600">
+                  Наш курьер свяжется с вами в ближайшее время для подтверждения деталей доставки.
                 </p>
               </div>
-              <div className="flex items-start space-x-3">
-                <LucideIcons.FastForward className="text-orange-500 flex-shrink-0 mt-1" size={20} />
-                <p>
-                  <span className="font-semibold">Быстрые транзакции:</span> Наши процессы оптимизированы для мгновенного обмена, чтобы вы не ждали.
-                </p>
-              </div>
-              <div className="flex items-start space-x-3">
-                <LucideIcons.Headset className="text-purple-500 flex-shrink-0 mt-1" size={20} />
-                <p>
-                  <span className="font-semibold">Надежная поддержка:</span> Наша команда всегда готова помочь с любыми вопросами 24/7.
-                </p>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-center text-blue-700">
-            {depositInfo ? "Информация о получении" : "Как это работает?"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-gray-700">
-          {depositInfo ? (
-            deliveryMethodAfterSubmit === 'bank' ? (
-              <p>После подтверждения платежа банком, вы получите чек на свой аккаунт Telegram в течение 3-15 минут.</p>
-            ) : (
-              <p>Курьер приедет по адресу "{submittedDeliveryAddress}" в течение 30 минут.</p>
-            )
-          ) : (
-            <ol className="list-decimal list-inside space-y-2">
-              <li>Введите сумму USDT и данные для получения VND.</li>
-              <li>Подтвердите детали обмена.</li>
-              <li>Отправьте USDT на указанный адрес.</li>
-              <li>Получите VND на ваш банковский счет или курьером от 15 минут.</li>
-            </ol>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-white/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-center text-blue-700">
-            {depositInfo ? "Мы в соцсетях" : "Свяжитесь с нами"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center text-gray-700">
-          {depositInfo ? (
-            <>
-              {deliveryMethodAfterSubmit === 'cash' && (
-                <p className="mb-2">Курьер свяжется с вами в Telegram за 5 минут до приезда, пожалуйста не пропустите сообщение и держите телефон рядом.</p>
-              )}
-              {deliveryMethodAfterSubmit === 'bank' && (
-                <p className="mb-2">После подтверждения платежа банком, вы получите чек на свой аккаунт Telegram.</p>
-              )}
-              <p className="font-semibold">Подпишитесь на нас в телеграм: <a href="https://t.me/vietswap" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@vietswap</a></p>
-            </>
-          ) : (
-            <>
-              <p className="mb-2">Больше информации в Telegram:</p>
-              <p className="font-semibold flex items-center justify-center">
-                <LucideIcons.Send className="mr-2 h-5 w-5 text-blue-500" /> {/* Changed Telegram to Send */}
-                <a href="https://t.me/vietswap" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@vietswap</a>
-              </p>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            )}
+            <p className="text-sm text-gray-600">
+              После отправки USDT, пожалуйста, свяжитесь с нами в Telegram для подтверждения транзакции.
+            </p>
+          </div>
+        ) : (
+          <div className="text-center space-y-4">
+            <p className="text-gray-700 text-lg">
+              Больше информации в Telegram
+            </p>
+            <a
+              href="https://t.me/your_telegram_username" // Replace with actual Telegram link
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md"
+            >
+              <Send className="mr-2 h-5 w-5" />
+              Написать в Telegram
+            </a>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
