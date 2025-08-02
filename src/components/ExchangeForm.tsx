@@ -145,7 +145,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       // Reset form based on the current delivery method
       if (deliveryMethod === 'bank') {
         form.reset({
-          usdtAmount: 100, // Keep as number, as schema expects number
+          usdtAmount: "100", // Changed to string to match expected type for reset
           deliveryMethod: 'bank',
           telegramContact: "@",
           usdtNetwork: "TRC20", // Reset network
@@ -154,7 +154,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         });
       } else { // deliveryMethod === 'cash'
         form.reset({
-          usdtAmount: 100, // Keep as number, as schema expects number
+          usdtAmount: "100", // Changed to string to match expected type for reset
           deliveryMethod: 'cash',
           telegramContact: "@",
           usdtNetwork: "TRC20", // Reset network
@@ -190,11 +190,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // Ensure field.onChange receives a number
+                    // Ensure field.onChange receives a number, as expected by Zod's coerce.number()
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Parse to float. If empty string or invalid, parseFloat returns NaN.
-                      // Zod's coerce.number().min(100) will then handle validation for NaN.
                       field.onChange(parseFloat(value));
                     }}
                     className="text-lg p-3"
