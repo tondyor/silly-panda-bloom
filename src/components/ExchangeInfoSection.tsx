@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, FastForward, Headset, AlertTriangle } from "lucide-react";
+import * as LucideIcons from "lucide-react"; // Импортируем все иконки под пространством имен LucideIcons
 
 interface ExchangeInfoSectionProps {
   depositInfo?: {
@@ -30,7 +30,7 @@ export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, su
                 <p><span className="font-semibold">Минимальная сумма:</span> 100 USDT</p>
               </div>
               <div className="flex items-start space-x-2 text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
-                <AlertTriangle className="flex-shrink-0 mt-1" size={20} />
+                <LucideIcons.AlertTriangle className="flex-shrink-0 mt-1" size={20} />
                 <p className="text-sm">
                   <span className="font-semibold">Внимание!</span> Пополняйте только USDT в {depositInfo.network}. Если Вы отправите другие монеты либо используете другую сеть, Ваши монеты будут потеряны.
                 </p>
@@ -39,19 +39,19 @@ export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, su
           ) : (
             <>
               <div className="flex items-start space-x-3">
-                <CheckCircle className="text-green-500 flex-shrink-0 mt-1" size={20} />
+                <LucideIcons.CheckCircle className="text-green-500 flex-shrink-0 mt-1" size={20} />
                 <p>
                   <span className="font-semibold">Выгодный курс:</span> Мы предлагаем курс на 0.5% лучше официального, чтобы вы получали максимум от каждого обмена.
                 </p>
               </div>
               <div className="flex items-start space-x-3">
-                <FastForward className="text-orange-500 flex-shrink-0 mt-1" size={20} />
+                <LucideIcons.FastForward className="text-orange-500 flex-shrink-0 mt-1" size={20} />
                 <p>
                   <span className="font-semibold">Быстрые транзакции:</span> Наши процессы оптимизированы для мгновенного обмена, чтобы вы не ждали.
                 </p>
               </div>
               <div className="flex items-start space-x-3">
-                <Headset className="text-purple-500 flex-shrink-0 mt-1" size={20} />
+                <LucideIcons.Headset className="text-purple-500 flex-shrink-0 mt-1" size={20} />
                 <p>
                   <span className="font-semibold">Надежная поддержка:</span> Наша команда всегда готова помочь с любыми вопросами 24/7.
                 </p>
@@ -104,8 +104,11 @@ export const ExchangeInfoSection = ({ depositInfo, deliveryMethodAfterSubmit, su
             </>
           ) : (
             <>
-              <p className="mb-2">Больше информации:</p>
-              <p className="font-semibold">Подпишитесь на нас в телеграм: <a href="https://t.me/vietswap" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@vietswap</a></p>
+              <p className="mb-2">Больше информации в Telegram:</p>
+              <p className="font-semibold flex items-center justify-center">
+                <LucideIcons.Send className="mr-2 h-5 w-5 text-blue-500" /> {/* Changed Telegram to Send */}
+                <a href="https://t.me/vietswap" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@vietswap</a>
+              </p>
             </>
           )}
         </CardContent>
