@@ -38,21 +38,10 @@ const USDT_WALLETS: Record<string, string> = {
 };
 
 const commonFields = {
-  usdtAmount: z
-    .string()
-    .min(1, "Сумма USDT не может быть пустой.")
-    .refine((val) => {
-      const num = parseFloat(val);
-      return !isNaN(num) && num > 0;
-    }, {
-      message: "Введите корректную сумму USDT.",
-    })
-    .transform(parseFloat)
-    .pipe(
-      z.number()
-        .min(100, "Минимальная сумма обмена 100 USDT.")
-        .max(100000, "Максимальная сумма обмена 100,000 USDT.")
-    ),
+  usdtAmount: z.coerce // Zod will coerce string input to number
+    .number()
+    .min(100, "Минимальная сумма обмена 100 USDT.")
+    .max(100000, "Максимальная сумма обмена 100,000 USDT."),
   telegramContact: z
     .string()
     .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
@@ -108,7 +97,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: "100", // Инициализируем строкой, так как Zod ожидает строку для ввода
+      usdtAmount: 100, // Инициализируем числом, так как Zod ожидает число
       deliveryMethod: 'bank',
       telegramContact: "@",
       usdtNetwork: "TRC20",
@@ -118,13 +107,12 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     },
   });
 
-  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом из-за transform в схеме
+  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом (или NaN)
   const deliveryMethod = form.watch("deliveryMethod");
 
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
     setExchangeRate(rate);
-    // usdtAmount здесь уже число благодаря transform в схеме
     if (typeof usdtAmount === 'number' && !isNaN(usdtAmount) && usdtAmount > 0) {
       setCalculatedVND(usdtAmount * rate);
     } else {
@@ -154,7 +142,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
       if (deliveryMethod === 'bank') {
         form.reset({
-          usdtAmount: "100", // Сбрасываем на строковое значение
+          usdtAmount: 100, // Сбрасываем на числовое значение
           deliveryMethod: 'bank',
           telegramContact: "@",
           usdtNetwork: "TRC20",
@@ -164,7 +152,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         });
       } else {
         form.reset({
-          usdtAmount: "100", // Сбрасываем на строковое значение
+          usdtAmount: 100, // Сбрасываем на числовое значение
           deliveryMethod: 'cash',
           telegramContact: "@",
           usdtNetwork: "TRC20",
@@ -200,11 +188,12 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // field.value теперь строка, как и ожидается Input type="number"
-                    value={field.value}
+                    // field.value теперь число | undefined. Input type="number" обрабатывает NaN, показывая пустоту.
+                    // Используем nullish coalescing для отображения пустой строки для undefined/null значений.
+                    value={field.value ?? ''} 
                     onChange={(e) => {
-                      // Передаем строковое значение напрямую, Zod transform его обработает
-                      field.onChange(e.target.value);
+                      // Преобразуем строковое значение из поля ввода в число перед передачей в field.onChange
+                      field.onChange(parseFloat(e.target.value));
                     }}
                     className="text-lg p-3"
                   />
@@ -262,9 +251,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             onValueChange={(value) => form.setValue("deliveryMethod", value as 'bank' | 'cash')} 
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="bank">На банковский счет</TabsTrigger>
-              <TabsTrigger value="cash">Наличными (доставка)</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100 rounded-lg p-1">
+              <TabsTrigger value="bank" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">На банковский счет</TabsTrigger>
+              <TabsTrigger value="cash" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Наличными (доставка)</TabsTrigger>
             </TabsList>
             <TabsContent value="bank" className="mt-4 space-y-4">
               <FormField
