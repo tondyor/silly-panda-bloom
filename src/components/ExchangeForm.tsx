@@ -30,15 +30,15 @@ const PROFIT_MARGIN = 0.005; // 0.5% better
 
 // USDT Wallet Addresses
 const USDT_WALLETS: Record<string, string> = {
-  "BEP20": "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
-  "TON": "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
-  "TRC20": "TAAQEjDBQK5hN1MGumVUjtzX42qRYCjTkB",
-  "ERC20": "0x54C7fA815AE5a5DDEd5DAa4A36CFB6903cE7D896",
-  "SPL": "9vBe1AP3197jP4PSjC2jUsyadr82Sey3nXbxAT3LSQwm",
+  BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
+  TON: "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
+  TRC20: "TAAQEjDBQK5hN1MGumVUjtzX42qRYCjTkB",
+  ERC20: "0x54C7fA815AE5a5DDEd5DAa4A36CFB6903cE7D896",
+  SPL: "9vBe1AP3197jP4PSjC2jUsyadr82Sey3nXbxAT3LSQwm",
 };
 
 const commonFields = {
-  usdtAmount: z.coerce // Zod will coerce string input to number
+  usdtAmount: z
     .number()
     .min(100, "Минимальная сумма обмена 100 USDT.")
     .max(100000, "Максимальная сумма обмена 100,000 USDT."),
@@ -47,22 +47,22 @@ const commonFields = {
     .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
     .max(32, "Имя пользователя Telegram должно содержать не более 32 символов.")
     .regex(/^@[a-zA-Z0-9_]{3,32}$/, "Неверный формат имени пользователя Telegram (начните с @)."),
-  usdtNetwork: z.enum([
-    "BEP20",
-    "TRC20",
-    "ERC20",
-    "TON",
-    "SPL"
-  ], { required_error: "Пожалуйста, выберите сеть USDT." }),
+  usdtNetwork: z.enum(["BEP20", "TRC20", "ERC20", "TON", "SPL"], {
+    required_error: "Пожалуйста, выберите сеть USDT.",
+  }),
   contactPhone: z
-    .string()    .optional()
-    .or(z.literal(''))
-    .refine(val => val === undefined || val === '' || /^\+?\d{10,15}$/.test(val), "Неверный формат номера телефона."),
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => val === undefined || val === "" || /^\+?\d{10,15}$/.test(val),
+      "Неверный формат номера телефона.",
+    ),
 };
 
 const formSchema = z.discriminatedUnion("deliveryMethod", [
   z.object({
-    deliveryMethod: z.literal('bank'),
+    deliveryMethod: z.literal("bank"),
     ...commonFields,
     vndBankAccountNumber: z
       .string()
@@ -75,7 +75,7 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
       .max(50, "Название банка должно содержать не более 50 символов."),
   }),
   z.object({
-    deliveryMethod: z.literal('cash'),
+    deliveryMethod: z.literal("cash"),
     ...commonFields,
     deliveryAddress: z
       .string()
@@ -85,7 +85,13 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
 ]);
 
 interface ExchangeFormProps {
-  onExchangeSuccess: (network: string, address: string, deliveryMethod: 'bank' | 'cash', formData: any, loadingToastId: string) => void;
+  onExchangeSuccess: (
+    network: string,
+    address: string,
+    deliveryMethod: "bank" | "cash",
+    formData: any,
+    loadingToastId: string,
+  ) => void;
 }
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
@@ -96,8 +102,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: 100, // Инициализируем числом, так как Zod ожидает число
-      deliveryMethod: 'bank',
+      usdtAmount: 100,
+      deliveryMethod: "bank",
       telegramContact: "@",
       usdtNetwork: "TRC20",
       vndBankAccountNumber: "",
@@ -106,13 +112,14 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     },
   });
 
-  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом (или NaN)
+  const usdtAmount = form.watch("usdtAmount");
   const deliveryMethod = form.watch("deliveryMethod");
+  const contactPhone = form.watch("contactPhone");
 
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
     setExchangeRate(rate);
-    if (typeof usdtAmount === 'number' && !isNaN(usdtAmount) && usdtAmount > 0) {
+    if (typeof usdtAmount === "number" && !isNaN(usdtAmount) && usdtAmount > 0) {
       setCalculatedVND(usdtAmount * rate);
     } else {
       setCalculatedVND(0);
@@ -130,19 +137,31 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     try {
       console.log("Exchange request submitted:", values);
       console.log("Calculated VND:", calculatedVND);
-      
+
       const depositAddress = USDT_WALLETS[values.usdtNetwork];
       if (depositAddress) {
-        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId);
+        onExchangeSuccess(
+          values.usdtNetwork,
+          depositAddress,
+          values.deliveryMethod,
+          { ...values, calculatedVND, exchangeRate },
+          loadingToastId,
+        );
       } else {
         console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
-        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId);
+        onExchangeSuccess(
+          values.usdtNetwork,
+          "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.",
+          values.deliveryMethod,
+          { ...values, calculatedVND, exchangeRate },
+          loadingToastId,
+        );
       }
 
-      if (deliveryMethod === 'bank') {
+      if (deliveryMethod === "bank") {
         form.reset({
-          usdtAmount: 100, // Сбрасываем на числовое значение
-          deliveryMethod: 'bank',
+          usdtAmount: 100,
+          deliveryMethod: "bank",
           telegramContact: "@",
           usdtNetwork: "TRC20",
           vndBankAccountNumber: "",
@@ -151,8 +170,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         });
       } else {
         form.reset({
-          usdtAmount: 100, // Сбрасываем на числовое значение
-          deliveryMethod: 'cash',
+          usdtAmount: 100,
+          deliveryMethod: "cash",
           telegramContact: "@",
           usdtNetwork: "TRC20",
           deliveryAddress: "",
@@ -181,20 +200,29 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             name="usdtAmount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Сумма USDT <span className="text-red-500">*</span></FormLabel>
+                <FormLabel>
+                  Сумма USDT <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // field.value теперь число | undefined. Input type="number" обрабатывает NaN, показывая пустоту.
-                    // Используем nullish coalescing для отображения пустой строки для undefined/null значений.
-                    value={field.value ?? ''} 
+                    value={String(field.value ?? "")}
                     onChange={(e) => {
-                      // Преобразуем строковое значение из поля ввода в число перед передачей в field.onChange
-                      field.onChange(parseFloat(e.target.value));
+                      const val = e.target.value;
+                      // Allow empty string to clear input
+                      if (val === "") {
+                        field.onChange(undefined);
+                      } else {
+                        const parsed = parseFloat(val);
+                        field.onChange(isNaN(parsed) ? undefined : parsed);
+                      }
                     }}
                     className="text-lg p-3"
+                    min={100}
+                    max={100000}
+                    step={1}
                   />
                 </FormControl>
                 <FormMessage />
@@ -205,7 +233,10 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             <Label className="mb-2">Вы получите (VND)</Label>
             <Input
               type="text"
-              value={calculatedVND.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+              value={calculatedVND.toLocaleString("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              })}
               readOnly
               className="bg-gray-100 font-bold text-green-700 text-lg p-3"
             />
@@ -213,7 +244,10 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         </div>
 
         <div className="text-center text-sm text-gray-600">
-          Текущий курс: 1 USDT = <span className="font-semibold text-blue-600">{exchangeRate.toLocaleString('vi-VN')} VND</span>
+          Текущий курс: 1 USDT ={" "}
+          <span className="font-semibold text-blue-600">
+            {exchangeRate.toLocaleString("vi-VN")} VND
+          </span>
         </div>
 
         {/* USDT Network Selection */}
@@ -222,7 +256,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           name="usdtNetwork"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Сеть USDT <span className="text-red-500">*</span></FormLabel>
+              <FormLabel>
+                Сеть USDT <span className="text-red-500">*</span>
+              </FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger className="p-3">
@@ -244,39 +280,45 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
         {/* Delivery Method Tabs */}
         <div className="space-y-3">
-          <Label>Способ получения VND <span className="text-red-500">*</span></Label>
-          <Tabs 
-            value={deliveryMethod} 
-            onValueChange={(value) => form.setValue("deliveryMethod", value as 'bank' | 'cash')} 
-            className="w-full mx-[-1.5rem]" // Добавлен отрицательный горизонтальный отступ
+          <Label>
+            Способ получения VND <span className="text-red-500">*</span>
+          </Label>
+          <Tabs
+            value={deliveryMethod}
+            onValueChange={(value) =>
+              form.setValue("deliveryMethod", value as "bank" | "cash")
+            }
+            className="w-full mx-[-1.5rem] overflow-hidden rounded-none"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-transparent"> {/* Removed p-1 and rounded-lg */}
-              <TabsTrigger 
-                value="bank" 
+            <TabsList className="grid w-full grid-cols-2 bg-transparent rounded-none border-none">
+              <TabsTrigger
+                value="bank"
                 className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
-                           transform skew-x-[2deg] -mr-1 /* Negative margin for overlap */
+                           transform skew-x-[1deg] -mr-1
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
                            data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
               >
-                <span className="inline-block -skew-x-[2deg]">На банковский счет</span>
+                <span className="inline-block -skew-x-[1deg]">На банковский счет</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="cash" 
+              <TabsTrigger
+                value="cash"
                 className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
-                           transform -skew-x-[2deg] -ml-1 /* Negative margin for overlap */
+                           transform -skew-x-[1deg] -ml-1
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
                            data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
               >
-                <span className="inline-block skew-x-[2deg]">Наличными (доставка)</span>
+                <span className="inline-block skew-x-[1deg]">Наличными (доставка)</span>
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-4 px-6"> {/* Добавлен px-6 для возврата отступов */}
+            <TabsContent value="bank" className="mt-4 space-y-4 px-6">
               <FormField
                 control={form.control}
                 name="vndBankAccountNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Номер карты или счета VND <span className="text-red-500">*</span></FormLabel>
+                    <FormLabel>
+                      Номер карты или счета VND <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Введите номер карты или счета" {...field} className="p-3" />
                     </FormControl>
@@ -289,7 +331,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 name="vndBankName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Название банка VND <span className="text-red-500">*</span></FormLabel>
+                    <FormLabel>
+                      Название банка VND <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Например, Vietcombank" {...field} className="p-3" />
                     </FormControl>
@@ -298,7 +342,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 )}
               />
             </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-4 px-6"> {/* Добавлен px-6 для возврата отступов */}
+            <TabsContent value="cash" className="mt-4 space-y-4 px-6">
               <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
                 Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
               </p>
@@ -330,7 +374,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           name="telegramContact"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Ваш Telegram (для связи) <span className="text-red-500">*</span></FormLabel>
+              <FormLabel>
+                Ваш Telegram (для связи) <span className="text-red-500">*</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="@ваш_никнейм" {...field} className="p-3" />
               </FormControl>
@@ -347,18 +393,22 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             <FormItem>
               <FormLabel>Контактный телефон</FormLabel>
               <FormControl>
-                <Input placeholder="Введите ваш номер телефона" {...field} className="p-3" />
+                <Input
+                  placeholder="Введите ваш номер телефона"
+                  {...field}
+                  value={String(field.value ?? "")}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full py-3 text-lg rounded-full 
                      bg-gradient-to-b from-green-400 to-green-700 text-white shadow-xl 
-                     hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out" 
+                     hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
