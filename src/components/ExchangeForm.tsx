@@ -208,10 +208,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    value={String(field.value ?? "")}
+                    value={field.value !== undefined && field.value !== null ? String(field.value) : ""}
                     onChange={(e) => {
                       const val = e.target.value;
-                      // Allow empty string to clear input
                       if (val === "") {
                         field.onChange(undefined);
                       } else {
@@ -303,7 +302,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               <TabsTrigger
                 value="cash"
                 className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
-                           transform -skew-x-[1deg] -ml-1
+                           transform -skew-x-[1deg] mr-0
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
                            data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
               >
@@ -396,7 +395,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 <Input
                   placeholder="Введите ваш номер телефона"
                   {...field}
-                  value={String(field.value ?? "")}
+                  value={field.value !== undefined && field.value !== null ? String(field.value) : ""}
                 />
               </FormControl>
               <FormMessage />
