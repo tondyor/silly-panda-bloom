@@ -55,8 +55,7 @@ const commonFields = {
     "SPL"
   ], { required_error: "Пожалуйста, выберите сеть USDT." }),
   contactPhone: z
-    .string()
-    .optional()
+    .string()    .optional()
     .or(z.literal(''))
     .refine(val => val === undefined || val === '' || /^\+?\d{10,15}$/.test(val), "Неверный формат номера телефона."),
 };
@@ -113,7 +112,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
     setExchangeRate(rate);
-    // usdtAmount здесь уже число благодаря transform в схеме
     if (typeof usdtAmount === 'number' && !isNaN(usdtAmount) && usdtAmount > 0) {
       setCalculatedVND(usdtAmount * rate);
     } else {
@@ -250,7 +248,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           <Tabs 
             value={deliveryMethod} 
             onValueChange={(value) => form.setValue("deliveryMethod", value as 'bank' | 'cash')} 
-            className="w-full"
+            className="w-full mx-[-1.5rem]" // Добавлен отрицательный горизонтальный отступ
           >
             <TabsList className="grid w-full grid-cols-2 bg-transparent"> {/* Removed p-1 and rounded-lg */}
               <TabsTrigger 
