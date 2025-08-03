@@ -97,7 +97,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: "100", // Инициализируем строкой, так как Zod ожидает строку для ввода
+      usdtAmount: "100", // Инициализируем строкой, так как Input type="number" ожидает строку
       deliveryMethod: 'bank',
       telegramContact: "@",
       usdtNetwork: "TRC20",
@@ -189,8 +189,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // field.value теперь строка, как и ожидается Input type="number"
-                    value={field.value}
+                    // field.value теперь число (из-за Zod coerce). Input type="number" ожидает строку.
+                    // Преобразуем число в строку для отображения.
+                    value={String(field.value)}
                     onChange={(e) => {
                       // Передаем строковое значение напрямую, Zod transform его обработает
                       field.onChange(e.target.value);
@@ -251,20 +252,20 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             onValueChange={(value) => form.setValue("deliveryMethod", value as 'bank' | 'cash')} 
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-gray-100 rounded-lg p-1">
+            <TabsList className="grid w-full grid-cols-2 bg-transparent rounded-lg">
               <TabsTrigger 
                 value="bank" 
-                className="rounded-md text-lg py-2 px-4 
-                           data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm 
-                           data-[state=inactive]:bg-red-600/50 data-[state=inactive]:text-white"
+                className="rounded-full text-lg py-2 px-4 transition-all duration-300 ease-in-out
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm"
               >
                 На банковский счет
               </TabsTrigger>
               <TabsTrigger 
                 value="cash" 
-                className="rounded-md text-lg py-2 px-4 
-                           data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm 
-                           data-[state=inactive]:bg-red-600/50 data-[state=inactive]:text-white"
+                className="rounded-full text-lg py-2 px-4 transition-all duration-300 ease-in-out
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm"
               >
                 Наличными (доставка)
               </TabsTrigger>
@@ -355,7 +356,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
         <Button 
           type="submit" 
-          className="w-full py-3 text-lg bg-green-600/50 hover:bg-green-700/60 text-white" 
+          className="w-full py-3 text-lg rounded-full 
+                     bg-gradient-to-b from-green-400 to-green-700 text-white shadow-xl 
+                     hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out" 
           disabled={isSubmitting}
         >
           {isSubmitting ? (
