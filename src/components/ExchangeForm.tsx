@@ -256,7 +256,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 value="bank" 
                 className="rounded-md text-lg py-2 px-4 
                            data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm 
-                           data-[state=inactive]:bg-gray-200/50 data-[state=inactive]:text-gray-800"
+                           data-[state=inactive]:bg-red-600/50 data-[state=inactive]:text-white"
               >
                 На банковский счет
               </TabsTrigger>
@@ -264,7 +264,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 value="cash" 
                 className="rounded-md text-lg py-2 px-4 
                            data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm 
-                           data-[state=inactive]:bg-gray-200/50 data-[state=inactive]:text-gray-800"
+                           data-[state=inactive]:bg-red-600/50 data-[state=inactive]:text-white"
               >
                 Наличными (доставка)
               </TabsTrigger>
