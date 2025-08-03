@@ -187,12 +187,13 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // field.value теперь число (из-за Zod coerce). Input type="number" ожидает строку.
-                    // Преобразуем число в строку для отображения.
-                    value={String(field.value)}
+                    // field.value теперь число | undefined. Input type="number" обрабатывает NaN, показывая пустоту.
+                    // Используем nullish coalescing для отображения пустой строки для undefined/null значений.
+                    // Явно преобразуем в строку, чтобы избежать ошибки TS2345
+                    value={String(field.value ?? '')} 
                     onChange={(e) => {
-                      // Передаем строковое значение напрямую, Zod transform его обработает
-                      field.onChange(e.target.value);
+                      // Преобразуем строковое значение из поля ввода в число перед передачей в field.onChange
+                      field.onChange(parseFloat(e.target.value));
                     }}
                     className="text-lg p-3"
                   />
@@ -270,7 +271,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 <span className="inline-block skew-x-[6deg]">Наличными (доставка)</span>
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-4">
+            <TabsContent value="bank" className="mt-4 space-y-4 px-6"> {/* Добавлен px-6 для возврата отступов */}
               <FormField
                 control={form.control}
                 name="vndBankAccountNumber"
@@ -298,7 +299,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 )}
               />
             </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-4">
+            <TabsContent value="cash" className="mt-4 space-y-4 px-6"> {/* Добавлен px-6 для возврата отступов */}
               <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
                 Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
               </p>
