@@ -13,7 +13,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Hypothetical official rate (for demonstration purposes)
 const OFFICIAL_USDT_VND_RATE = 25000; // 1 USDT = 25,000 VND
@@ -38,10 +38,21 @@ const USDT_WALLETS: Record<string, string> = {
 };
 
 const commonFields = {
-  usdtAmount: z.coerce
-    .number()
-    .min(100, "Минимальная сумма обмена 100 USDT.")
-    .max(100000, "Максимальная сумма обмена 100,000 USDT."),
+  usdtAmount: z
+    .string()
+    .min(1, "Сумма USDT не может быть пустой.")
+    .refine((val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num > 0;
+    }, {
+      message: "Введите корректную сумму USDT.",
+    })
+    .transform(parseFloat)
+    .pipe(
+      z.number()
+        .min(100, "Минимальная сумма обмена 100 USDT.")
+        .max(100000, "Максимальная сумма обмена 100,000 USDT.")
+    ),
   telegramContact: z
     .string()
     .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
@@ -54,10 +65,10 @@ const commonFields = {
     "TON",
     "SPL"
   ], { required_error: "Пожалуйста, выберите сеть USDT." }),
-  contactPhone: z // Сделано необязательным
+  contactPhone: z
     .string()
     .optional()
-    .or(z.literal('')) // Позволяет пустую строку
+    .or(z.literal(''))
     .refine(val => val === undefined || val === '' || /^\+?\d{10,15}$/.test(val), "Неверный формат номера телефона."),
 };
 
@@ -97,27 +108,25 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: "100", // Изменено на строку для Input type="number"
-      deliveryMethod: 'bank', // Default to bank transfer
-      telegramContact: "@", // Default value for Telegram
-      usdtNetwork: "TRC20", // Default USDT network
+      usdtAmount: "100", // Инициализируем строкой, так как Zod ожидает строку для ввода
+      deliveryMethod: 'bank',
+      telegramContact: "@",
+      usdtNetwork: "TRC20",
       vndBankAccountNumber: "",
       vndBankName: "",
-      contactPhone: "", // Теперь это общее поле
+      contactPhone: "",
     },
   });
 
-  const usdtAmount = form.watch("usdtAmount");
-  const deliveryMethod = form.watch("deliveryMethod"); // Watch the delivery method
-  const usdtNetwork = form.watch("usdtNetwork"); // Watch the selected USDT network
+  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом из-за transform в схеме
+  const deliveryMethod = form.watch("deliveryMethod");
 
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
     setExchangeRate(rate);
-    // usdtAmount может быть строкой из-за defaultValues, поэтому преобразуем
-    const amount = typeof usdtAmount === 'string' ? parseFloat(usdtAmount) : usdtAmount;
-    if (amount && typeof amount === 'number' && amount > 0) {
-      setCalculatedVND(amount * rate);
+    // usdtAmount здесь уже число благодаря transform в схеме
+    if (typeof usdtAmount === 'number' && !isNaN(usdtAmount) && usdtAmount > 0) {
+      setCalculatedVND(usdtAmount * rate);
     } else {
       setCalculatedVND(0);
     }
@@ -126,44 +135,41 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", {
-      className: "opacity-75", // Apply semi-transparency to the loading toast
+      className: "opacity-75",
     });
 
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
       console.log("Exchange request submitted:", values);
       console.log("Calculated VND:", calculatedVND);
       
-      // Get the USDT deposit address based on the selected network
       const depositAddress = USDT_WALLETS[values.usdtNetwork];
       if (depositAddress) {
-        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId); // Pass loadingToastId
+        onExchangeSuccess(values.usdtNetwork, depositAddress, values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId);
       } else {
         console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
-        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId); // Pass loadingToastId
+        onExchangeSuccess(values.usdtNetwork, "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.", values.deliveryMethod, { ...values, calculatedVND, exchangeRate }, loadingToastId);
       }
 
-      // Reset form based on the current delivery method
       if (deliveryMethod === 'bank') {
         form.reset({
-          usdtAmount: "100", // Изменено на строку
+          usdtAmount: "100", // Сбрасываем на строковое значение
           deliveryMethod: 'bank',
           telegramContact: "@",
-          usdtNetwork: "TRC20", // Reset network
+          usdtNetwork: "TRC20",
           vndBankAccountNumber: "",
           vndBankName: "",
-          contactPhone: "", // Reset to empty string for optional field
+          contactPhone: "",
         });
-      } else { // deliveryMethod === 'cash'
+      } else {
         form.reset({
-          usdtAmount: "100", // Изменено на строку
+          usdtAmount: "100", // Сбрасываем на строковое значение
           deliveryMethod: 'cash',
           telegramContact: "@",
-          usdtNetwork: "TRC20", // Reset network
+          usdtNetwork: "TRC20",
           deliveryAddress: "",
-          contactPhone: "", // Reset to empty string for optional field
+          contactPhone: "",
         });
       }
       setCalculatedVND(0);
@@ -171,9 +177,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       console.error("Exchange failed:", error);
       toast.error("Ошибка при обработке обмена.", {
         description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.",
-        duration: 5000, // Error toasts can disappear after 5 seconds
+        duration: 5000,
       });
-      toast.dismiss(loadingToastId); // Dismiss loading toast on error
+      toast.dismiss(loadingToastId);
     } finally {
       setIsSubmitting(false);
     }
@@ -194,12 +200,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // Убедимся, что value всегда строка для Input type="number"
-                    value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                    // field.value теперь строка, как и ожидается Input type="number"
+                    value={field.value}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      // Передаем строковое значение. Zod's coerce.number() преобразует его в число.
-                      field.onChange(value);
+                      // Передаем строковое значение напрямую, Zod transform его обработает
+                      field.onChange(e.target.value);
                     }}
                     className="text-lg p-3"
                   />
@@ -249,41 +254,71 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           )}
         />
 
-        {/* Delivery Method Toggle */}
-        <FormField
-          control={form.control}
-          name="deliveryMethod"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>Способ получения VND <span className="text-red-500">*</span></FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-col space-y-1"
-                >
-                  <FormItem className="flex items-center space-x-3 space-y-0">
+        {/* Delivery Method Tabs */}
+        <div className="space-y-3">
+          <Label>Способ получения VND <span className="text-red-500">*</span></Label>
+          <Tabs 
+            value={deliveryMethod} 
+            onValueChange={(value) => form.setValue("deliveryMethod", value as 'bank' | 'cash')} 
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="bank">На банковский счет</TabsTrigger>
+              <TabsTrigger value="cash">Наличными (доставка)</TabsTrigger>
+            </TabsList>
+            <TabsContent value="bank" className="mt-4 space-y-4">
+              <FormField
+                control={form.control}
+                name="vndBankAccountNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Номер карты или счета VND <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <RadioGroupItem value="bank" />
+                      <Input placeholder="Введите номер карты или счета" {...field} className="p-3" />
                     </FormControl>
-                    <Label className="font-normal">
-                      На банковский счет
-                    </Label>
+                    <FormMessage />
                   </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="vndBankName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Название банка VND <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <RadioGroupItem value="cash" />
+                      <Input placeholder="Например, Vietcombank" {...field} className="p-3" />
                     </FormControl>
-                    <Label className="font-normal">
-                      Наличными (доставка)
-                    </Label>
+                    <FormMessage />
                   </FormItem>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="cash" className="mt-4 space-y-4">
+              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
+              </p>
+              <FormField
+                control={form.control}
+                name="deliveryAddress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
+                      <span className="block text-xs text-gray-500 font-normal mt-1">
+                        Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
+                      </span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Введите полный адрес доставки" {...field} className="p-3" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
 
         {/* Telegram Contact Field - Always visible */}
         <FormField
@@ -314,63 +349,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             </FormItem>
           )}
         />
-
-        {deliveryMethod === 'bank' && (
-          <>
-            <FormField
-              control={form.control}
-              name="vndBankAccountNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Номер карты или счета VND <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите номер карты или счета" {...field} className="p-3" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="vndBankName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Название банка VND <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input placeholder="Например, Vietcombank" {...field} className="p-3" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
-        )}
-
-        {deliveryMethod === 'cash' && (
-          <>
-            <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
-              Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
-            </p>
-            <FormField
-              control={form.control}
-              name="deliveryAddress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
-                    <span className="block text-xs text-gray-500 font-normal mt-1">
-                      Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
-                    </span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите полный адрес доставки" {...field} className="p-3" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
-        )}
 
         <Button type="submit" className="w-full py-3 text-lg bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
           {isSubmitting ? (
