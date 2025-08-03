@@ -97,7 +97,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: 100, // Инициализируем числом, так как Zod ожидает число
+      usdtAmount: "100", // Инициализируем строкой, так как Zod ожидает строку для ввода
       deliveryMethod: 'bank',
       telegramContact: "@",
       usdtNetwork: "TRC20",
@@ -107,12 +107,13 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     },
   });
 
-  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом (или NaN)
+  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом из-за transform в схеме
   const deliveryMethod = form.watch("deliveryMethod");
 
   useEffect(() => {
     const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
     setExchangeRate(rate);
+    // usdtAmount здесь уже число благодаря transform в схеме
     if (typeof usdtAmount === 'number' && !isNaN(usdtAmount) && usdtAmount > 0) {
       setCalculatedVND(usdtAmount * rate);
     } else {
@@ -142,7 +143,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
       if (deliveryMethod === 'bank') {
         form.reset({
-          usdtAmount: 100, // Сбрасываем на числовое значение
+          usdtAmount: "100", // Сбрасываем на строковое значение
           deliveryMethod: 'bank',
           telegramContact: "@",
           usdtNetwork: "TRC20",
@@ -152,7 +153,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         });
       } else {
         form.reset({
-          usdtAmount: 100, // Сбрасываем на числовое значение
+          usdtAmount: "100", // Сбрасываем на строковое значение
           deliveryMethod: 'cash',
           telegramContact: "@",
           usdtNetwork: "TRC20",
@@ -188,12 +189,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     type="number"
                     placeholder="Введите сумму USDT"
                     {...field}
-                    // field.value теперь число | undefined. Input type="number" обрабатывает NaN, показывая пустоту.
-                    // Используем nullish coalescing для отображения пустой строки для undefined/null значений.
-                    value={field.value ?? ''} 
+                    // field.value теперь строка, как и ожидается Input type="number"
+                    value={field.value}
                     onChange={(e) => {
-                      // Преобразуем строковое значение из поля ввода в число перед передачей в field.onChange
-                      field.onChange(parseFloat(e.target.value));
+                      // Передаем строковое значение напрямую, Zod transform его обработает
+                      field.onChange(e.target.value);
                     }}
                     className="text-lg p-3"
                   />
@@ -252,8 +252,22 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2 bg-gray-100 rounded-lg p-1">
-              <TabsTrigger value="bank" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">На банковский счет</TabsTrigger>
-              <TabsTrigger value="cash" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Наличными (доставка)</TabsTrigger>
+              <TabsTrigger 
+                value="bank" 
+                className="rounded-md text-lg py-2 px-4 
+                           data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm 
+                           data-[state=inactive]:bg-gray-200/50 data-[state=inactive]:text-gray-800"
+              >
+                На банковский счет
+              </TabsTrigger>
+              <TabsTrigger 
+                value="cash" 
+                className="rounded-md text-lg py-2 px-4 
+                           data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm 
+                           data-[state=inactive]:bg-gray-200/50 data-[state=inactive]:text-gray-800"
+              >
+                Наличными (доставка)
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="bank" className="mt-4 space-y-4">
               <FormField
@@ -339,7 +353,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           )}
         />
 
-        <Button type="submit" className="w-full py-3 text-lg bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+        <Button 
+          type="submit" 
+          className="w-full py-3 text-lg bg-green-600/50 hover:bg-green-700/60 text-white" 
+          disabled={isSubmitting}
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
