@@ -189,8 +189,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     {...field}
                     // field.value теперь число | undefined. Input type="number" обрабатывает NaN, показывая пустоту.
                     // Используем nullish coalescing для отображения пустой строки для undefined/null значений.
-                    // Явно преобразуем в строку, чтобы избежать ошибки TS2345
-                    value={String(field.value ?? '')} 
+                    value={field.value ?? ''} 
                     onChange={(e) => {
                       // Преобразуем строковое значение из поля ввода в число перед передачей в field.onChange
                       field.onChange(parseFloat(e.target.value));
@@ -255,7 +254,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               <TabsTrigger 
                 value="bank" 
                 className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
-                           rounded-md transform skew-x-[6deg] -mr-1 /* Negative margin for overlap */
+                           transform skew-x-[6deg] -mr-1 /* Negative margin for overlap */
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
                            data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
               >
@@ -264,7 +263,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               <TabsTrigger 
                 value="cash" 
                 className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
-                           rounded-md transform -skew-x-[6deg] -ml-1 /* Negative margin for overlap */
+                           transform -skew-x-[6deg] -ml-1 /* Negative margin for overlap */
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
                            data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
               >
