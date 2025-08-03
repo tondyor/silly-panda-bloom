@@ -97,7 +97,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: "100", // Инициализируем строкой, так как Input type="number" ожидает строку
+      usdtAmount: 100, // Инициализируем числом, так как Zod ожидает число
       deliveryMethod: 'bank',
       telegramContact: "@",
       usdtNetwork: "TRC20",
@@ -107,7 +107,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     },
   });
 
-  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом из-за transform в схеме
+  const usdtAmount = form.watch("usdtAmount"); // usdtAmount будет числом (или NaN)
   const deliveryMethod = form.watch("deliveryMethod");
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
       if (deliveryMethod === 'bank') {
         form.reset({
-          usdtAmount: "100", // Сбрасываем на строковое значение
+          usdtAmount: 100, // Сбрасываем на числовое значение
           deliveryMethod: 'bank',
           telegramContact: "@",
           usdtNetwork: "TRC20",
@@ -153,7 +153,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         });
       } else {
         form.reset({
-          usdtAmount: "100", // Сбрасываем на строковое значение
+          usdtAmount: 100, // Сбрасываем на числовое значение
           deliveryMethod: 'cash',
           telegramContact: "@",
           usdtNetwork: "TRC20",
@@ -252,22 +252,24 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             onValueChange={(value) => form.setValue("deliveryMethod", value as 'bank' | 'cash')} 
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-transparent rounded-lg">
+            <TabsList className="grid w-full grid-cols-2 bg-transparent"> {/* Removed p-1 and rounded-lg */}
               <TabsTrigger 
                 value="bank" 
-                className="rounded-full text-lg py-2 px-4 transition-all duration-300 ease-in-out
-                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm"
+                className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
+                           rounded-md transform skew-x-[6deg] -mr-1 /* Negative margin for overlap */
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
               >
-                На банковский счет
+                <span className="inline-block -skew-x-[6deg]">На банковский счет</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="cash" 
-                className="rounded-full text-lg py-2 px-4 transition-all duration-300 ease-in-out
-                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm"
+                className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
+                           rounded-md transform -skew-x-[6deg] -ml-1 /* Negative margin for overlap */
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
               >
-                Наличными (доставка)
+                <span className="inline-block skew-x-[6deg]">Наличными (доставка)</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="bank" className="mt-4 space-y-4">
