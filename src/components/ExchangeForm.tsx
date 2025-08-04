@@ -191,6 +191,10 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     }
   }
 
+  // Единый класс для всех input
+  const inputClass =
+    "h-12 p-3 text-base rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors";
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -219,7 +223,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                         field.onChange(isNaN(parsed) ? undefined : parsed);
                       }
                     }}
-                    className="text-lg p-3"
+                    className={inputClass}
                     min={100}
                     max={100000}
                     step={1}
@@ -238,7 +242,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 currency: "VND",
               })}
               readOnly
-              className="bg-gray-100 font-bold text-green-700 text-lg p-3"
+              className={`${inputClass} bg-gray-100 font-bold text-green-700`}
             />
           </div>
         </div>
@@ -261,7 +265,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               </FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="p-3">
+                  <SelectTrigger className="p-3 h-12 text-base">
                     <SelectValue placeholder="Выберите сеть USDT" />
                   </SelectTrigger>
                 </FormControl>
@@ -320,7 +324,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                       Номер карты или счета VND <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className="p-3" type="text" />
+                      <Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className={inputClass} type="text" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -335,7 +339,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                       Название банка VND <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className="p-3" type="text" />
+                      <Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className={inputClass} type="text" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -358,7 +362,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                       </span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Введите полный адрес доставки" {...field} className="p-3" />
+                      <Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -378,7 +382,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 Ваш Telegram (для связи) <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input placeholder="@ваш_никнейм" {...field} className="p-3" />
+                <Input placeholder="@ваш_никнейм" {...field} className={inputClass} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -397,6 +401,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                   placeholder="Введите ваш номер телефона"
                   {...field}
                   value={String(field.value ?? "")}
+                  className={inputClass}
                 />
               </FormControl>
               <FormMessage />
