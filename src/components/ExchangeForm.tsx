@@ -320,7 +320,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                       Номер карты или счета VND <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className="p-3" />
+                      <Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className="p-3" type="text" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -335,7 +335,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                       Название банка VND <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className="p-3" />
+                      <Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className="p-3" type="text" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
