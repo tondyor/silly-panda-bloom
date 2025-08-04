@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { ExchangeInfoSection } from "@/components/ExchangeInfoSection";
 import { ExchangeSummary } from "@/components/ExchangeSummary";
-import { WhyChooseUsSection } from "@/components/WhyChooseUsSection"; // Import the new section
-import { HowItWorksSection } from "@/components/HowItWorksSection"; // Import the new section
+import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
+import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 
 const ExchangePage = () => {
@@ -86,18 +86,19 @@ const ExchangePage = () => {
         </CardContent>
       </Card>
       
-      {!isFormSubmitted && (
-        <>
-          <WhyChooseUsSection />
-          <HowItWorksSection />
-        </>
-      )}
-
-      <ExchangeInfoSection 
-        depositInfo={depositInfo} 
-        deliveryMethodAfterSubmit={deliveryMethodAfterSubmit}
-        submittedDeliveryAddress={submittedDeliveryAddress}
-      />
+      <div className="w-full max-w-lg mx-auto space-y-6 mt-6 relative z-10">
+        {!isFormSubmitted && (
+          <>
+            <WhyChooseUsSection />
+            <HowItWorksSection />
+          </>
+        )}
+        <ExchangeInfoSection 
+          depositInfo={depositInfo} 
+          deliveryMethodAfterSubmit={deliveryMethodAfterSubmit}
+          submittedDeliveryAddress={submittedDeliveryAddress}
+        />
+      </div>
       <MadeWithDyad />
     </div>
   );
