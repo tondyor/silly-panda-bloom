@@ -191,7 +191,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     }
   }
 
-  // Единый класс для всех input
+  // Единый класс для всех input и select trigger
   const inputClass =
     "h-12 p-3 text-base rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors";
 
@@ -265,7 +265,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               </FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="p-3 h-12 text-base">
+                  <SelectTrigger className={inputClass}>
                     <SelectValue placeholder="Выберите сеть USDT" />
                   </SelectTrigger>
                 </FormControl>
