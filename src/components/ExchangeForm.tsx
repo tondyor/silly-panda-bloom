@@ -280,29 +280,23 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             onValueChange={(value) =>
               form.setValue("deliveryMethod", value as "bank" | "cash")
             }
-            className="w-full overflow-hidden rounded-none"
+            className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-transparent rounded-none border-none">
+            <TabsList className="grid w-full grid-cols-2 bg-muted p-1 rounded-lg h-auto">
               <TabsTrigger
                 value="bank"
-                className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
-                           transform skew-x-[1deg] -mr-1
-                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md py-2 text-sm"
               >
-                <span className="inline-block -skew-x-[1deg]">На банковский счет</span>
+                На банковский счет
               </TabsTrigger>
               <TabsTrigger
                 value="cash"
-                className="text-lg py-3 px-6 transition-all duration-300 ease-in-out
-                           transform -skew-x-[1deg] -ml-1
-                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md py-2 text-sm"
               >
-                <span className="inline-block skew-x-[1deg]">Наличными (доставка)</span>
+                Наличными (доставка)
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-4 px-6">
+            <TabsContent value="bank" className="mt-4 space-y-4">
               <FormField
                 control={form.control}
                 name="vndBankAccountNumber"
@@ -334,7 +328,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 )}
               />
             </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-4 px-6">
+            <TabsContent value="cash" className="mt-4 space-y-4">
               <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
                 Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
               </p>
