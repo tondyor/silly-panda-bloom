@@ -294,22 +294,22 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             }
             className="w-full overflow-hidden rounded-none"
           >
-            <TabsList className="w-full grid grid-cols-2 gap-0 p-0 m-0 border border-white/60 rounded-2xl overflow-hidden">
+            <TabsList className="w-full grid grid-cols-2 gap-0 p-0 m-0 border border-white/60 rounded-none overflow-hidden h-20">
               <TabsTrigger
                 value="bank"
-                className="w-full text-lg py-3 px-0 rounded-none border-none m-0 transition-all duration-300 ease-in-out
+                className="w-full h-full aspect-square text-lg p-0 m-0 rounded-none border-none transition-all duration-300 ease-in-out
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10
-                           rounded-l-2xl"
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
+                style={{ borderRadius: 0 }}
               >
                 <span className="inline-block">На банковский счет</span>
               </TabsTrigger>
               <TabsTrigger
                 value="cash"
-                className="w-full text-lg py-3 px-0 rounded-none border-none m-0 transition-all duration-300 ease-in-out
+                className="w-full h-full aspect-square text-lg p-0 m-0 rounded-none border-none transition-all duration-300 ease-in-out
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10
-                           rounded-r-2xl"
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
+                style={{ borderRadius: 0 }}
               >
                 <span className="inline-block">Наличными (доставка)</span>
               </TabsTrigger>
