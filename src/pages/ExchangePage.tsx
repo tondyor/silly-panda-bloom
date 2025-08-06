@@ -2,16 +2,14 @@ import React, { useState } from "react";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { ExchangeInfoSection } from "@/components/ExchangeInfoSection";
+import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
 import { ExchangeSummary } from "@/components/ExchangeSummary";
-import { WhyChooseUsSection } from "@/components/WhyChooseUsSection"; // Import the new section
-import { HowItWorksSection } from "@/components/HowItWorksSection"; // Import the new section
+import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
+import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 
 const ExchangePage = () => {
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
-  const [deliveryMethodAfterSubmit, setDeliveryMethodAfterSubmit] = useState<'bank' | 'cash' | null>(null);
-  const [submittedDeliveryAddress, setSubmittedDeliveryAddress] = useState<string | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
   const [orderCounter, setOrderCounter] = useState<number>(564);
@@ -41,9 +39,8 @@ const ExchangePage = () => {
     setOrderCounter(prevCounter => prevCounter + 1);
 
     setDepositInfo({ network, address });
-    setDeliveryMethodAfterSubmit(method);
-    setSubmittedDeliveryAddress(formData.deliveryMethod === 'cash' ? formData.deliveryAddress : null);
-    setSubmittedFormData({ ...formData, orderId: currentOrderId });
+    const fullFormData = { ...formData, orderId: currentOrderId, deliveryMethod: method };
+    setSubmittedFormData(fullFormData);
     setIsFormSubmitted(true);
 
     setTimeout(() => {
@@ -84,20 +81,18 @@ const ExchangePage = () => {
         </CardContent>
       </Card>
       
-      {!isFormSubmitted && (
+      {isFormSubmitted ? (
+        <PostSubmissionInfo 
+          depositInfo={depositInfo}
+          formData={submittedFormData}
+        />
+      ) : (
         <>
           <WhyChooseUsSection />
           <HowItWorksSection />
         </>
       )}
 
-      {isFormSubmitted && submittedFormData?.paymentCurrency === 'USDT' && (
-        <ExchangeInfoSection 
-          depositInfo={depositInfo} 
-          deliveryMethodAfterSubmit={deliveryMethodAfterSubmit}
-          submittedDeliveryAddress={submittedDeliveryAddress}
-        />
-      )}
       <MadeWithDyad />
     </div>
   );
