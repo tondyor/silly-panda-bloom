@@ -49,7 +49,7 @@ const ExchangePage = () => {
     setTimeout(() => {
       toast.dismiss(loadingToastId);
       toast.success("Ваш запрос на обмен успешно отправлен!", {
-        description: `Номер вашего заказа: ${currentOrderId}. Вы обменяли ${formData.usdtAmount} USDT на ${formData.calculatedVND.toLocaleString('vi-VN')} VND.`,
+        description: `Номер вашего заказа: ${currentOrderId}. Вы обменяли ${formData.fromAmount} ${formData.paymentCurrency} на ${formData.calculatedVND.toLocaleString('vi-VN')} VND.`,
         duration: 10000,
       });
     }, 3000);
@@ -91,11 +91,13 @@ const ExchangePage = () => {
         </>
       )}
 
-      <ExchangeInfoSection 
-        depositInfo={depositInfo} 
-        deliveryMethodAfterSubmit={deliveryMethodAfterSubmit}
-        submittedDeliveryAddress={submittedDeliveryAddress}
-      />
+      {isFormSubmitted && submittedFormData?.paymentCurrency === 'USDT' && (
+        <ExchangeInfoSection 
+          depositInfo={depositInfo} 
+          deliveryMethodAfterSubmit={deliveryMethodAfterSubmit}
+          submittedDeliveryAddress={submittedDeliveryAddress}
+        />
+      )}
       <MadeWithDyad />
     </div>
   );

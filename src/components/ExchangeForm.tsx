@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const OFFICIAL_USDT_VND_RATE = 25000;
 const PROFIT_MARGIN = 0.005;
+const RUB_VND_RATE = 280; // Примерный курс 1 RUB к VND
 
 const USDT_WALLETS: Record<string, string> = {
   BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
@@ -36,18 +37,14 @@ const USDT_WALLETS: Record<string, string> = {
 };
 
 const commonFields = {
-  usdtAmount: z
-    .number()
-    .min(100, "Минимальная сумма обмена 100 USDT.")
-    .max(100000, "Максимальная сумма обмена 100,000 USDT."),
+  paymentCurrency: z.enum(["USDT", "RUB"]),
+  fromAmount: z.number({ required_error: "Пожалуйста, введите сумму." }),
   telegramContact: z
     .string()
     .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
     .max(32, "Имя пользователя Telegram должно содержать не более 32 символов.")
     .regex(/^@[a-zA-Z0-9_]{3,32}$/, "Неверный формат имени пользователя Telegram (начните с @)."),
-  usdtNetwork: z.enum(["BEP20", "TRC20", "ERC20", "TON", "SPL"], {
-    required_error: "Пожалуйста, выберите сеть USDT.",
-  }),
+  usdtNetwork: z.enum(["BEP20", "TRC20", "ERC20", "TON", "SPL"]).optional(),
   contactPhone: z
     .string()
     .optional()
@@ -80,7 +77,29 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
       .min(10, "Адрес доставки должен быть подробным.")
       .max(200, "Адрес доставки слишком длинный."),
   }),
-]);
+]).superRefine((data, ctx) => {
+    if (data.paymentCurrency === 'USDT') {
+        if (!data.usdtNetwork) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Пожалуйста, выберите сеть USDT.", path: ["usdtNetwork"] });
+        }
+        if (data.fromAmount < 100) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Минимальная сумма обмена 100 USDT.", path: ["fromAmount"] });
+        }
+        if (data.fromAmount > 100000) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Максимальная сумма обмена 100,000 USDT.", path: ["fromAmount"] });
+        }
+    } else if (data.paymentCurrency === 'RUB') {
+        if (data.deliveryMethod !== 'cash') {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Для обмена рублей доступна только доставка наличными.", path: ["deliveryMethod"] });
+        }
+        if (data.fromAmount < 10000) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Минимальная сумма обмена 10,000 RUB.", path: ["fromAmount"] });
+        }
+        if (data.fromAmount > 1000000) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Максимальная сумма обмена 1,000,000 RUB.", path: ["fromAmount"] });
+        }
+    }
+});
 
 interface ExchangeFormProps {
   onExchangeSuccess: (
@@ -100,7 +119,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      usdtAmount: 100,
+      paymentCurrency: "USDT",
+      fromAmount: 100,
       deliveryMethod: "bank",
       telegramContact: "@",
       usdtNetwork: "TRC20",
@@ -110,112 +130,113 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     },
   });
 
-  const usdtAmount = form.watch("usdtAmount");
+  const fromAmount = form.watch("fromAmount");
   const deliveryMethod = form.watch("deliveryMethod");
-  const contactPhone = form.watch("contactPhone");
+  const paymentCurrency = form.watch("paymentCurrency");
+
+  const USDT_VND_RATE = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
 
   useEffect(() => {
-    const rate = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
+    const rate = paymentCurrency === 'USDT' ? USDT_VND_RATE : RUB_VND_RATE;
     setExchangeRate(rate);
-    if (typeof usdtAmount === "number" && !isNaN(usdtAmount) && usdtAmount > 0) {
-      setCalculatedVND(usdtAmount * rate);
+    if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0) {
+      setCalculatedVND(fromAmount * rate);
     } else {
       setCalculatedVND(0);
     }
-  }, [usdtAmount]);
+  }, [fromAmount, paymentCurrency, USDT_VND_RATE]);
+
+  useEffect(() => {
+    form.setValue("fromAmount", paymentCurrency === 'USDT' ? 100 : 10000);
+    form.clearErrors("fromAmount");
+
+    if (paymentCurrency === 'RUB') {
+        form.setValue("deliveryMethod", "cash");
+        form.setValue("vndBankAccountNumber", "");
+        form.setValue("vndBankName", "");
+    }
+  }, [paymentCurrency, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", {
-      className: "opacity-75",
-    });
+    const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", { className: "opacity-75" });
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
-      const depositAddress = USDT_WALLETS[values.usdtNetwork];
-      if (depositAddress) {
-        onExchangeSuccess(
-          values.usdtNetwork,
-          depositAddress,
-          values.deliveryMethod,
-          { ...values, calculatedVND, exchangeRate },
-          String(loadingToastId),
-        );
-      } else {
-        onExchangeSuccess(
-          values.usdtNetwork,
-          "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.",
-          values.deliveryMethod,
-          { ...values, calculatedVND, exchangeRate },
-          String(loadingToastId),
-        );
+      let depositAddress = "N/A";
+      let network = "N/A";
+
+      if (values.paymentCurrency === 'USDT' && values.usdtNetwork) {
+        depositAddress = USDT_WALLETS[values.usdtNetwork] || "Адрес не найден.";
+        network = values.usdtNetwork;
       }
 
-      if (deliveryMethod === "bank") {
-        form.reset({
-          usdtAmount: 100,
-          deliveryMethod: "bank",
-          telegramContact: "@",
-          usdtNetwork: "TRC20",
-          vndBankAccountNumber: "",
-          vndBankName: "",
-          contactPhone: "",
-        });
-      } else {
-        form.reset({
-          usdtAmount: 100,
-          deliveryMethod: "cash",
-          telegramContact: "@",
-          usdtNetwork: "TRC20",
-          deliveryAddress: "",
-          contactPhone: "",
-        });
-      }
+      onExchangeSuccess(
+        network,
+        depositAddress,
+        values.deliveryMethod,
+        { ...values, calculatedVND, exchangeRate },
+        String(loadingToastId),
+      );
+
+      form.reset({
+        paymentCurrency: "USDT",
+        fromAmount: 100,
+        deliveryMethod: "bank",
+        telegramContact: "@",
+        usdtNetwork: "TRC20",
+        vndBankAccountNumber: "",
+        vndBankName: "",
+        contactPhone: "",
+      });
       setCalculatedVND(0);
     } catch (error) {
-      toast.error("Ошибка при обработке обмена.", {
-        description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.",
-        duration: 5000,
-      });
+      toast.error("Ошибка при обработке обмена.", { description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000 });
       toast.dismiss(String(loadingToastId));
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  // Универсальный класс для всех инпутов и селектов
   const inputClass = "h-12 p-3 text-base w-full";
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-3">
+            <Label>Валюта для обмена <span className="text-red-500">*</span></Label>
+            <Tabs
+                value={paymentCurrency}
+                onValueChange={(value) => form.setValue("paymentCurrency", value as "USDT" | "RUB")}
+                className="w-full"
+            >
+                <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0">
+                    <TabsTrigger value="USDT" className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-blue-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm">USDT</TabsTrigger>
+                    <TabsTrigger value="RUB" className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-red-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm">Рубли</TabsTrigger>
+                </TabsList>
+            </Tabs>
+        </div>
+
         <FormField
           control={form.control}
-          name="usdtAmount"
+          name="fromAmount"
           render={({ field }) => (
             <FormItem className="w-full">
               <FormLabel>
-                Сумма USDT <span className="text-red-500">*</span>
+                Сумма {paymentCurrency} <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl className="w-full">
                 <Input
                   type="number"
-                  placeholder="Введите сумму USDT"
+                  placeholder={`Введите сумму в ${paymentCurrency}`}
                   {...field}
                   value={String(field.value ?? "")}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (val === "") {
-                      field.onChange(undefined);
-                    } else {
-                      const parsed = parseFloat(val);
-                      field.onChange(isNaN(parsed) ? undefined : parsed);
-                    }
+                    field.onChange(val === "" ? undefined : parseFloat(val));
                   }}
                   className={inputClass + " text-lg"}
-                  min={100}
-                  max={100000}
                   step={1}
                 />
               </FormControl>
@@ -227,65 +248,56 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           <Label className="mb-2 block">Вы получите (VND)</Label>
           <Input
             type="text"
-            value={calculatedVND.toLocaleString("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            })}
+            value={calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
             readOnly
             className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg"}
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="usdtNetwork"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>
-                Сеть USDT <span className="text-red-500">*</span>
-              </FormLabel>
-              <FormControl className="w-full">
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger className={inputClass}>
-                    <SelectValue placeholder="Выберите сеть USDT" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BEP20">BSC (BEP20)</SelectItem>
-                    <SelectItem value="TRC20">TRX (TRC20)</SelectItem>
-                    <SelectItem value="ERC20">ETH (ERC20)</SelectItem>
-                    <SelectItem value="TON">TON (TON)</SelectItem>
-                    <SelectItem value="SPL">SOL (SPL)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {paymentCurrency === 'USDT' && (
+            <FormField
+            control={form.control}
+            name="usdtNetwork"
+            render={({ field }) => (
+                <FormItem className="w-full">
+                <FormLabel>Сеть USDT <span className="text-red-500">*</span></FormLabel>
+                <FormControl className="w-full">
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <SelectTrigger className={inputClass}><SelectValue placeholder="Выберите сеть USDT" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="BEP20">BSC (BEP20)</SelectItem>
+                        <SelectItem value="TRC20">TRX (TRC20)</SelectItem>
+                        <SelectItem value="ERC20">ETH (ERC20)</SelectItem>
+                        <SelectItem value="TON">TON (TON)</SelectItem>
+                        <SelectItem value="SPL">SOL (SPL)</SelectItem>
+                    </SelectContent>
+                    </Select>
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        )}
 
         <div className="text-center text-sm text-gray-600">
-          Текущий курс: 1 USDT ={" "}
+          Текущий курс: 1 {paymentCurrency} ={" "}
           <span className="font-semibold text-blue-600">
             {exchangeRate.toLocaleString("vi-VN")} VND
           </span>
         </div>
 
-        {/* Delivery Method Tabs */}
         <div className="space-y-3">
-          <Label>
-            Способ получения VND <span className="text-red-500">*</span>
-          </Label>
+          <Label>Способ получения VND <span className="text-red-500">*</span></Label>
           <Tabs
             value={deliveryMethod}
-            onValueChange={(value) =>
-              form.setValue("deliveryMethod", value as "bank" | "cash")
-            }
+            onValueChange={(value) => form.setValue("deliveryMethod", value as "bank" | "cash")}
             className="w-full"
           >
             <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0">
               <TabsTrigger
                 value="bank"
-                className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                disabled={paymentCurrency === 'RUB'}
+                className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 На банковский счет
               </TabsTrigger>
@@ -297,115 +309,21 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="bank" className="mt-4 space-y-3">
-              <FormField
-                control={form.control}
-                name="vndBankAccountNumber"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      Номер карты или счета VND <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl className="w-full">
-                      <Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className={inputClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="vndBankName"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      Название банка VND <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl className="w-full">
-                      <Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className={inputClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="vndBankAccountNumber" render={({ field }) => (<FormItem className="w-full"><FormLabel>Номер карты или счета VND <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="vndBankName" render={({ field }) => (<FormItem className="w-full"><FormLabel>Название банка VND <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
             <TabsContent value="cash" className="mt-4 space-y-3">
-              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
-                Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
-              </p>
-              <FormField
-                control={form.control}
-                name="deliveryAddress"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
-                      <span className="block text-xs text-gray-500 font-normal mt-1">
-                        Укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
-                      </span>
-                    </FormLabel>
-                    <FormControl className="w-full">
-                      <Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.</p>
+              <FormField control={form.control} name="deliveryAddress" render={({ field }) => (<FormItem className="w-full"><FormLabel>Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span><span className="block text-xs text-gray-500 font-normal mt-1">Укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.</span></FormLabel><FormControl className="w-full"><Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Telegram Contact Field - Always visible */}
-        <FormField
-          control={form.control}
-          name="telegramContact"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>
-                Ваш Telegram (для связи) <span className="text-red-500">*</span>
-              </FormLabel>
-              <FormControl className="w-full">
-                <Input placeholder="@ваш_никнейм" {...field} className={inputClass} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormField control={form.control} name="telegramContact" render={({ field }) => (<FormItem className="w-full"><FormLabel>Ваш Telegram (для связи) <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="@ваш_никнейм" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
+        <FormField control={form.control} name="contactPhone" render={({ field }) => (<FormItem className="w-full"><FormLabel>Контактный телефон</FormLabel><FormControl className="w-full"><Input placeholder="Введите ваш номер телефона" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
 
-        {/* Contact Phone Field - Now always visible after Telegram */}
-        <FormField
-          control={form.control}
-          name="contactPhone"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Контактный телефон</FormLabel>
-              <FormControl className="w-full">
-                <Input
-                  placeholder="Введите ваш номер телефона"
-                  {...field}
-                  value={String(field.value ?? "")}
-                  className={inputClass}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button
-          type="submit"
-          className="w-full py-3 text-lg rounded-full 
-                     bg-gradient-to-b from-green-400 to-green-700 text-white shadow-xl 
-                     hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Обработка...
-            </>
-          ) : (
-            "Обменять сейчас"
-          )}
+        <Button type="submit" className="w-full py-3 text-lg rounded-full bg-gradient-to-b from-green-400 to-green-700 text-white shadow-xl hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out" disabled={isSubmitting}>
+          {isSubmitting ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Обработка...</>) : ("Обменять сейчас")}
         </Button>
       </form>
     </Form>
