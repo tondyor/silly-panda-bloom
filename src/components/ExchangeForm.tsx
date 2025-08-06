@@ -189,7 +189,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="usdtAmount"
@@ -296,7 +296,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 Наличными (доставка)
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-4">
+            <TabsContent value="bank" className="mt-4 space-y-3">
               <FormField
                 control={form.control}
                 name="vndBankAccountNumber"
@@ -328,7 +328,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 )}
               />
             </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-4">
+            <TabsContent value="cash" className="mt-4 space-y-3">
               <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
                 Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
               </p>
