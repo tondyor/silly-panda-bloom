@@ -133,9 +133,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
-      console.log("Exchange request submitted:", values);
-      console.log("Calculated VND:", calculatedVND);
-
       const depositAddress = USDT_WALLETS[values.usdtNetwork];
       if (depositAddress) {
         onExchangeSuccess(
@@ -146,7 +143,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           String(loadingToastId),
         );
       } else {
-        console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
         onExchangeSuccess(
           values.usdtNetwork,
           "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.",
@@ -178,7 +174,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       }
       setCalculatedVND(0);
     } catch (error) {
-      console.error("Exchange failed:", error);
       toast.error("Ошибка при обработке обмена.", {
         description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.",
         duration: 5000,
@@ -190,7 +185,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   }
 
   // Универсальный класс для всех инпутов и селектов
-  const inputClass = "h-12 p-3 text-base";
+  const inputClass = "h-12 p-3 text-base w-full";
 
   return (
     <Form {...form}>
@@ -200,11 +195,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             control={form.control}
             name="usdtAmount"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>
                   Сумма USDT <span className="text-red-500">*</span>
                 </FormLabel>
-                <FormControl>
+                <FormControl className="w-full">
                   <Input
                     type="number"
                     placeholder="Введите сумму USDT"
@@ -229,7 +224,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               </FormItem>
             )}
           />
-          <div className="flex flex-col justify-end">
+          <div className="flex flex-col justify-end w-full">
             <Label className="mb-2">Вы получите (VND)</Label>
             <Input
               type="text"
@@ -243,40 +238,42 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="usdtNetwork"
+            render={({ field }) => (
+              <FormItem className="w-full">
+                <FormLabel>
+                  Сеть USDT <span className="text-red-500">*</span>
+                </FormLabel>
+                <FormControl className="w-full">
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <SelectTrigger className={inputClass}>
+                      <SelectValue placeholder="Выберите сеть USDT" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BEP20">BSC (BEP20)</SelectItem>
+                      <SelectItem value="TRC20">TRX (TRC20)</SelectItem>
+                      <SelectItem value="ERC20">ETH (ERC20)</SelectItem>
+                      <SelectItem value="TON">TON (TON)</SelectItem>
+                      <SelectItem value="SPL">SOL (SPL)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div />
+        </div>
+
         <div className="text-center text-sm text-gray-600">
           Текущий курс: 1 USDT ={" "}
           <span className="font-semibold text-blue-600">
             {exchangeRate.toLocaleString("vi-VN")} VND
           </span>
         </div>
-
-        {/* USDT Network Selection */}
-        <FormField
-          control={form.control}
-          name="usdtNetwork"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Сеть USDT <span className="text-red-500">*</span>
-              </FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className={inputClass}>
-                    <SelectValue placeholder="Выберите сеть USDT" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="BEP20">BSC (BEP20)</SelectItem>
-                  <SelectItem value="TRC20">TRX (TRC20)</SelectItem>
-                  <SelectItem value="ERC20">ETH (ERC20)</SelectItem>
-                  <SelectItem value="TON">TON (TON)</SelectItem>
-                  <SelectItem value="SPL">SOL (SPL)</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         {/* Delivery Method Tabs */}
         <div className="space-y-3">
@@ -315,11 +312,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 control={form.control}
                 name="vndBankAccountNumber"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-full">
                     <FormLabel>
                       Номер карты или счета VND <span className="text-red-500">*</span>
                     </FormLabel>
-                    <FormControl>
+                    <FormControl className="w-full">
                       <Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className={inputClass} />
                     </FormControl>
                     <FormMessage />
@@ -330,11 +327,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 control={form.control}
                 name="vndBankName"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-full">
                     <FormLabel>
                       Название банка VND <span className="text-red-500">*</span>
                     </FormLabel>
-                    <FormControl>
+                    <FormControl className="w-full">
                       <Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className={inputClass} />
                     </FormControl>
                     <FormMessage />
@@ -350,14 +347,14 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 control={form.control}
                 name="deliveryAddress"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-full">
                     <FormLabel>
                       Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
                       <span className="block text-xs text-gray-500 font-normal mt-1">
                         Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
                       </span>
                     </FormLabel>
-                    <FormControl>
+                    <FormControl className="w-full">
                       <Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} />
                     </FormControl>
                     <FormMessage />
@@ -373,11 +370,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           control={form.control}
           name="telegramContact"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="w-full">
               <FormLabel>
                 Ваш Telegram (для связи) <span className="text-red-500">*</span>
               </FormLabel>
-              <FormControl>
+              <FormControl className="w-full">
                 <Input placeholder="@ваш_никнейм" {...field} className={inputClass} />
               </FormControl>
               <FormMessage />
@@ -390,9 +387,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           control={form.control}
           name="contactPhone"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="w-full">
               <FormLabel>Контактный телефон</FormLabel>
-              <FormControl>
+              <FormControl className="w-full">
                 <Input
                   placeholder="Введите ваш номер телефона"
                   {...field}
