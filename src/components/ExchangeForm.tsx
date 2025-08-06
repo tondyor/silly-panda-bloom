@@ -135,9 +135,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
-      console.log("Exchange request submitted:", values);
-      console.log("Calculated VND:", calculatedVND);
-
       const depositAddress = USDT_WALLETS[values.usdtNetwork];
       if (depositAddress) {
         onExchangeSuccess(
@@ -148,7 +145,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           String(loadingToastId),
         );
       } else {
-        console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
         onExchangeSuccess(
           values.usdtNetwork,
           "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.",
@@ -180,7 +176,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       }
       setCalculatedVND(0);
     } catch (error) {
-      console.error("Exchange failed:", error);
       toast.error("Ошибка при обработке обмена.", {
         description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.",
         duration: 5000,
@@ -197,7 +192,92 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-6 pb-6">
+        {/* TabsList вынесен в отдельный контейнер с отрицательным margin, чтобы упираться в края Card */}
+        <div className="-mx-6">
+          <Tabs
+            value={deliveryMethod}
+            onValueChange={(value) =>
+              form.setValue("deliveryMethod", value as "bank" | "cash")
+            }
+            className="w-full"
+          >
+            <TabsList className="w-full grid grid-cols-2 gap-0 p-0 m-0 border-b-2 border-white/60 rounded-none overflow-hidden">
+              <TabsTrigger
+                value="bank"
+                className="w-full text-lg py-3 px-0 rounded-none border-none m-0 transition-all duration-300 ease-in-out
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
+              >
+                <span className="inline-block">На банковский счет</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="cash"
+                className="w-full text-lg py-3 px-0 rounded-none border-none m-0 transition-all duration-300 ease-in-out
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
+                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
+              >
+                <span className="inline-block">Наличными (доставка)</span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="bank" className="mt-4 space-y-4">
+              <FormField
+                control={form.control}
+                name="vndBankAccountNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Номер карты или счета VND <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Введите номер карты или счета" {...field} value={(field.value as string) ?? ""} className={inputClass} type="text" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="vndBankName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Название банка VND <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Например, Vietcombank" {...field} value={(field.value as string) ?? ""} className={inputClass} type="text" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="cash" className="mt-4 space-y-4">
+              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
+              </p>
+              <FormField
+                control={form.control}
+                name="deliveryAddress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
+                      <span className="block text-xs text-gray-500 font-normal mt-1">
+                        Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
+                      </span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -215,7 +295,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     value={String(field.value ?? "")}
                     onChange={(e) => {
                       const val = e.target.value;
-                      // Allow empty string to clear input
                       if (val === "") {
                         field.onChange(undefined);
                       } else {
@@ -254,7 +333,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           </span>
         </div>
 
-        {/* USDT Network Selection */}
         <FormField
           control={form.control}
           name="usdtNetwork"
@@ -282,97 +360,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           )}
         />
 
-        {/* Delivery Method Tabs */}
-        <div className="space-y-3">
-          <Label>
-            Способ получения VND <span className="text-red-500">*</span>
-          </Label>
-          <Tabs
-            value={deliveryMethod}
-            onValueChange={(value) =>
-              form.setValue("deliveryMethod", value as "bank" | "cash")
-            }
-            className="w-full overflow-hidden rounded-none"
-          >
-            <TabsList className="w-full grid grid-cols-2 gap-0 p-0 m-0 border border-white/60 rounded-none overflow-hidden h-20">
-              <TabsTrigger
-                value="bank"
-                className="w-full h-full aspect-square text-lg p-0 m-0 rounded-none border-none transition-all duration-300 ease-in-out
-                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
-                style={{ borderRadius: 0 }}
-              >
-                <span className="inline-block">На банковский счет</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="cash"
-                className="w-full h-full aspect-square text-lg p-0 m-0 rounded-none border-none transition-all duration-300 ease-in-out
-                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-400 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:z-20
-                           data-[state=inactive]:bg-gradient-to-b data-[state=inactive]:from-red-400 data-[state=inactive]:to-red-700 data-[state=inactive]:text-white data-[state=inactive]:opacity-75 data-[state=inactive]:shadow-sm data-[state=inactive]:z-10"
-                style={{ borderRadius: 0 }}
-              >
-                <span className="inline-block">Наличными (доставка)</span>
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-4 px-6">
-              <FormField
-                control={form.control}
-                name="vndBankAccountNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Номер карты или счета VND <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Введите номер карты или счета" {...field} value={(field.value as string) ?? ""} className={inputClass} type="text" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="vndBankName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Название банка VND <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Например, Vietcombank" {...field} value={(field.value as string) ?? ""} className={inputClass} type="text" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-4 px-6">
-              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
-                Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.
-              </p>
-              <FormField
-                control={form.control}
-                name="deliveryAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
-                      <span className="block text-xs text-gray-500 font-normal mt-1">
-                        Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
-                      </span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Telegram Contact Field и Contact Phone в одной строке */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
