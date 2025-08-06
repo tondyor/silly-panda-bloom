@@ -340,7 +340,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     <FormLabel>
                       Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span>
                       <span className="block text-xs text-gray-500 font-normal mt-1">
-                        Пожалуйста, укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
+                        Укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.
                       </span>
                     </FormLabel>
                     <FormControl className="w-full">
