@@ -59,7 +59,7 @@ const ExchangePage = () => {
     <div 
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4 sm:p-6 lg:p-8"
       style={{
-        backgroundImage: "url('/vietnam-background.jpg')",
+        backgroundImage: "url('/vietnam-background.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
