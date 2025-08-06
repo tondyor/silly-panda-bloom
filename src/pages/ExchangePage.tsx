@@ -75,7 +75,7 @@ const ExchangePage = () => {
             Ваш быстрый и выгодный обмен USDT на VND
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-8 space-y-6">
+        <CardContent className="px-20 py-8 space-y-6">
           {isFormSubmitted ? (
             <ExchangeSummary data={submittedFormData} />
           ) : (
