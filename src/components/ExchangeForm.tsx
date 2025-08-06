@@ -24,11 +24,9 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Hypothetical official rate (for demonstration purposes)
-const OFFICIAL_USDT_VND_RATE = 25000; // 1 USDT = 25,000 VND
-const PROFIT_MARGIN = 0.005; // 0.5% better
+const OFFICIAL_USDT_VND_RATE = 25000;
+const PROFIT_MARGIN = 0.005;
 
-// USDT Wallet Addresses
 const USDT_WALLETS: Record<string, string> = {
   BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
   TON: "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
@@ -145,7 +143,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           depositAddress,
           values.deliveryMethod,
           { ...values, calculatedVND, exchangeRate },
-          loadingToastId,
+          String(loadingToastId),
         );
       } else {
         console.warn(`No deposit address found for network: ${values.usdtNetwork}`);
@@ -154,7 +152,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           "Адрес не найден. Пожалуйста, свяжитесь с поддержкой.",
           values.deliveryMethod,
           { ...values, calculatedVND, exchangeRate },
-          loadingToastId,
+          String(loadingToastId),
         );
       }
 
@@ -185,7 +183,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.",
         duration: 5000,
       });
-      toast.dismiss(loadingToastId);
+      toast.dismiss(String(loadingToastId));
     } finally {
       setIsSubmitting(false);
     }
@@ -211,7 +209,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     value={String(field.value ?? "")}
                     onChange={(e) => {
                       const val = e.target.value;
-                      // Allow empty string to clear input
                       if (val === "") {
                         field.onChange(undefined);
                       } else {
@@ -397,6 +394,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                   placeholder="Введите ваш номер телефона"
                   {...field}
                   value={String(field.value ?? "")}
+                  className="p-3"
                 />
               </FormControl>
               <FormMessage />
