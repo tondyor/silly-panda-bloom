@@ -190,83 +190,78 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="usdtAmount"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>
-                  Сумма USDT <span className="text-red-500">*</span>
-                </FormLabel>
-                <FormControl className="w-full">
-                  <Input
-                    type="number"
-                    placeholder="Введите сумму USDT"
-                    {...field}
-                    value={String(field.value ?? "")}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "") {
-                        field.onChange(undefined);
-                      } else {
-                        const parsed = parseFloat(val);
-                        field.onChange(isNaN(parsed) ? undefined : parsed);
-                      }
-                    }}
-                    className={inputClass + " text-lg"}
-                    min={100}
-                    max={100000}
-                    step={1}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        <FormField
+          control={form.control}
+          name="usdtAmount"
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormLabel>
+                Сумма USDT <span className="text-red-500">*</span>
+              </FormLabel>
+              <FormControl className="w-full">
+                <Input
+                  type="number"
+                  placeholder="Введите сумму USDT"
+                  {...field}
+                  value={String(field.value ?? "")}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      field.onChange(undefined);
+                    } else {
+                      const parsed = parseFloat(val);
+                      field.onChange(isNaN(parsed) ? undefined : parsed);
+                    }
+                  }}
+                  className={inputClass + " text-lg"}
+                  min={100}
+                  max={100000}
+                  step={1}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="w-full">
+          <Label className="mb-2 block">Вы получите (VND)</Label>
+          <Input
+            type="text"
+            value={calculatedVND.toLocaleString("vi-VN", {
+              style: "currency",
+              currency: "VND",
+            })}
+            readOnly
+            className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg"}
           />
-          <div className="flex flex-col justify-end w-full">
-            <Label className="mb-2">Вы получите (VND)</Label>
-            <Input
-              type="text"
-              value={calculatedVND.toLocaleString("vi-VN", {
-                style: "currency",
-                currency: "VND",
-              })}
-              readOnly
-              className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg"}
-            />
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="usdtNetwork"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>
-                  Сеть USDT <span className="text-red-500">*</span>
-                </FormLabel>
-                <FormControl className="w-full">
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger className={inputClass}>
-                      <SelectValue placeholder="Выберите сеть USDT" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BEP20">BSC (BEP20)</SelectItem>
-                      <SelectItem value="TRC20">TRX (TRC20)</SelectItem>
-                      <SelectItem value="ERC20">ETH (ERC20)</SelectItem>
-                      <SelectItem value="TON">TON (TON)</SelectItem>
-                      <SelectItem value="SPL">SOL (SPL)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div />
-        </div>
+        <FormField
+          control={form.control}
+          name="usdtNetwork"
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormLabel>
+                Сеть USDT <span className="text-red-500">*</span>
+              </FormLabel>
+              <FormControl className="w-full">
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="Выберите сеть USDT" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BEP20">BSC (BEP20)</SelectItem>
+                    <SelectItem value="TRC20">TRX (TRC20)</SelectItem>
+                    <SelectItem value="ERC20">ETH (ERC20)</SelectItem>
+                    <SelectItem value="TON">TON (TON)</SelectItem>
+                    <SelectItem value="SPL">SOL (SPL)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="text-center text-sm text-gray-600">
           Текущий курс: 1 USDT ={" "}
