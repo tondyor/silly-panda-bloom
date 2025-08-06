@@ -282,16 +282,16 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             }
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-muted p-1 rounded-lg h-auto">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0">
               <TabsTrigger
                 value="bank"
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md py-2 text-sm"
+                className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm"
               >
                 На банковский счет
               </TabsTrigger>
               <TabsTrigger
                 value="cash"
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md py-2 text-sm"
+                className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm"
               >
                 Наличными (доставка)
               </TabsTrigger>
