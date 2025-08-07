@@ -284,16 +284,17 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               </FormLabel>
               <FormControl className="w-full">
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder={t('exchangeForm.amountPlaceholder', { currency: paymentCurrency })}
                   {...field}
-                  value={String(field.value ?? "")}
+                  value={field.value === undefined ? "" : String(field.value)}
                   onChange={(e) => {
                     const val = e.target.value;
-                    field.onChange(val === "" ? undefined : parseFloat(val));
+                    const numericValue = val.replace(/[^0-9]/g, '');
+                    field.onChange(numericValue === '' ? undefined : Number(numericValue));
                   }}
                   className={inputClass + " text-lg"}
-                  step={1}
                 />
               </FormControl>
               <FormMessage />
