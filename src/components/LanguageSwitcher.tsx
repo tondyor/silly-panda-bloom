@@ -16,7 +16,7 @@ export const LanguageSwitcher = () => {
   };
 
   return (
-    <div className="flex flex-col space-y-1">
+    <div className="flex flex-col">
       {languages.map((lang) => (
         <Button
           key={lang.code}
