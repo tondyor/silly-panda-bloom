@@ -230,7 +230,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
         {isErrorRate && paymentCurrency === 'USDT' && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -240,7 +240,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             </AlertDescription>
           </Alert>
         )}
-        <div className="space-y-3">
+        <div className="space-y-2">
             <Label>Валюта для обмена <span className="text-red-500">*</span></Label>
             <Tabs
                 value={paymentCurrency}
@@ -344,7 +344,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label>Способ получения VND <span className="text-red-500">*</span></Label>
           <Tabs
             value={deliveryMethod}
@@ -366,11 +366,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 Наличными (доставка)
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-3">
+            <TabsContent value="bank" className="mt-4 space-y-2">
               <FormField control={form.control} name="vndBankAccountNumber" render={({ field }) => (<FormItem className="w-full"><FormLabel>Номер карты или счета VND <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="vndBankName" render={({ field }) => (<FormItem className="w-full"><FormLabel>Название банка VND <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-3">
+            <TabsContent value="cash" className="mt-4 space-y-2">
               <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.</p>
               <FormField control={form.control} name="deliveryAddress" render={({ field }) => (<FormItem className="w-full"><FormLabel>Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span><span className="block text-xs text-gray-500 font-normal mt-1">Укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.</span></FormLabel><FormControl className="w-full"><Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
