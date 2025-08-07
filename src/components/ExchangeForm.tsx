@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,12 +23,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-const OFFICIAL_USDT_VND_RATE = 25000;
 const PROFIT_MARGIN = 0.005;
-const RUB_VND_RATE = 280; // Примерный курс 1 RUB к VND
+const RUB_VND_RATE = 280;
 
 const USDT_WALLETS: Record<string, string> = {
   BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
@@ -111,10 +114,33 @@ interface ExchangeFormProps {
   ) => void;
 }
 
+const fetchExchangeRate = async () => {
+  const { data, error } = await supabase.functions.invoke('get-exchange-rate');
+  if (error) {
+    throw new Error(`Ошибка вызова Edge Function: ${error.message}`);
+  }
+  if (!data || typeof data.rate !== 'number') {
+    throw new Error('Получены неверные данные о курсе с сервера.');
+  }
+  return data.rate * (1 - PROFIT_MARGIN); // Применяем нашу маржу
+};
+
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { 
+    data: usdtVndRate, 
+    isLoading: isLoadingRate, 
+    isError: isErrorRate 
+  } = useQuery<number>({
+    queryKey: ['usdt-vnd-rate'],
+    queryFn: fetchExchangeRate,
+    refetchInterval: 30000, // Обновлять каждые 30 секунд
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -134,17 +160,15 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const deliveryMethod = form.watch("deliveryMethod");
   const paymentCurrency = form.watch("paymentCurrency");
 
-  const USDT_VND_RATE = OFFICIAL_USDT_VND_RATE * (1 + PROFIT_MARGIN);
-
   useEffect(() => {
-    const rate = paymentCurrency === 'USDT' ? USDT_VND_RATE : RUB_VND_RATE;
+    const rate = paymentCurrency === 'USDT' ? (usdtVndRate ?? 0) : RUB_VND_RATE;
     setExchangeRate(rate);
     if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0) {
       setCalculatedVND(fromAmount * rate);
     } else {
       setCalculatedVND(0);
     }
-  }, [fromAmount, paymentCurrency, USDT_VND_RATE]);
+  }, [fromAmount, paymentCurrency, usdtVndRate]);
 
   useEffect(() => {
     form.setValue("fromAmount", paymentCurrency === 'USDT' ? 100 : 10000);
@@ -200,10 +224,20 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   }
 
   const inputClass = "h-12 p-3 text-base w-full";
+  const isUsdtRateUnavailable = paymentCurrency === 'USDT' && (isLoadingRate || isErrorRate || !usdtVndRate);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {isErrorRate && paymentCurrency === 'USDT' && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Ошибка загрузки курса</AlertTitle>
+            <AlertDescription>
+              Не удалось получить актуальный курс USDT. Обмен временно недоступен. Попробуйте обновить страницу.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="space-y-3">
             <Label>Валюта для обмена <span className="text-red-500">*</span></Label>
             <Tabs
@@ -248,7 +282,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           <Label className="mb-2 block">Вы получите (VND)</Label>
           <Input
             type="text"
-            value={calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+            value={isUsdtRateUnavailable && paymentCurrency === 'USDT' ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
             readOnly
             className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg"}
           />
@@ -279,11 +313,28 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             />
         )}
 
-        <div className="text-center text-sm text-gray-600">
-          Текущий курс: 1 {paymentCurrency} ={" "}
-          <span className="font-semibold text-blue-600">
-            {exchangeRate.toLocaleString("vi-VN")} VND
-          </span>
+        <div className="text-center text-sm text-gray-600 h-6 flex items-center justify-center">
+          {paymentCurrency === 'USDT' ? (
+            <>
+              {isLoadingRate && <Skeleton className="h-4 w-48" />}
+              {isErrorRate && <span className="text-red-500 font-medium">Не удалось загрузить курс</span>}
+              {usdtVndRate && !isLoadingRate && !isErrorRate && (
+                <span>
+                  Текущий курс: 1 USDT ≈{" "}
+                  <span className="font-semibold text-blue-600">
+                    {exchangeRate.toLocaleString("vi-VN")} VND
+                  </span>
+                </span>
+              )}
+            </>
+          ) : (
+            <span>
+              Текущий курс: 1 RUB ={" "}
+              <span className="font-semibold text-blue-600">
+                {exchangeRate.toLocaleString("vi-VN")} VND
+              </span>
+            </span>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -322,8 +373,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         <FormField control={form.control} name="telegramContact" render={({ field }) => (<FormItem className="w-full"><FormLabel>Ваш Telegram (для связи) <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="@ваш_никнейм" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="contactPhone" render={({ field }) => (<FormItem className="w-full"><FormLabel>Контактный телефон</FormLabel><FormControl className="w-full"><Input placeholder="Введите ваш номер телефона" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
 
-        <Button type="submit" className="w-full py-3 text-lg rounded-full bg-gradient-to-b from-green-400 to-green-700 text-white shadow-xl hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out" disabled={isSubmitting}>
-          {isSubmitting ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Обработка...</>) : ("Обменять сейчас")}
+        <Button type="submit" className="w-full py-3 text-lg rounded-full bg-gradient-to-b from-green-400 to-green-700 text-white shadow-xl hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out disabled:opacity-60" disabled={isSubmitting || isUsdtRateUnavailable}>
+          {isSubmitting ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Обработка...</>) : isLoadingRate && paymentCurrency === 'USDT' ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Загрузка курса...</>) : ("Обменять сейчас")}
         </Button>
       </form>
     </Form>
