@@ -24,7 +24,7 @@ export const WhyChooseUsSection = () => {
   ];
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden relative z-10 bg-white/10 backdrop-blur-sm border-2 border-white/20 mt-8">
+    <Card className="w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden relative z-10 bg-white/50 backdrop-blur-sm border-2 border-white/20 mt-8">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center text-white">{t('whyChooseUs.title')}</CardTitle>
       </CardHeader>
