@@ -15,44 +15,39 @@ const ExchangePage = () => {
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
-  const [orderCounter, setOrderCounter] = useState<number>(564);
-
-  const getAlphabeticalPrefix = (index: number): string => {
-    let result = '';
-    let tempIndex = index;
-    for (let i = 0; i < 3; i++) {
-      const charCode = 'A'.charCodeAt(0) + (tempIndex % 26);
-      result = String.fromCharCode(charCode) + result;
-      tempIndex = Math.floor(tempIndex / 26);
-    }
-    return result;
-  };
 
   const handleExchangeSuccess = (
     network: string,
     address: string,
-    method: 'bank' | 'cash',
-    formData: any,
+    orderData: any,
     loadingToastId: string
   ) => {
-    const alphabeticalIndex = orderCounter - 564;
-    const prefix = getAlphabeticalPrefix(alphabeticalIndex);
-    const currentOrderId = `${prefix}${orderCounter}`;
-
-    setOrderCounter(prevCounter => prevCounter + 1);
-
     setDepositInfo({ network, address });
-    const fullFormData = { ...formData, orderId: currentOrderId, deliveryMethod: method };
-    setSubmittedFormData(fullFormData);
+
+    const displayData = {
+      orderId: orderData.public_id,
+      paymentCurrency: orderData.payment_currency,
+      fromAmount: orderData.from_amount,
+      calculatedVND: orderData.calculated_vnd,
+      deliveryMethod: orderData.delivery_method,
+      vndBankName: orderData.vnd_bank_name,
+      vndBankAccountNumber: orderData.vnd_bank_account_number,
+      deliveryAddress: orderData.delivery_address,
+      telegramContact: orderData.telegram_contact,
+      contactPhone: orderData.contact_phone,
+      usdtNetwork: orderData.usdt_network,
+    };
+
+    setSubmittedFormData(displayData);
     setIsFormSubmitted(true);
 
     setTimeout(() => {
       toast.dismiss(loadingToastId);
       toast.success("Ваш запрос на обмен успешно отправлен!", {
-        description: `Номер вашего заказа: ${currentOrderId}. Вы обменяли ${formData.fromAmount} ${formData.paymentCurrency} на ${formData.calculatedVND.toLocaleString('vi-VN')} VND.`,
+        description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
         duration: 10000,
       });
-    }, 3000);
+    }, 1000);
   };
 
   return (

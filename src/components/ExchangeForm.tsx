@@ -110,8 +110,7 @@ interface ExchangeFormProps {
   onExchangeSuccess: (
     network: string,
     address: string,
-    deliveryMethod: "bank" | "cash",
-    formData: any,
+    orderData: any,
     loadingToastId: string,
   ) => void;
 }
@@ -189,9 +188,26 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     setIsSubmitting(true);
     const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", { className: "opacity-75" });
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
     try {
+      const orderPayload = {
+        ...values,
+        calculatedVND,
+        exchangeRate,
+      };
+
+      const { data: newOrder, error } = await supabase.functions.invoke('create-exchange-order', {
+        body: orderPayload,
+      });
+
+      if (error) {
+        const errorMessage = (error as any).context?.errorMessage || error.message;
+        throw new Error(errorMessage);
+      }
+      
+      if (!newOrder || !newOrder.public_id) {
+        throw new Error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
+      }
+
       let depositAddress = "N/A";
       let network = "N/A";
 
@@ -203,8 +219,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       onExchangeSuccess(
         network,
         depositAddress,
-        values.deliveryMethod,
-        { ...values, calculatedVND, exchangeRate },
+        newOrder,
         String(loadingToastId),
       );
 
@@ -219,8 +234,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         contactPhone: "",
       });
       setCalculatedVND(0);
-    } catch (error) {
-      toast.error("Ошибка при обработке обмена.", { description: "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000 });
+    } catch (error: any) {
+      console.error("Error submitting exchange:", error);
+      toast.error("Ошибка при создании заявки.", { description: error.message || "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000 });
       toast.dismiss(String(loadingToastId));
     } finally {
       setIsSubmitting(false);
