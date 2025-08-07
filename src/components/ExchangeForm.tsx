@@ -49,7 +49,11 @@ const exchangeFormSchema = z.object({
 
 type ExchangeFormValues = z.infer<typeof exchangeFormSchema>;
 
-const MOCK_EXCHANGE_RATE_USDT_VND = 25400;
+const MOCK_EXCHANGE_RATES = {
+  USDT: 25400,
+  RUB: 350,
+};
+
 // TODO: Замените этот адрес на ваш реальный кошелек USDT.
 // Этот адрес будет показан пользователям для отправки платежей.
 const PAYMENT_WALLET_ADDRESS = "0x1234567890123456789012345678901234567890";
@@ -79,16 +83,18 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   const fromAmount = form.watch("fromAmount");
   const deliveryMethod = form.watch("deliveryMethod");
+  const paymentCurrency = form.watch("paymentCurrency") as "USDT" | "RUB";
 
   useEffect(() => {
     const amount = parseFloat(fromAmount);
-    if (!isNaN(amount) && amount > 0) {
-      const result = amount * MOCK_EXCHANGE_RATE_USDT_VND;
+    const rate = MOCK_EXCHANGE_RATES[paymentCurrency];
+    if (!isNaN(amount) && amount > 0 && rate) {
+      const result = amount * rate;
       setCalculatedVnd(result.toLocaleString("vi-VN"));
     } else {
       setCalculatedVnd("0");
     }
-  }, [fromAmount]);
+  }, [fromAmount, paymentCurrency]);
 
   async function onSubmit(data: ExchangeFormValues) {
     const loadingToastId = toast.loading(t("toasts.creatingOrder", "Создание заявки..."));
@@ -103,20 +109,21 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       }
       
       const public_id = `VEX-${String(orderIdData).padStart(6, '0')}`;
+      const currentRate = MOCK_EXCHANGE_RATES[data.paymentCurrency as "USDT" | "RUB"];
 
       const orderPayload = {
         public_id,
         payment_currency: data.paymentCurrency,
         from_amount: Number(data.fromAmount),
         calculated_vnd: parseFloat(calculatedVnd.replace(/,/g, '')),
-        exchange_rate: MOCK_EXCHANGE_RATE_USDT_VND,
+        exchange_rate: currentRate,
         delivery_method: data.deliveryMethod,
         vnd_bank_name: data.vndBankName,
         vnd_bank_account_number: data.vndBankAccountNumber,
         delivery_address: data.deliveryAddress,
         telegram_contact: data.telegramContact,
         contact_phone: data.contactPhone,
-        usdt_network: data.usdtNetwork,
+        usdt_network: data.paymentCurrency === 'USDT' ? data.usdtNetwork : null,
       };
 
       const { data: newOrder, error: insertError } = await supabase
@@ -131,10 +138,15 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         return;
       }
 
-      if (data.usdtNetwork) {
-        onExchangeSuccess(data.usdtNetwork, PAYMENT_WALLET_ADDRESS, newOrder, loadingToastId);
-      } else {
-        toast.error(t("toasts.networkMissingError", "Сеть USDT не выбрана. Невозможно продолжить."), { id: loadingToastId });
+      if (data.paymentCurrency === 'USDT') {
+        if (data.usdtNetwork) {
+          onExchangeSuccess(data.usdtNetwork, PAYMENT_WALLET_ADDRESS, newOrder, loadingToastId);
+        } else {
+          toast.error(t("toasts.networkMissingError", "Сеть USDT не выбрана. Невозможно продолжить."), { id: loadingToastId });
+        }
+      } else { // For RUB
+        toast.success(t("toasts.rubOrderSuccess", "Заявка на обмен RUB успешно создана. Мы свяжемся с вами для уточнения деталей."), { id: loadingToastId });
+        form.reset(); // Reset form after successful RUB order
       }
     } catch (error) {
       console.error("Form submission error:", error);
@@ -145,7 +157,25 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   return (
     <Card className="w-full max-w-2xl mx-auto my-8">
       <CardHeader>
-        <CardTitle>{t("exchangeForm.title", "Создать заявку")}</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle>{t("exchangeForm.title", "Создать заявку")}</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={paymentCurrency === 'USDT' ? 'secondary' : 'outline'}
+              onClick={() => form.setValue('paymentCurrency', 'USDT')}
+            >
+              USDT
+            </Button>
+            <Button
+              type="button"
+              variant={paymentCurrency === 'RUB' ? 'secondary' : 'outline'}
+              onClick={() => form.setValue('paymentCurrency', 'RUB')}
+            >
+              RUB
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -173,7 +203,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                         />
                       </FormControl>
                       <div className="p-2 h-10 border rounded-md bg-muted text-muted-foreground whitespace-nowrap flex items-center">
-                        USDT
+                        {paymentCurrency}
                       </div>
                     </div>
                     <FormMessage />
@@ -192,10 +222,35 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground pt-2">
-                  {t("exchangeForm.rateInfo", `Курс: 1 USDT ≈ ${MOCK_EXCHANGE_RATE_USDT_VND.toLocaleString("vi-VN")} VND`)}
+                  {t("exchangeForm.rateInfo", `Курс: 1 ${paymentCurrency} ≈ ${(MOCK_EXCHANGE_RATES[paymentCurrency] || 0).toLocaleString("vi-VN")} VND`)}
                 </p>
               </FormItem>
             </div>
+
+            {paymentCurrency === 'USDT' && (
+              <FormField
+                control={form.control}
+                name="usdtNetwork"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("exchangeForm.usdtNetworkLabel", "Сеть USDT")}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("exchangeForm.usdtNetworkPlaceholder", "Выберите сеть")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="TRC20">TRC20</SelectItem>
+                        <SelectItem value="BEP20">BEP20</SelectItem>
+                        <SelectItem value="ERC20">ERC20</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
