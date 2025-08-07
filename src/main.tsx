@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
-import './index.css'
+import './globals.css'
 import { Toaster } from "@/components/ui/sonner"
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './i18n';
