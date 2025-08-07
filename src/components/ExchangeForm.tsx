@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -153,7 +153,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       paymentCurrency: "USDT",
-      fromAmount: 100,
       deliveryMethod: "bank",
       telegramContact: "@",
       usdtNetwork: "TRC20",
@@ -162,6 +161,17 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       contactPhone: "",
     },
   });
+
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      if (form.getValues('fromAmount') === undefined) {
+        form.setValue('fromAmount', 100, { shouldValidate: true });
+      }
+      isInitialMount.current = false;
+    }
+  }, [form]);
 
   const fromAmount = form.watch("fromAmount");
   const deliveryMethod = form.watch("deliveryMethod");
@@ -228,16 +238,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         String(loadingToastId),
       );
 
-      form.reset({
-        paymentCurrency: "USDT",
-        fromAmount: 100,
-        deliveryMethod: "bank",
-        telegramContact: "@",
-        usdtNetwork: "TRC20",
-        vndBankAccountNumber: "",
-        vndBankName: "",
-        contactPhone: "",
-      });
+      form.reset();
       setCalculatedVND(0);
     } catch (error: any) {
       console.error("Error submitting exchange:", error);
