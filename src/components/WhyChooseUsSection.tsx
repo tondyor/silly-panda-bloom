@@ -28,12 +28,14 @@ export const WhyChooseUsSection = () => {
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center text-white">{t('whyChooseUs.title')}</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center text-white p-6">
+      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-white p-6">
         {features.map((feature, index) => (
-          <div key={index} className="flex flex-col items-center space-y-2">
-            <div className="p-3 bg-white/20 rounded-full">{feature.icon}</div>
-            <h3 className="text-lg font-semibold">{feature.title}</h3>
-            <p className="text-sm text-gray-200">{feature.description}</p>
+          <div key={index} className="flex items-start space-x-4">
+            <div className="flex-shrink-0 p-3 bg-white/20 rounded-full">{feature.icon}</div>
+            <div className="text-left">
+              <h3 className="text-lg font-semibold">{feature.title}</h3>
+              <p className="text-sm text-gray-200">{feature.description}</p>
+            </div>
           </div>
         ))}
       </CardContent>

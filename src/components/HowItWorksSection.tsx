@@ -30,7 +30,7 @@ export const HowItWorksSection = () => {
             <div className="flex-shrink-0 h-10 w-10 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
               {index + 1}
             </div>
-            <div>
+            <div className="text-left">
               <h3 className="text-lg font-semibold text-white">{step.title}</h3>
               <p className="text-sm text-gray-200">{step.description}</p>
             </div>
