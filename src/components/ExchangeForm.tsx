@@ -43,7 +43,7 @@ const USDT_WALLETS: Record<string, string> = {
 
 const commonFields = {
   paymentCurrency: z.enum(["USDT", "RUB"]),
-  fromAmount: z.number({ required_error: "Пожалуйста, введите сумму." }),
+  fromAmount: z.number({ invalid_type_error: "Сумма должна быть числом." }).optional(),
   telegramContact: z
     .string()
     .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
@@ -83,6 +83,10 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
       .max(200, "Адрес доставки слишком длинный."),
   }),
 ]).superRefine((data, ctx) => {
+    if (data.fromAmount === undefined || data.fromAmount === null || isNaN(data.fromAmount)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Пожалуйста, введите сумму.", path: ["fromAmount"] });
+        return;
+    }
     if (data.paymentCurrency === 'USDT') {
         if (!data.usdtNetwork) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Пожалуйста, выберите сеть USDT.", path: ["usdtNetwork"] });
@@ -176,7 +180,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const handleCurrencyChange = (value: string) => {
     const newCurrency = value as "USDT" | "RUB";
     form.setValue("paymentCurrency", newCurrency);
-    form.setValue("fromAmount", newCurrency === 'USDT' ? 100 : 10000);
     form.clearErrors("fromAmount");
 
     if (newCurrency === 'RUB') {
