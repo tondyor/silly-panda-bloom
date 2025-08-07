@@ -182,7 +182,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         form.setValue("vndBankAccountNumber", "");
         form.setValue("vndBankName", "");
     }
-  }, [paymentCurrency, form]);
+  }, [paymentCurrency, form.setValue, form.clearErrors]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
