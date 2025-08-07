@@ -1,37 +1,41 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, FastForward, Headphones } from 'lucide-react';
+import { Zap, TrendingUp, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const WhyChooseUsSection = () => {
+  const { t } = useTranslation();
+
+  const features = [
+    {
+      icon: <Zap className="h-8 w-8 text-yellow-400" />,
+      title: t('whyChooseUs.fast'),
+      description: t('whyChooseUs.fastDescription'),
+    },
+    {
+      icon: <TrendingUp className="h-8 w-8 text-green-400" />,
+      title: t('whyChooseUs.profitable'),
+      description: t('whyChooseUs.profitableDescription'),
+    },
+    {
+      icon: <ShieldCheck className="h-8 w-8 text-blue-400" />,
+      title: t('whyChooseUs.reliable'),
+      description: t('whyChooseUs.reliableDescription'),
+    },
+  ];
+
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60 mt-6">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-2xl font-bold text-center text-blue-700">
-          Почему выбирают VietSwap?
-        </CardTitle>
+    <Card className="w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden relative z-10 bg-white/10 backdrop-blur-sm border-2 border-white/20 mt-8">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold text-center text-white">{t('whyChooseUs.title')}</CardTitle>
       </CardHeader>
-      <CardContent className="p-6 pt-0 space-y-4">
-        <div className="flex items-start space-x-3">
-          <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-          <div>
-            <h3 className="font-semibold text-gray-800">Выгодный курс:</h3>
-            <p className="text-gray-600 text-sm">Мы предлагаем курс на 0.5% лучше официального курса Центробанка, чтобы вы получали максимум от каждого обмена.</p>
+      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center text-white p-6">
+        {features.map((feature, index) => (
+          <div key={index} className="flex flex-col items-center space-y-2">
+            <div className="p-3 bg-white/20 rounded-full">{feature.icon}</div>
+            <h3 className="text-lg font-semibold">{feature.title}</h3>
+            <p className="text-sm text-gray-200">{feature.description}</p>
           </div>
-        </div>
-        <div className="flex items-start space-x-3">
-          <FastForward className="h-6 w-6 text-orange-600 flex-shrink-0 mt-1" />
-          <div>
-            <h3 className="font-semibold text-gray-800">Быстрые транзакции:</h3>
-            <p className="text-gray-600 text-sm">Наши процессы оптимизированы для мгновенного обмена, чтобы вы не ждали.</p>
-          </div>
-        </div>
-        <div className="flex items-start space-x-3">
-          <Headphones className="h-6 w-6 text-purple-600 flex-shrink-0 mt-1" />
-          <div>
-            <h3 className="font-semibold text-gray-800">Надежная поддержка:</h3>
-            <p className="text-gray-600 text-sm">Наша команда всегда готова помочь с любыми вопросами 24/7.</p>
-          </div>
-        </div>
+        ))}
       </CardContent>
     </Card>
   );

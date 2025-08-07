@@ -1,14 +1,17 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
 import { ExchangeSummary } from "@/components/ExchangeSummary";
 import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const ExchangePage = () => {
+  const { t } = useTranslation();
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
@@ -64,9 +67,12 @@ const ExchangePage = () => {
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="bg-gradient-to-r from-red-600 to-orange-500 text-white p-4">
+        <CardHeader className="relative bg-gradient-to-r from-red-600 to-orange-500 text-white p-4">
+          <div className="absolute top-2 right-2 z-20">
+            <LanguageSwitcher />
+          </div>
           <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
-            Viet Swap
+            {t('headerTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">

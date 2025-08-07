@@ -1,0 +1,51 @@
+{
+  "headerTitle": "Viet Swap",
+  "exchangeForm": {
+    "exchangeCurrencyLabel": "Tiền tệ để đổi",
+    "usdt": "USDT",
+    "rub": "Rúp",
+    "amountLabel": "Số tiền {{currency}}",
+    "amountPlaceholder": "Nhập số tiền bằng {{currency}}",
+    "youWillReceiveLabel": "Bạn sẽ nhận được (VND)",
+    "usdtNetworkLabel": "Mạng USDT",
+    "selectNetworkPlaceholder": "Chọn mạng USDT",
+    "currentRate": "1 {{currency}} ≈ {{rate}} VND",
+    "loadingRateError": "Không thể tải tỷ giá",
+    "deliveryMethodLabel": "Phương thức nhận VND",
+    "bankAccount": "Vào tài khoản",
+    "cash": "Tiền mặt",
+    "bankAccountNumberLabel": "Số thẻ hoặc tài khoản VND",
+    "bankAccountNumberPlaceholder": "Nhập số thẻ hoặc tài khoản",
+    "bankNameLabel": "Tên ngân hàng VND",
+    "bankNamePlaceholder": "Ví dụ: Vietcombank",
+    "deliveryAddressLabel": "Địa chỉ giao hàng (Đà Nẵng/Hội An)",
+    "deliveryAddressDescription": "Vui lòng cung cấp càng nhiều chi tiết càng tốt: tên khách sạn, số phòng, địa chỉ chính xác hoặc liên kết Google Maps.",
+    "deliveryAddressPlaceholder": "Nhập địa chỉ giao hàng đầy đủ",
+    "telegramLabel": "Telegram của bạn (để liên lạc)",
+    "telegramPlaceholder": "@ten_nguoi_dung",
+    "phoneLabel": "Số điện thoại liên hệ",
+    "phonePlaceholder": "Nhập số điện thoại của bạn",
+    "exchangeNowButton": "Đổi ngay",
+    "processingButton": "Đang xử lý...",
+    "loadingRateButton": "Đang tải tỷ giá...",
+    "cashDeliveryInfo": "Chúng tôi giao tiền mặt tại Đà Nẵng và Hội An trong vòng 15-30 phút."
+  },
+  "whyChooseUs": {
+    "title": "Tại sao chọn chúng tôi?",
+    "fast": "Nhanh chóng",
+    "fastDescription": "Việc đổi tiền mất 15-30 phút.",
+    "profitable": "Lợi nhuận",
+    "profitableDescription": "Tỷ giá tốt nhất trên thị trường.",
+    "reliable": "Đáng tin cậy",
+    "reliableDescription": "Đảm bảo an toàn cho tiền của bạn."
+  },
+  "howItWorks": {
+    "title": "Nó hoạt động như thế nào?",
+    "step1": "Bước 1: Điền vào biểu mẫu",
+    "step1Description": "Chỉ định số tiền, tiền tệ và phương thức nhận.",
+    "step2": "Bước 2: Chuyển tiền",
+    "step2Description": "Gửi USDT đến ví được chỉ định.",
+    "step3": "Bước 3: Nhận VND",
+    "step3Description": "Chúng tôi sẽ giao tiền mặt hoặc chuyển vào tài khoản của bạn."
+  }
+}
