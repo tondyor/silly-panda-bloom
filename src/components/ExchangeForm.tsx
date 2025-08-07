@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Landmark, HandCoins } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -225,12 +225,12 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     }
   }
 
-  const inputClass = "h-12 p-3 text-base w-full";
+  const inputClass = "h-12 p-3 text-base w-full min-w-[70%]";
   const isUsdtRateUnavailable = paymentCurrency === 'USDT' && (isLoadingRate || isErrorRate || !usdtVndRate);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {isErrorRate && paymentCurrency === 'USDT' && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -247,9 +247,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 onValueChange={(value) => form.setValue("paymentCurrency", value as "USDT" | "RUB")}
                 className="w-full"
             >
-                <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0">
-                    <TabsTrigger value="USDT" className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-blue-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm">USDT</TabsTrigger>
-                    <TabsTrigger value="RUB" className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-red-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm">Рубли</TabsTrigger>
+                <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-gray-200 p-1">
+                    <TabsTrigger value="USDT" className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-sm font-medium text-gray-700 transition-all">USDT</TabsTrigger>
+                    <TabsTrigger value="RUB" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-sm font-medium text-gray-700 transition-all">Рубли</TabsTrigger>
                 </TabsList>
             </Tabs>
         </div>
@@ -327,7 +327,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               {isErrorRate && <span className="text-red-500 font-medium">Не удалось загрузить курс</span>}
               {usdtVndRate && !isLoadingRate && !isErrorRate && (
                 <span>
-                  Текущий курс: 1 USDT ≈{" "}
+                  1 USDT ≈{" "}
                   <span className="font-semibold text-blue-600">
                     {exchangeRate.toLocaleString("vi-VN")} VND
                   </span>
@@ -336,7 +336,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             </>
           ) : (
             <span>
-              Текущий курс: 1 RUB ={" "}
+              1 RUB ={" "}
               <span className="font-semibold text-blue-600">
                 {exchangeRate.toLocaleString("vi-VN")} VND
               </span>
@@ -351,26 +351,28 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             onValueChange={(value) => form.setValue("deliveryMethod", value as "bank" | "cash")}
             className="w-full"
           >
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-gray-200 p-1">
               <TabsTrigger
                 value="bank"
                 disabled={paymentCurrency === 'RUB'}
-                className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex h-auto flex-col items-center justify-center gap-1 rounded-md p-3 text-sm font-medium text-gray-700 transition-all data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
               >
-                На банковский счет
+                <Landmark className="h-5 w-5" />
+                <span className="text-xs sm:text-sm">На счет</span>
               </TabsTrigger>
               <TabsTrigger
                 value="cash"
-                className="rounded-md bg-gray-700/50 py-2 text-sm text-gray-100 transition-colors data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                className="flex h-auto flex-col items-center justify-center gap-1 rounded-md p-3 text-sm font-medium text-gray-700 transition-all data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md"
               >
-                Наличными (доставка)
+                <HandCoins className="h-5 w-5" />
+                <span className="text-xs sm:text-sm">Наличными</span>
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-2">
+            <TabsContent value="bank" className="mt-4 space-y-3">
               <FormField control={form.control} name="vndBankAccountNumber" render={({ field }) => (<FormItem className="w-full"><FormLabel>Номер карты или счета VND <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="Введите номер карты или счета" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="vndBankName" render={({ field }) => (<FormItem className="w-full"><FormLabel>Название банка VND <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="Например, Vietcombank" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-2">
+            <TabsContent value="cash" className="mt-4 space-y-3">
               <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут.</p>
               <FormField control={form.control} name="deliveryAddress" render={({ field }) => (<FormItem className="w-full"><FormLabel>Адрес доставки (Дананг/ХойаН) <span className="text-red-500">*</span><span className="block text-xs text-gray-500 font-normal mt-1">Укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.</span></FormLabel><FormControl className="w-full"><Input placeholder="Введите полный адрес доставки" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
@@ -380,7 +382,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         <FormField control={form.control} name="telegramContact" render={({ field }) => (<FormItem className="w-full"><FormLabel>Ваш Telegram (для связи) <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder="@ваш_никнейм" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="contactPhone" render={({ field }) => (<FormItem className="w-full"><FormLabel>Контактный телефон</FormLabel><FormControl className="w-full"><Input placeholder="Введите ваш номер телефона" {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
 
-        <Button type="submit" className="w-full py-3 text-lg rounded-full bg-gradient-to-b from-green-400 to-green-700 text-white shadow-xl hover:from-green-500 hover:to-green-800 transition-all duration-300 ease-in-out disabled:opacity-60" disabled={isSubmitting || isUsdtRateUnavailable}>
+        <Button type="submit" className="w-full h-14 text-lg font-bold rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400" disabled={isSubmitting || isUsdtRateUnavailable}>
           {isSubmitting ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Обработка...</>) : isLoadingRate && paymentCurrency === 'USDT' ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Загрузка курса...</>) : ("Обменять сейчас")}
         </Button>
       </form>
