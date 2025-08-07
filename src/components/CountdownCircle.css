@@ -1,0 +1,14 @@
+@keyframes countdown {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: var(--circumference);
+  }
+}
+
+.countdown-circle-progress {
+  stroke-linecap: round;
+  animation: countdown linear forwards;
+  stroke: #22c55e; /* Tailwind green-500 */
+}

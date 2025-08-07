@@ -27,6 +27,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import CountdownCircle from "./CountdownCircle";
 
 const PROFIT_MARGIN = 0.005;
 const RUB_VND_RATE = 280;
@@ -133,7 +134,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const { 
     data: usdtVndRate, 
     isLoading: isLoadingRate, 
-    isError: isErrorRate 
+    isError: isErrorRate,
+    dataUpdatedAt,
   } = useQuery<number>({
     queryKey: ['usdt-vnd-rate'],
     queryFn: fetchExchangeRate,
@@ -279,7 +281,12 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           )}
         />
         <div className="w-full">
-          <Label className="mb-2 block">Вы получите (VND)</Label>
+          <div className="flex items-center gap-2 mb-2">
+            <Label>Вы получите (VND)</Label>
+            {paymentCurrency === 'USDT' && !isLoadingRate && !isErrorRate && usdtVndRate && (
+              <CountdownCircle key={dataUpdatedAt} duration={30} />
+            )}
+          </div>
           <Input
             type="text"
             value={isUsdtRateUnavailable && paymentCurrency === 'USDT' ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
