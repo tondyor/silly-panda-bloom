@@ -173,16 +173,18 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     }
   }, [fromAmount, paymentCurrency, usdtVndRate]);
 
-  useEffect(() => {
-    form.setValue("fromAmount", paymentCurrency === 'USDT' ? 100 : 10000);
+  const handleCurrencyChange = (value: string) => {
+    const newCurrency = value as "USDT" | "RUB";
+    form.setValue("paymentCurrency", newCurrency);
+    form.setValue("fromAmount", newCurrency === 'USDT' ? 100 : 10000);
     form.clearErrors("fromAmount");
 
-    if (paymentCurrency === 'RUB') {
+    if (newCurrency === 'RUB') {
         form.setValue("deliveryMethod", "cash");
         form.setValue("vndBankAccountNumber", "");
         form.setValue("vndBankName", "");
     }
-  }, [paymentCurrency, form.setValue, form.clearErrors]);
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -262,7 +264,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             <Label>{t('exchangeForm.exchangeCurrencyLabel')} <span className="text-red-500">*</span></Label>
             <Tabs
                 value={paymentCurrency}
-                onValueChange={(value) => form.setValue("paymentCurrency", value as "USDT" | "RUB")}
+                onValueChange={handleCurrencyChange}
                 className="w-full"
             >
                 <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-gray-200 p-1">
