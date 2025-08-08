@@ -25,11 +25,6 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data }) => {
     usdtNetwork,
   } = data;
 
-  const formattedVND =
-    typeof calculatedVND === "number"
-      ? calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
-      : "";
-
   return (
     <Card className="w-full bg-white/80 backdrop-blur-sm">
       <CardHeader className="text-center">
@@ -53,9 +48,11 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data }) => {
             </li>
             <li className="flex justify-between">
               <span className="text-gray-500">Получаете:</span>
-              <span className="font-medium text-green-600">{formattedVND}</span>
+              <span className="font-medium text-green-600">
+                {calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+              </span>
             </li>
-            {paymentCurrency === "USDT" && (
+            {paymentCurrency === 'USDT' && (
               <li className="flex justify-between">
                 <span className="text-gray-500">Сеть для депозита:</span>
                 <span className="font-medium text-gray-800">{usdtNetwork}</span>
