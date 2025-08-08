@@ -115,7 +115,6 @@ interface ExchangeFormProps {
     network: string,
     address: string,
     orderData: any,
-    loadingToastId: string,
   ) => void;
 }
 
@@ -162,9 +161,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     },
   });
 
-  const isInitialMount = useRef(true);
+  const isInitialMount = React.useRef(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isInitialMount.current) {
       if (form.getValues('fromAmount') === undefined) {
         form.setValue('fromAmount', 100, { shouldValidate: true });
@@ -177,7 +176,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const deliveryMethod = form.watch("deliveryMethod");
   const paymentCurrency = form.watch("paymentCurrency");
 
-  useEffect(() => {
+  React.useEffect(() => {
     const rate = paymentCurrency === 'USDT' ? (usdtVndRate ?? 0) : RUB_VND_RATE;
     setExchangeRate(rate);
     if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0) {
@@ -201,7 +200,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", { className: "opacity-75" });
+    const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", { className: "opacity-75", position: "bottom-center" });
 
     try {
       const orderPayload = {
@@ -231,19 +230,20 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         network = values.usdtNetwork;
       }
 
+      toast.dismiss(loadingToastId);
+
       onExchangeSuccess(
         network,
         depositAddress,
         newOrder,
-        String(loadingToastId),
       );
 
       form.reset();
       setCalculatedVND(0);
     } catch (error: any) {
       console.error("Error submitting exchange:", error);
-      toast.error("Ошибка при создании заявки.", { description: error.message || "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000 });
-      toast.dismiss(String(loadingToastId));
+      toast.dismiss(loadingToastId);
+      toast.error("Ошибка при создании заявки.", { description: error.message || "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000, position: "bottom-center" });
     } finally {
       setIsSubmitting(false);
     }

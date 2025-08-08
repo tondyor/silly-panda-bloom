@@ -20,7 +20,6 @@ const ExchangePage = () => {
     network: string,
     address: string,
     orderData: any,
-    loadingToastId: string
   ) => {
     setDepositInfo({ network, address });
 
@@ -41,13 +40,11 @@ const ExchangePage = () => {
     setSubmittedFormData(displayData);
     setIsFormSubmitted(true);
 
-    setTimeout(() => {
-      toast.dismiss(loadingToastId);
-      toast.success("Ваш запрос на обмен успешно отправлен!", {
-        description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
-        duration: 10000,
-      });
-    }, 1000);
+    toast.success("Ваш запрос на обмен успешно отправлен!", {
+      description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
+      duration: 3000,
+      position: "top-center",
+    });
   };
 
   return (
