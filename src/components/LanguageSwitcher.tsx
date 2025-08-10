@@ -23,7 +23,7 @@ export const LanguageSwitcher = () => {
           variant="ghost"
           size="sm"
           onClick={() => changeLanguage(lang.code)}
-          className={`p-1 h-auto text-xs font-bold text-white transition-opacity rounded-md ${
+          className={`p-1 h-auto text-xs font-bold text-blue-500 transition-opacity rounded-md ${
             i18n.language.startsWith(lang.code) ? 'opacity-100' : 'opacity-70 hover:opacity-100'
           }`}
         >
