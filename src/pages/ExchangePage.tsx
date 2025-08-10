@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import logo from "/images/LOGO1.jpg";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
@@ -48,23 +49,19 @@ const ExchangePage = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-2 sm:p-4 lg:p-6"
       style={{
         backgroundImage: "url('/vietnam-background.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
       }}
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="relative flex items-center justify-center bg-white h-16">
-          <img
-            src={new URL('/images/LOGO1.jpg', import.meta.url).href}
-            alt="Viet Swap Logo"
-            className="h-full w-auto mx-auto"
-          />
+        <CardHeader className="relative flex items-center justify-center bg-white h-10">
+          <img src={logo} alt="Viet Swap Logo" className="h-full w-auto" />
           <div className="absolute top-1/2 right-2 -translate-y-1/2 z-20">
             <LanguageSwitcher />
           </div>
@@ -77,12 +74,9 @@ const ExchangePage = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {isFormSubmitted ? (
-        <PostSubmissionInfo 
-          depositInfo={depositInfo}
-          formData={submittedFormData}
-        />
+        <PostSubmissionInfo depositInfo={depositInfo} formData={submittedFormData} />
       ) : (
         <>
           <WhyChooseUsSection />
