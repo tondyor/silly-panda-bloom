@@ -63,7 +63,8 @@ const ExchangePage = () => {
           className="relative p-4 text-white"
           style={{
             backgroundImage: "url('/images/LOGO1.jpg')",
-            backgroundSize: 'cover',
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
           }}
         >
