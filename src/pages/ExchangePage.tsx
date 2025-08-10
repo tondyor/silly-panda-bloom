@@ -48,7 +48,7 @@ const ExchangePage = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-2 sm:p-4 lg:p-6"
       style={{
         backgroundImage: "url('/vietnam-background.png')",
@@ -63,9 +63,7 @@ const ExchangePage = () => {
           <div className="absolute top-1/2 right-2 -translate-y-1/2 z-20">
             <LanguageSwitcher />
           </div>
-          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
-            {t('headerTitle')}
-          </CardTitle>
+          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"></CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {isFormSubmitted ? (
@@ -75,9 +73,9 @@ const ExchangePage = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {isFormSubmitted ? (
-        <PostSubmissionInfo 
+        <PostSubmissionInfo
           depositInfo={depositInfo}
           formData={submittedFormData}
         />
