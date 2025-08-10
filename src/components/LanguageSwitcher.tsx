@@ -1,35 +1,27 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Button } from './ui/button';
+"use client";
+
+import React from "react";
+import { Button } from "@/components/ui/button";
 
 const languages = [
-  { code: 'ru', name: 'RU' },
-  { code: 'en', name: 'ENG' },
-  { code: 'vi', name: 'VIET' },
+  { code: "en", label: "English" },
+  { code: "ru", label: "Русский" },
+  // добавьте другие языки при необходимости
 ];
 
-export const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
-
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
-  };
-
+export default function LanguageSwitcher() {
   return (
-    <div className="flex flex-col">
+    <div className="flex space-x-2">
       {languages.map((lang) => (
         <Button
           key={lang.code}
           variant="ghost"
           size="sm"
-          onClick={() => changeLanguage(lang.code)}
-          className={`p-1 h-auto text-xs font-bold text-blue-500 transition-opacity rounded-md ${
-            i18n.language.startsWith(lang.code) ? 'opacity-100' : 'opacity-70 hover:opacity-100'
-          }`}
+          className="text-white"
         >
-          {lang.name}
+          {lang.label}
         </Button>
       ))}
     </div>
   );
-};
+}
