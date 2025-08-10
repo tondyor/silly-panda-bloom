@@ -3,7 +3,9 @@
 import React from "react";
 import { Card, CardHeader } from "@/components/ui/card";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import logo from "@/assets/logo.jpg";
+// Изменено: теперь логотип загружается из папки public
+// Убедитесь, что вы поместили файл LOGO.jpg в папку public
+import logo from "/LOGO.jpg"; 
 
 const ExchangePage = () => {
   return (
