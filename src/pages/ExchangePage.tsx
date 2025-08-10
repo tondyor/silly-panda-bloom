@@ -61,7 +61,7 @@ const ExchangePage = () => {
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
         <CardHeader className="relative flex items-center justify-center bg-white h-16">
           <img
-            src="/images/LOGO1.jpg"
+            src={new URL('/images/LOGO1.jpg', import.meta.url).href}
             alt="Viet Swap Logo"
             className="h-full w-auto mx-auto"
           />
