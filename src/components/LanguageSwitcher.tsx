@@ -1,21 +1,14 @@
-import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Globe } from "lucide-react";
-import clsx from "clsx";
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from './ui/button';
 
 const languages = [
-  { code: "en", name: "EN" },
-  { code: "ru", name: "RU" },
-  { code: "vi", name: "VI" },
+  { code: 'ru', name: 'RU' },
+  { code: 'en', name: 'ENG' },
+  { code: 'vi', name: 'VIET' },
 ];
 
-const LanguageSwitcher = () => {
+export const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
 
   const changeLanguage = (lng: string) => {
@@ -23,54 +16,20 @@ const LanguageSwitcher = () => {
   };
 
   return (
-    <>
-      <div className="hidden sm:flex items-center space-x-1 bg-white/70 backdrop-blur-sm rounded-full p-1">
-        {languages.map((lang) => (
-          <Button
-            key={lang.code}
-            variant="ghost"
-            size="sm"
-            onClick={() => changeLanguage(lang.code)}
-            className={clsx(
-              "rounded-full px-3 py-1 text-sm font-medium transition-colors text-blue-700 hover:bg-blue-100",
-              {
-                "bg-blue-200 text-blue-800":
-                  i18n.language.startsWith(lang.code),
-              }
-            )}
-          >
-            {lang.name}
-          </Button>
-        ))}
-      </div>
-      <div className="sm:hidden">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-blue-700 bg-white/70 backdrop-blur-sm rounded-full"
-            >
-              <Globe className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {languages.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                onClick={() => changeLanguage(lang.code)}
-                className={clsx({
-                  "font-bold": i18n.language.startsWith(lang.code),
-                })}
-              >
-                {lang.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </>
+    <div className="flex flex-col">
+      {languages.map((lang) => (
+        <Button
+          key={lang.code}
+          variant="ghost"
+          size="sm"
+          onClick={() => changeLanguage(lang.code)}
+          className={`p-1 h-auto text-xs font-bold text-white transition-opacity rounded-md ${
+            i18n.language.startsWith(lang.code) ? 'opacity-100' : 'opacity-70 hover:opacity-100'
+          }`}
+        >
+          {lang.name}
+        </Button>
+      ))}
+    </div>
   );
 };
-
-export default LanguageSwitcher;

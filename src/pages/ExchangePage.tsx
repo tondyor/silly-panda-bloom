@@ -1,104 +1,94 @@
-import React, { useState } from 'react';
-import { ExchangeForm } from '@/components/ExchangeForm';
-import { ExchangeSummary } from '@/components/ExchangeSummary';
-import { PostSubmissionInfo } from '@/components/PostSubmissionInfo';
-import { WhyChooseUsSection } from '@/components/WhyChooseUsSection';
-import { HowItWorksSection } from '@/components/HowItWorksSection';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
-type View = 'form' | 'summary' | 'post-submission';
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ExchangeForm } from "@/components/ExchangeForm";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MadeWithDyad } from "@/components/made-with-dyad";
+import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
+import { ExchangeSummary } from "@/components/ExchangeSummary";
+import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
+import { HowItWorksSection } from "@/components/HowItWorksSection";
+import { toast } from "sonner";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const ExchangePage = () => {
   const { t } = useTranslation();
-  const [view, setView] = useState<View>('form');
-  const [orderData, setOrderData] = useState<any>(null);
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+  const [submittedFormData, setSubmittedFormData] = useState<any>(null);
 
-  const handleExchangeSuccess = (network: string, address: string, newOrder: any) => {
-    const fullOrderData = {
-      ...newOrder,
-      orderId: newOrder.public_id,
-      paymentCurrency: newOrder.payment_currency,
-      fromAmount: newOrder.from_amount,
-      calculatedVND: newOrder.calculated_vnd,
-      deliveryMethod: newOrder.delivery_method,
-      vndBankName: newOrder.vnd_bank_name,
-      vndBankAccountNumber: newOrder.vnd_bank_account_number,
-      deliveryAddress: newOrder.delivery_address,
-      telegramContact: newOrder.telegram_contact,
-      contactPhone: newOrder.contact_phone,
-      usdtNetwork: newOrder.usdt_network,
-    };
-    setOrderData(fullOrderData);
+  const handleExchangeSuccess = (
+    network: string,
+    address: string,
+    orderData: any,
+  ) => {
     setDepositInfo({ network, address });
-    setView('summary');
-  };
 
-  const handleConfirmSummary = () => {
-    setView('post-submission');
-  };
+    const displayData = {
+      orderId: orderData.public_id,
+      paymentCurrency: orderData.payment_currency,
+      fromAmount: orderData.from_amount,
+      calculatedVND: orderData.calculated_vnd,
+      deliveryMethod: orderData.delivery_method,
+      vndBankName: orderData.vnd_bank_name,
+      vndBankAccountNumber: orderData.vnd_bank_account_number,
+      deliveryAddress: orderData.delivery_address,
+      telegramContact: orderData.telegram_contact,
+      contactPhone: orderData.contact_phone,
+      usdtNetwork: orderData.usdt_network,
+    };
 
-  const handleGoBack = () => {
-    setView('form');
-    setOrderData(null);
-    setDepositInfo(null);
-  };
+    setSubmittedFormData(displayData);
+    setIsFormSubmitted(true);
 
-  const renderContent = () => {
-    switch (view) {
-      case 'summary':
-        return (
-          <>
-            <ExchangeSummary data={orderData} />
-            <Button onClick={handleConfirmSummary} className="w-full mt-4 bg-green-600 hover:bg-green-700">
-              {t('exchangePage.confirmAndProceed')}
-            </Button>
-            <Button onClick={handleGoBack} variant="outline" className="w-full mt-2">
-              <ArrowLeft className="mr-2 h-4 w-4" /> {t('exchangePage.backToForm')}
-            </Button>
-          </>
-        );
-      case 'post-submission':
-        return (
-          <>
-            <PostSubmissionInfo depositInfo={depositInfo} formData={orderData} />
-            <Button onClick={handleGoBack} className="w-full mt-6 bg-blue-600 hover:bg-blue-700">
-              <ArrowLeft className="mr-2 h-4 w-4" /> {t('exchangePage.newExchange')}
-            </Button>
-          </>
-        );
-      case 'form':
-      default:
-        return <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />;
-    }
+    toast.success("Ваш запрос на обмен успешно отправлен!", {
+      description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
+      duration: 3000,
+      position: "top-center",
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col items-center justify-start p-4 font-sans text-white">
-      <div className="w-full max-w-lg mx-auto">
-        <Card className="w-full shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-black/50 backdrop-blur-sm border-2 border-white/10">
-          <CardHeader className="relative p-0">
-            <img src="/logo.jpg" alt="Logo" className="w-full h-auto" />
-            <div className="absolute top-2 right-2 z-10">
-              <LanguageSwitcher />
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            {renderContent()}
-          </CardContent>
-        </Card>
-        
-        {view === 'form' && (
-          <>
-            <WhyChooseUsSection />
-            <HowItWorksSection />
-          </>
-        )}
-      </div>
+    <div 
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-2 sm:p-4 lg:p-6"
+      style={{
+        backgroundImage: "url('/vietnam-background.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      <div className="absolute inset-0 bg-black/30 z-0"></div>
+      <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
+        <CardHeader className="relative bg-gradient-to-r from-red-600 to-orange-500 text-white p-4">
+          <div className="absolute top-1/2 right-2 -translate-y-1/2 z-20">
+            <LanguageSwitcher />
+          </div>
+          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+            {t('headerTitle')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 py-6 sm:px-6 space-y-6">
+          {isFormSubmitted ? (
+            <ExchangeSummary data={submittedFormData} />
+          ) : (
+            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />
+          )}
+        </CardContent>
+      </Card>
+      
+      {isFormSubmitted ? (
+        <PostSubmissionInfo 
+          depositInfo={depositInfo}
+          formData={submittedFormData}
+        />
+      ) : (
+        <>
+          <WhyChooseUsSection />
+          <HowItWorksSection />
+        </>
+      )}
+
+      <MadeWithDyad />
     </div>
   );
 };
