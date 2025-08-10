@@ -62,6 +62,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Новые брендовые токены
+        "brand-blue": "#123ABC",
+        "brand-light": "#E6F0FF",
+        "brand-accent": "#0055FF",
       },
       borderRadius: {
         lg: "var(--radius)",
