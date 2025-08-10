@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
 import { ExchangeSummary } from "@/components/ExchangeSummary";
@@ -59,15 +59,13 @@ const ExchangePage = () => {
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="relative flex justify-center items-center bg-white h-10">
-          <img
-            src="/images/LOGO1.jpg"
-            alt="Viet Swap Logo"
-            className="h-full w-auto mx-auto"
-          />
+        <CardHeader className="relative bg-gradient-to-r from-red-600 to-orange-500 text-white p-4">
           <div className="absolute top-1/2 right-2 -translate-y-1/2 z-20">
             <LanguageSwitcher />
           </div>
+          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+            {t('headerTitle')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {isFormSubmitted ? (
