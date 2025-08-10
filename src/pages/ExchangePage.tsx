@@ -67,7 +67,7 @@ const ExchangePage = () => {
           </div>
           <CardTitle className="text-center">
             <img
-              src="/images/LOGO1.jpg"
+              src="/images/LOGO1.png"
               alt={t("headerTitle")}
               className="mx-auto h-12 sm:h-16"
             />
