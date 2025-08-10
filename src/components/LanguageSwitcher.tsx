@@ -12,16 +12,22 @@ export const LanguageSwitcher = () => {
   return (
     <div className="flex space-x-2">
       <button
-        className="text-blue-500 font-medium hover:underline"
+        className="text-blue-500 font-medium hover:underline w-10 py-1 text-center"
         onClick={() => changeLanguage("en")}
       >
         EN
       </button>
       <button
-        className="text-blue-500 font-medium hover:underline"
+        className="text-blue-500 font-medium hover:underline w-10 py-1 text-center"
         onClick={() => changeLanguage("ru")}
       >
         RU
+      </button>
+      <button
+        className="text-blue-500 font-medium hover:underline w-10 py-1 text-center"
+        onClick={() => changeLanguage("vi")}
+      >
+        VI
       </button>
     </div>
   );
