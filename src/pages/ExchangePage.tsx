@@ -59,7 +59,14 @@ const ExchangePage = () => {
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="relative bg-gradient-to-r from-red-600 to-orange-500 text-white p-4">
+        <CardHeader
+          className="relative p-4 text-white"
+          style={{
+            backgroundImage: "url('/images/LOGO1.jpg')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
           <div className="absolute top-1/2 right-2 -translate-y-1/2 z-20">
             <LanguageSwitcher />
           </div>
