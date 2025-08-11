@@ -485,14 +485,14 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 className="flex h-auto flex-col items-center justify-center gap-1 rounded-md p-3 text-sm font-medium text-gray-700 transition-all data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Landmark className="h-5 w-5" />
-                <span className="text-xs sm:text-sm">{t('exchangeForm.bankAccount')}</span>
+                <span className="text-sm">{t('exchangeForm.bankAccount')}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="cash"
                 className="flex h-auto flex-col items-center justify-center gap-1 rounded-md p-3 text-sm font-medium text-gray-700 transition-all data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md"
               >
                 <HandCoins className="h-5 w-5" />
-                <span className="text-xs sm:text-sm">{t('exchangeForm.cash')}</span>
+                <span className="text-sm">{t('exchangeForm.cash')}</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="bank" className="mt-2 space-y-2">
@@ -511,7 +511,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         <FormField control={form.control} name="telegramContact" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.telegramLabel')} <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.telegramPlaceholder')} {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="contactPhone" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.phoneLabel')}</FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.phonePlaceholder')} {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
 
-        <Button type="submit" className="w-full h-14 text-lg font-bold rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400" disabled={isSubmitting || (isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB')}>
+        <Button type="submit" className="w-full h-14 text-sm font-bold rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400" disabled={isSubmitting || (isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB')}>
           {isSubmitting ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('exchangeForm.processingButton')}</>) : (isLoadingRate && paymentCurrency === 'USDT') ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('exchangeForm.loadingRateButton')}</>) : (t('exchangeForm.exchangeNowButton'))}
         </Button>
       </form>
