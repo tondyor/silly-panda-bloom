@@ -395,7 +395,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               <FormField control={form.control} name="vndBankName" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.bankNameLabel')} <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.bankNamePlaceholder')} {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
             <TabsContent value="cash" className="mt-2 space-y-2">
-              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">{t('exchangeForm.cashDeliveryInfo')}</p>
+              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                Доставим наличные по Данангу и Хойану в течение 15-30 минут или выдадим через ближайший банкомат.
+              </p>
               <FormField control={form.control} name="deliveryAddress" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.deliveryAddressLabel')} <span className="text-red-500">*</span><span className="block text-xs text-gray-500 font-normal mt-1">{t('exchangeForm.deliveryAddressDescription')}</span></FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.deliveryAddressPlaceholder')} {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
           </Tabs>
