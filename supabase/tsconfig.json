@@ -1,14 +1,11 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "lib": ["deno.ns", "dom"],
     "module": "esnext",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
+    "moduleResolution": "bundler",
     "strict": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "https://esm.sh/react@18.2.0",
-    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"],
-    "noEmit": true
+    "noEmit": true,
+    "esModuleInterop": true
   },
-  "include": ["./functions/**/*.ts"]
+  "include": ["functions/**/*.ts"]
 }
