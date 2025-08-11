@@ -272,10 +272,14 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const paymentCurrency = form.watch("paymentCurrency");
 
   React.useEffect(() => {
-    const rate = paymentCurrency === 'USDT' ? (usdtVndRate ?? 0) : (rubVndRate ?? 0);
-    setExchangeRate(rate);
+    const preciseRate = paymentCurrency === 'USDT' ? (usdtVndRate ?? 0) : (rubVndRate ?? 0);
+    setExchangeRate(preciseRate);
+
+    // Используем округленный курс для расчета, чтобы соответствовать отображению
+    const displayRate = Math.round(preciseRate);
+
     if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0) {
-      setCalculatedVND(fromAmount * rate);
+      setCalculatedVND(fromAmount * displayRate);
     } else {
       setCalculatedVND(0);
     }
