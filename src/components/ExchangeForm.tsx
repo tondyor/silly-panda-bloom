@@ -31,7 +31,6 @@ import CountdownCircle from "./CountdownCircle";
 import { useTranslation } from "react-i18next";
 
 const PROFIT_MARGIN = 0.02; // 2% наценка
-const RUB_VND_RATE = 280;
 
 const USDT_WALLETS: Record<string, string> = {
   BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
@@ -118,38 +117,101 @@ interface ExchangeFormProps {
   ) => void;
 }
 
-// Функция получения курса с Bybit с добавлением 2%
-const fetchExchangeRate = async (): Promise<number> => {
+// Вспомогательная функция для усреднения массива чисел
+function average(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+// Получение курса USDT-VND с 3 источников
+async function fetchUsdtVndRates(): Promise<number[]> {
+  const results: number[] = [];
+
+  // 1. CoinGecko
   try {
-    // Bybit API для получения цены торговой пары USDTVND отсутствует, поэтому используем USDTUSD и USDVND
-    // Получаем цену USDTUSD (пример, обычно 1) и курс USDVND с другого источника или фиксируем
-    // Для демонстрации возьмем USDTUSD с Bybit и умножим на фиксированный курс USDVND с наценкой 2%
-
-    // Запрос цены USDTUSD с Bybit
-    const response = await fetch("https://api.bybit.com/v2/public/tickers?symbol=USDTUSD");
-    if (!response.ok) {
-      throw new Error(`Bybit API error: ${response.status}`);
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd");
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.tether?.vnd;
+      if (typeof price === "number") results.push(price);
     }
-    const data = await response.json();
-    if (!data.result || !data.result[0] || !data.result[0].last_price) {
-      throw new Error("Invalid data from Bybit API");
+  } catch {}
+
+  // 2. Coinpaprika
+  try {
+    const res = await fetch("https://api.coinpaprika.com/v1/tickers/usdt-tether");
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.quotes?.VND?.price;
+      if (typeof price === "number") results.push(price);
     }
-    const usdtUsdPrice = parseFloat(data.result[0].last_price);
-    if (isNaN(usdtUsdPrice)) {
-      throw new Error("Invalid price data from Bybit");
+  } catch {}
+
+  // 3. CryptoCompare
+  try {
+    const res = await fetch("https://min-api.cryptocompare.com/data/price?fsym=USDT&tsyms=VND");
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.VND;
+      if (typeof price === "number") results.push(price);
     }
+  } catch {}
 
-    // Фиксированный курс USD к VND (пример)
-    const usdVndRate = 24000;
+  return results;
+}
 
-    // Рассчитываем курс USDT к VND с наценкой 2%
-    const usdtVndRate = usdtUsdPrice * usdVndRate * (1 + PROFIT_MARGIN);
+// Получение курса RUB-VND с 3 источников
+async function fetchRubVndRates(): Promise<number[]> {
+  const results: number[] = [];
 
-    return usdtVndRate;
-  } catch (error) {
-    console.error("Error fetching exchange rate from Bybit:", error);
-    throw error;
+  // 1. Exchangerate.host
+  try {
+    const res = await fetch("https://api.exchangerate.host/convert?from=RUB&to=VND");
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.result;
+      if (typeof price === "number") results.push(price);
+    }
+  } catch {}
+
+  // 2. Frankfurter.app
+  try {
+    const res = await fetch("https://api.frankfurter.app/latest?from=RUB&to=VND");
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.rates?.VND;
+      if (typeof price === "number") results.push(price);
+    }
+  } catch {}
+
+  // 3. Open Exchange Rates (публичный endpoint без ключа)
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/RUB");
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.rates?.VND;
+      if (typeof price === "number") results.push(price);
+    }
+  } catch {}
+
+  return results;
+}
+
+// Основная функция загрузки курса с усреднением и добавлением 2%
+const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
+  let rates: number[] = [];
+  if (currency === "USDT") {
+    rates = await fetchUsdtVndRates();
+  } else {
+    rates = await fetchRubVndRates();
   }
+
+  if (rates.length === 0) {
+    throw new Error(`Не удалось получить курс для ${currency}-VND`);
+  }
+
+  const avgRate = average(rates);
+  return avgRate * (1 + PROFIT_MARGIN);
 };
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
@@ -165,7 +227,17 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     dataUpdatedAt,
   } = useQuery<number>({
     queryKey: ['usdt-vnd-rate'],
-    queryFn: fetchExchangeRate,
+    queryFn: () => fetchExchangeRate("USDT"),
+    refetchInterval: 30000,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
+
+  const { 
+    data: rubVndRate,
+  } = useQuery<number>({
+    queryKey: ['rub-vnd-rate'],
+    queryFn: () => fetchExchangeRate("RUB"),
     refetchInterval: 30000,
     staleTime: 30000,
     refetchOnWindowFocus: true,
@@ -200,14 +272,14 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const paymentCurrency = form.watch("paymentCurrency");
 
   React.useEffect(() => {
-    const rate = paymentCurrency === 'USDT' ? (usdtVndRate ?? 0) : RUB_VND_RATE;
+    const rate = paymentCurrency === 'USDT' ? (usdtVndRate ?? 0) : (rubVndRate ?? 0);
     setExchangeRate(rate);
     if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0) {
       setCalculatedVND(fromAmount * rate);
     } else {
       setCalculatedVND(0);
     }
-  }, [fromAmount, paymentCurrency, usdtVndRate]);
+  }, [fromAmount, paymentCurrency, usdtVndRate, rubVndRate]);
 
   const handleCurrencyChange = (value: string) => {
     const newCurrency = value as "USDT" | "RUB";
