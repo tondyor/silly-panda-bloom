@@ -224,7 +224,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     data: usdtVndRate, 
     isLoading: isLoadingRate, 
     isError: isErrorRate,
-    dataUpdatedAt,
+    dataUpdatedAt: usdtDataUpdatedAt,
   } = useQuery<number>({
     queryKey: ['usdt-vnd-rate'],
     queryFn: () => fetchExchangeRate("USDT"),
@@ -235,6 +235,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   const { 
     data: rubVndRate,
+    dataUpdatedAt: rubDataUpdatedAt,
   } = useQuery<number>({
     queryKey: ['rub-vnd-rate'],
     queryFn: () => fetchExchangeRate("RUB"),
@@ -387,7 +388,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                         <span>
                           1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
                         </span>
-                        <CountdownCircle key={dataUpdatedAt} duration={30} />
+                        <CountdownCircle key={usdtDataUpdatedAt} duration={30} />
                       </>
                     )}
                   </>
@@ -396,9 +397,12 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                   <>
                     {isRubRateUnavailable && <Skeleton className="h-4 w-48" />}
                     {!isRubRateUnavailable && rubVndRate && (
-                      <span>
-                        1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
-                      </span>
+                      <>
+                        <span>
+                          1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
+                        </span>
+                        <CountdownCircle key={rubDataUpdatedAt} duration={30} />
+                      </>
                     )}
                   </>
                 )}
