@@ -417,9 +417,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
                   </span>
                 )}
-                {usdtVndRate && !isLoadingRate && !isErrorRate && (
-                  <CountdownCircle key={dataUpdatedAt} duration={30} />
-                )}
               </>
             )}
             {paymentCurrency === 'RUB' && (
@@ -438,12 +435,19 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               <span className="text-red-500 font-medium">{t('exchangeForm.loadingRateError')}</span>
             )}
           </div>
-          <Input
-            type="text"
-            value={(isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB') ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
-            readOnly
-            className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg"}
-          />
+          <div className="relative">
+            <Input
+              type="text"
+              value={(isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB') ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+              readOnly
+              className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg pr-12"}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+              {paymentCurrency === 'USDT' && usdtVndRate && !isLoadingRate && !isErrorRate && (
+                <CountdownCircle key={dataUpdatedAt} duration={30} />
+              )}
+            </div>
+          </div>
         </div>
 
         {paymentCurrency === 'USDT' && (
