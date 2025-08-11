@@ -350,11 +350,13 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   const inputClass = "h-12 p-3 text-base w-full min-w-[70%]";
   const isUsdtRateUnavailable = paymentCurrency === 'USDT' && (isLoadingRate || isErrorRate || !usdtVndRate);
+  const isRubRateUnavailable = paymentCurrency === 'RUB' && (!rubVndRate);
+
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-        {isErrorRate && paymentCurrency === 'USDT' && (
+        {(isErrorRate && paymentCurrency === 'USDT') && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>{t('exchangeForm.loadingRateError')}</AlertTitle>
@@ -421,20 +423,24 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               </>
             )}
             {paymentCurrency === 'RUB' && (
-              <span>
-                {t('exchangeForm.currentRate', { currency: 'RUB', rate: exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) })}
-              </span>
+              <>
+                {!isRubRateUnavailable && (
+                  <span>
+                    {t('exchangeForm.currentRate', { currency: 'RUB', rate: exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) })}
+                  </span>
+                )}
+              </>
             )}
-            {isLoadingRate && paymentCurrency === 'USDT' && (
+            {(isLoadingRate && paymentCurrency === 'USDT') && (
               <Skeleton className="h-4 w-48" />
             )}
-            {isErrorRate && paymentCurrency === 'USDT' && (
+            {(isErrorRate && paymentCurrency === 'USDT') && (
               <span className="text-red-500 font-medium">{t('exchangeForm.loadingRateError')}</span>
             )}
           </div>
           <Input
             type="text"
-            value={isUsdtRateUnavailable && paymentCurrency === 'USDT' ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+            value={(isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB') ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
             readOnly
             className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg"}
           />
@@ -505,8 +511,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         <FormField control={form.control} name="telegramContact" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.telegramLabel')} <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.telegramPlaceholder')} {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="contactPhone" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.phoneLabel')}</FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.phonePlaceholder')} {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
 
-        <Button type="submit" className="w-full h-14 text-lg font-bold rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400" disabled={isSubmitting || isUsdtRateUnavailable}>
-          {isSubmitting ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('exchangeForm.processingButton')}</>) : isLoadingRate && paymentCurrency === 'USDT' ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('exchangeForm.loadingRateButton')}</>) : (t('exchangeForm.exchangeNowButton'))}
+        <Button type="submit" className="w-full h-14 text-lg font-bold rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400" disabled={isSubmitting || (isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB')}>
+          {isSubmitting ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('exchangeForm.processingButton')}</>) : (isLoadingRate && paymentCurrency === 'USDT') ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('exchangeForm.loadingRateButton')}</>) : (t('exchangeForm.exchangeNowButton'))}
         </Button>
       </form>
     </Form>
