@@ -377,6 +377,32 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                     <TabsTrigger value="RUB" className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-sm font-medium text-gray-700 transition-all">{t('exchangeForm.rub')}</TabsTrigger>
                 </TabsList>
             </Tabs>
+            <div className="flex h-8 items-center justify-center gap-2 text-sm text-gray-600">
+                {paymentCurrency === 'USDT' && (
+                  <>
+                    {isLoadingRate && <Skeleton className="h-4 w-48" />}
+                    {isErrorRate && <span className="text-red-500 font-medium">{t('exchangeForm.loadingRateError')}</span>}
+                    {!isLoadingRate && !isErrorRate && usdtVndRate && (
+                      <>
+                        <span>
+                          1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
+                        </span>
+                        <CountdownCircle key={dataUpdatedAt} duration={30} />
+                      </>
+                    )}
+                  </>
+                )}
+                {paymentCurrency === 'RUB' && (
+                  <>
+                    {isRubRateUnavailable && <Skeleton className="h-4 w-48" />}
+                    {!isRubRateUnavailable && rubVndRate && (
+                      <span>
+                        1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
+                      </span>
+                    )}
+                  </>
+                )}
+            </div>
         </div>
 
         <FormField
@@ -409,45 +435,13 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         <div className="w-full">
           <div className="flex items-center gap-2 mb-2">
             <Label>{t('exchangeForm.youWillReceiveLabel')}</Label>
-            {/* Курс и кружок теперь на этой же строке */}
-            {paymentCurrency === 'USDT' && (
-              <>
-                {!isLoadingRate && !isErrorRate && usdtVndRate && (
-                  <span>
-                    1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
-                  </span>
-                )}
-              </>
-            )}
-            {paymentCurrency === 'RUB' && (
-              <>
-                {!isRubRateUnavailable && (
-                  <span>
-                    1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
-                  </span>
-                )}
-              </>
-            )}
-            {(isLoadingRate && paymentCurrency === 'USDT') && (
-              <Skeleton className="h-4 w-48" />
-            )}
-            {(isErrorRate && paymentCurrency === 'USDT') && (
-              <span className="text-red-500 font-medium">{t('exchangeForm.loadingRateError')}</span>
-            )}
           </div>
-          <div className="relative">
-            <Input
-              type="text"
-              value={(isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB') ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
-              readOnly
-              className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg pr-12"}
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-              {paymentCurrency === 'USDT' && usdtVndRate && !isLoadingRate && !isErrorRate && (
-                <CountdownCircle key={dataUpdatedAt} duration={30} />
-              )}
-            </div>
-          </div>
+          <Input
+            type="text"
+            value={(isUsdtRateUnavailable && paymentCurrency === 'USDT') || (isRubRateUnavailable && paymentCurrency === 'RUB') ? 'Расчет...' : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+            readOnly
+            className={inputClass + " bg-gray-100 font-bold text-green-700 text-lg"}
+          />
         </div>
 
         {paymentCurrency === 'USDT' && (
