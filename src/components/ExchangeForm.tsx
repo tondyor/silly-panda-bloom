@@ -414,7 +414,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               <>
                 {!isLoadingRate && !isErrorRate && usdtVndRate && (
                   <span>
-                    {t('exchangeForm.currentRate', { currency: 'USDT', rate: exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) })}
+                    1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
                   </span>
                 )}
                 {usdtVndRate && !isLoadingRate && !isErrorRate && (
@@ -426,7 +426,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
               <>
                 {!isRubRateUnavailable && (
                   <span>
-                    {t('exchangeForm.currentRate', { currency: 'RUB', rate: exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) })}
+                    1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND
                   </span>
                 )}
               </>
