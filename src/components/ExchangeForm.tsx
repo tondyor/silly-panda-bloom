@@ -366,10 +366,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             />
         )}
 
-        <div className="text-center text-sm text-gray-600 h-6 flex items-center justify-center">
-          {/* Этот блок теперь не нужен, т.к. курс и кружок перенесены выше */}
-        </div>
-
         <div className="space-y-2">
           <Label>{t('exchangeForm.deliveryMethodLabel')} <span className="text-red-500">*</span></Label>
           <Tabs
@@ -394,11 +390,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
                 <span className="text-xs sm:text-sm">{t('exchangeForm.cash')}</span>
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="bank" className="mt-4 space-y-3">
+            <TabsContent value="bank" className="mt-2 space-y-3">
               <FormField control={form.control} name="vndBankAccountNumber" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.bankAccountNumberLabel')} <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.bankAccountNumberPlaceholder')} {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="vndBankName" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.bankNameLabel')} <span className="text-red-500">*</span></FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.bankNamePlaceholder')} {...field} value={String(field.value ?? "")} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
-            <TabsContent value="cash" className="mt-4 space-y-3">
+            <TabsContent value="cash" className="mt-2 space-y-3">
               <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md border border-yellow-200">{t('exchangeForm.cashDeliveryInfo')}</p>
               <FormField control={form.control} name="deliveryAddress" render={({ field }) => (<FormItem className="w-full"><FormLabel>{t('exchangeForm.deliveryAddressLabel')} <span className="text-red-500">*</span><span className="block text-xs text-gray-500 font-normal mt-1">{t('exchangeForm.deliveryAddressDescription')}</span></FormLabel><FormControl className="w-full"><Input placeholder={t('exchangeForm.deliveryAddressPlaceholder')} {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>)} />
             </TabsContent>
