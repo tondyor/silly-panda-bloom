@@ -273,7 +273,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
             >
                 <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-gray-200 p-1">
                     <TabsTrigger value="USDT" className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-sm font-medium text-gray-700 transition-all">{t('exchangeForm.usdt')}</TabsTrigger>
-                    <TabsTrigger value="RUB" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-sm font-medium text-gray-700 transition-all">{t('exchangeForm.rub')}</TabsTrigger>
+                    <TabsTrigger value="RUB" className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-sm font-medium text-gray-700 transition-all">{t('exchangeForm.rub')}</TabsTrigger>
                 </TabsList>
             </Tabs>
         </div>
