@@ -30,7 +30,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import CountdownCircle from "./CountdownCircle";
 import { useTranslation } from "react-i18next";
 
-const PROFIT_MARGIN = 0.02; // 2% наценка
+const PROFIT_MARGIN = -0.025; // теперь вычитаем 2.5% (отрицательное значение)
 
 const USDT_WALLETS: Record<string, string> = {
   BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
@@ -197,7 +197,7 @@ async function fetchRubVndRates(): Promise<number[]> {
   return results;
 }
 
-// Основная функция загрузки курса с усреднением и добавлением 2%
+// Основная функция загрузки курса с усреднением и вычитанием 2.5%
 const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   let rates: number[] = [];
   if (currency === "USDT") {
@@ -211,7 +211,7 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   }
 
   const avgRate = average(rates);
-  return avgRate * (1 + PROFIT_MARGIN);
+  return avgRate * (1 + PROFIT_MARGIN); // PROFIT_MARGIN отрицательный, вычитание 2.5%
 };
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
