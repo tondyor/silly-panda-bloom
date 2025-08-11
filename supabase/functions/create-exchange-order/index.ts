@@ -28,10 +28,30 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+    
+    const ADMIN_TELEGRAM_ID = Deno.env.get('ADMIN_TELEGRAM_ID');
 
-    const orderData = await req.json();
+    const { orderData, telegramUser } = await req.json();
 
-    // 1. Получаем следующий номер заказа через RPC вызов
+    if (!orderData || !telegramUser || !telegramUser.id) {
+        throw new Error("Missing order data or Telegram user information.");
+    }
+
+    // 1. Save or update user in the database
+    const { error: userUpsertError } = await supabase
+      .from('telegram_users')
+      .upsert({
+        telegram_id: telegramUser.id,
+        first_name: telegramUser.first_name,
+        username: telegramUser.username || null,
+      }, { onConflict: 'telegram_id' });
+
+    if (userUpsertError) {
+        console.error('User Upsert Error:', userUpsertError);
+        throw new Error(`Failed to save user data: ${userUpsertError.message}`);
+    }
+
+    // 2. Get next order number
     const { data: nextOrderNumber, error: rpcError } = await supabase.rpc('get_next_order_id');
 
     if (rpcError) {
@@ -43,12 +63,12 @@ serve(async (req) => {
         throw new Error('Invalid response from get_next_order_id function.');
     }
 
-    // 2. Генерируем публичный ID заказа
+    // 3. Generate public order ID
     const alphabeticalIndex = nextOrderNumber - 564;
     const prefix = getAlphabeticalPrefix(alphabeticalIndex);
     const publicId = `${prefix}${nextOrderNumber}`;
 
-    // 3. Готовим данные для вставки в базу
+    // 4. Prepare order data for insertion
     const {
       paymentCurrency,
       fromAmount,
@@ -76,10 +96,11 @@ serve(async (req) => {
       telegram_contact: telegramContact,
       contact_phone: contactPhone || null,
       usdt_network: usdtNetwork || null,
-      status: 'pending',
+      status: 'Новая заявка',
+      telegram_user_id: telegramUser.id,
     };
 
-    // 4. Вставляем новый заказ в таблицу
+    // 5. Insert new order into the table
     const { data: insertedOrder, error: insertError } = await supabase
       .from('orders')
       .insert(newOrder)
@@ -91,6 +112,34 @@ serve(async (req) => {
         throw new Error(`Failed to insert order: ${insertError.message}`);
     }
 
+    // 6. Send notifications
+    const clientMessage = `Вы создали заявку номер ${publicId}. Следуйте инструкциям по оплате или дождитесь сообщения оператора.`;
+    
+    const adminMessage = `
+Новая заявка: *#${publicId}*
+Пользователь: ${telegramUser.first_name} (${telegramUser.username ? `@${telegramUser.username}` : 'нет username'})
+Контакт: ${telegramContact}
+
+*Детали:*
+Отдает: ${fromAmount} ${paymentCurrency}
+Получает: ${calculatedVND.toLocaleString('vi-VN')} VND
+Способ: ${deliveryMethod === 'bank' ? 'Банк' : 'Наличные'}
+${deliveryMethod === 'bank' ? `Банк: ${vndBankName}\\nСчет: ${vndBankAccountNumber}` : `Адрес: ${deliveryAddress}`}
+${paymentCurrency === 'USDT' ? `Сеть: ${usdtNetwork}` : ''}
+    `.trim();
+
+    // Invoke notification function (fire and forget)
+    supabase.functions.invoke('send-telegram-notification', {
+        body: { chatId: telegramUser.id, text: clientMessage },
+    });
+
+    if (ADMIN_TELEGRAM_ID) {
+        supabase.functions.invoke('send-telegram-notification', {
+            body: { chatId: ADMIN_TELEGRAM_ID, text: adminMessage },
+        });
+    }
+
+    // 7. Return the created order to the frontend
     return new Response(
       JSON.stringify(insertedOrder),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

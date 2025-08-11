@@ -117,6 +117,13 @@ interface ExchangeFormProps {
   ) => void;
 }
 
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  username?: string;
+  language_code?: string;
+}
+
 // Вспомогательная функция для усреднения массива чисел
 function average(arr: number[]): number {
   if (arr.length === 0) return 0;
@@ -219,6 +226,16 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+
+  useEffect(() => {
+    if (window.Telegram && window.Telegram.WebApp) {
+      const user = window.Telegram.WebApp.initDataUnsafe?.user;
+      if (user) {
+        setTelegramUser(user);
+      }
+    }
+  }, []);
 
   const { 
     data: usdtVndRate, 
@@ -276,7 +293,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     const preciseRate = paymentCurrency === 'USDT' ? (usdtVndRate ?? 0) : (rubVndRate ?? 0);
     setExchangeRate(preciseRate);
 
-    // Используем округленный курс для расчета, чтобы соответствовать отображению
     const displayRate = Math.round(preciseRate);
 
     if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0) {
@@ -299,14 +315,25 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!telegramUser) {
+      toast.error("Ошибка: не удалось определить пользователя Telegram.", {
+        description: "Пожалуйста, убедитесь, что вы используете приложение внутри Telegram.",
+        duration: 5000,
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", { className: "opacity-75", position: "bottom-center" });
 
     try {
       const orderPayload = {
-        ...values,
-        calculatedVND,
-        exchangeRate,
+        orderData: {
+          ...values,
+          calculatedVND,
+          exchangeRate,
+        },
+        telegramUser: telegramUser,
       };
 
       const { data: newOrder, error } = await supabase.functions.invoke('create-exchange-order', {
