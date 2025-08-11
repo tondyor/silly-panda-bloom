@@ -308,8 +308,29 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         <div className="w-full">
           <div className="flex items-center gap-2 mb-2">
             <Label>{t('exchangeForm.youWillReceiveLabel')}</Label>
-            {paymentCurrency === 'USDT' && !isLoadingRate && !isErrorRate && usdtVndRate && (
-              <CountdownCircle key={dataUpdatedAt} duration={30} />
+            {/* Курс и кружок теперь на этой же строке */}
+            {paymentCurrency === 'USDT' && (
+              <>
+                {!isLoadingRate && !isErrorRate && usdtVndRate && (
+                  <span>
+                    {t('exchangeForm.currentRate', { currency: 'USDT', rate: exchangeRate.toLocaleString("vi-VN") })}
+                  </span>
+                )}
+                {usdtVndRate && !isLoadingRate && !isErrorRate && (
+                  <CountdownCircle key={dataUpdatedAt} duration={30} />
+                )}
+              </>
+            )}
+            {paymentCurrency === 'RUB' && (
+              <span>
+                {t('exchangeForm.currentRate', { currency: 'RUB', rate: exchangeRate.toLocaleString("vi-VN") })}
+              </span>
+            )}
+            {isLoadingRate && paymentCurrency === 'USDT' && (
+              <Skeleton className="h-4 w-48" />
+            )}
+            {isErrorRate && paymentCurrency === 'USDT' && (
+              <span className="text-red-500 font-medium">{t('exchangeForm.loadingRateError')}</span>
             )}
           </div>
           <Input
@@ -346,18 +367,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         )}
 
         <div className="text-center text-sm text-gray-600 h-6 flex items-center justify-center">
-          {isLoadingRate && <Skeleton className="h-4 w-48" />}
-          {isErrorRate && <span className="text-red-500 font-medium">{t('exchangeForm.loadingRateError')}</span>}
-          {usdtVndRate && !isLoadingRate && !isErrorRate && paymentCurrency === 'USDT' && (
-            <span>
-              {t('exchangeForm.currentRate', { currency: 'USDT', rate: exchangeRate.toLocaleString("vi-VN") })}
-            </span>
-          )}
-          {paymentCurrency === 'RUB' && (
-            <span>
-              {t('exchangeForm.currentRate', { currency: 'RUB', rate: exchangeRate.toLocaleString("vi-VN") })}
-            </span>
-          )}
+          {/* Этот блок теперь не нужен, т.к. курс и кружок перенесены выше */}
         </div>
 
         <div className="space-y-2">
