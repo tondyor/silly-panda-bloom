@@ -30,7 +30,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import CountdownCircle from "./CountdownCircle";
 import { useTranslation } from "react-i18next";
 
-const PROFIT_MARGIN = 0.005;
+const PROFIT_MARGIN = 0.02; // 2% наценка
 const RUB_VND_RATE = 280;
 
 const USDT_WALLETS: Record<string, string> = {
@@ -118,15 +118,38 @@ interface ExchangeFormProps {
   ) => void;
 }
 
-const fetchExchangeRate = async () => {
-  const { data, error } = await supabase.functions.invoke('get-exchange-rate');
-  if (error) {
-    throw new Error(`Ошибка вызова Edge Function: ${error.message}`);
+// Функция получения курса с Bybit с добавлением 2%
+const fetchExchangeRate = async (): Promise<number> => {
+  try {
+    // Bybit API для получения цены торговой пары USDTVND отсутствует, поэтому используем USDTUSD и USDVND
+    // Получаем цену USDTUSD (пример, обычно 1) и курс USDVND с другого источника или фиксируем
+    // Для демонстрации возьмем USDTUSD с Bybit и умножим на фиксированный курс USDVND с наценкой 2%
+
+    // Запрос цены USDTUSD с Bybit
+    const response = await fetch("https://api.bybit.com/v2/public/tickers?symbol=USDTUSD");
+    if (!response.ok) {
+      throw new Error(`Bybit API error: ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data.result || !data.result[0] || !data.result[0].last_price) {
+      throw new Error("Invalid data from Bybit API");
+    }
+    const usdtUsdPrice = parseFloat(data.result[0].last_price);
+    if (isNaN(usdtUsdPrice)) {
+      throw new Error("Invalid price data from Bybit");
+    }
+
+    // Фиксированный курс USD к VND (пример)
+    const usdVndRate = 24000;
+
+    // Рассчитываем курс USDT к VND с наценкой 2%
+    const usdtVndRate = usdtUsdPrice * usdVndRate * (1 + PROFIT_MARGIN);
+
+    return usdtVndRate;
+  } catch (error) {
+    console.error("Error fetching exchange rate from Bybit:", error);
+    throw error;
   }
-  if (!data || typeof data.rate !== 'number') {
-    throw new Error('Получены неверные данные о курсе с сервера.');
-  }
-  return data.rate * (1 - PROFIT_MARGIN);
 };
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
