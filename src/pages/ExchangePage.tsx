@@ -9,6 +9,8 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { TelegramAuthGate } from "@/components/TelegramAuthGate";
+import { Loader2 } from "lucide-react";
 
 interface TelegramUser {
   id: number;
@@ -24,14 +26,18 @@ const ExchangePage = () => {
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+  const [isTelegramContext, setIsTelegramContext] = useState<boolean | null>(null);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    if (tg) {
+    if (tg && tg.initData) {
       tg.ready();
+      setIsTelegramContext(true);
       if (tg.initDataUnsafe?.user) {
         setTelegramUser(tg.initDataUnsafe.user);
       }
+    } else {
+      setIsTelegramContext(false);
     }
   }, []);
 
@@ -65,6 +71,18 @@ const ExchangePage = () => {
       position: "top-center",
     });
   };
+
+  if (isTelegramContext === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <Loader2 className="h-12 w-12 animate-spin text-gray-500" />
+      </div>
+    );
+  }
+
+  if (!isTelegramContext) {
+    return <TelegramAuthGate />;
+  }
 
   return (
     <div 

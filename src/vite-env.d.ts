@@ -4,6 +4,7 @@ interface Window {
   Telegram: {
     WebApp: {
       ready: () => void;
+      initData: string;
       initDataUnsafe?: {
         user?: {
           id: number;
