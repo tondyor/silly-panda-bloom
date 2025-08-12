@@ -49,7 +49,7 @@ async function sendTelegramMessage(chatId: string | number, text: string) {
 }
 
 function formatOrderForTelegram(order: any, forAdmin: boolean): string {
-  const clientIdentifier = order.telegram_contact ? `@${order.telegram_contact}` : `ID: ${order.telegram_user_id}`;
+  const clientIdentifier = order.telegram_contact ? `@${order.telegram_contact}` : (order.telegram_user_id ? `ID: ${order.telegram_user_id}`: 'Клиент');
   const title = forAdmin 
     ? `*Новая заявка #${order.public_id}* от ${clientIdentifier}`
     : `*Ваша заявка #${order.public_id} успешно создана!*`;
@@ -119,8 +119,6 @@ serve(async (req) => {
       created_at: new Date().toISOString(),
       telegram_user_id: orderData.telegramUserId ?? null,
     };
-
-    console.log("Inserting order:", insertData);
 
     const { data, error } = await supabase
       .from("orders")
