@@ -94,9 +94,14 @@ const ExchangePage = () => {
     setSubmittedFormData(displayData);
     setIsFormSubmitted(true);
 
-    toast.success("Ваш запрос на обмен успешно отправлен!", {
-      description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
-      duration: 3000,
+    toast.success(t('notifications.exchangeSuccess.title'), {
+      description: t('notifications.exchangeSuccess.description', {
+        orderId: displayData.orderId,
+        fromAmount: displayData.fromAmount,
+        paymentCurrency: displayData.paymentCurrency,
+        calculatedVND: displayData.calculatedVND.toLocaleString('vi-VN')
+      }),
+      duration: 5000,
       position: "top-center",
     });
   };

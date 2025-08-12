@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Copy, AlertTriangle, Info } from 'lucide-react';
 import { toast } from "sonner";
+import { useTranslation } from 'react-i18next';
 
 interface PostSubmissionInfoProps {
   depositInfo: { network: string; address: string; } | null;
@@ -11,6 +12,8 @@ interface PostSubmissionInfoProps {
 }
 
 export const PostSubmissionInfo: React.FC<PostSubmissionInfoProps> = ({ depositInfo, formData }) => {
+  const { t } = useTranslation();
+
   if (!formData) return null;
 
   const { paymentCurrency, deliveryMethod, fromAmount } = formData;
@@ -18,15 +21,15 @@ export const PostSubmissionInfo: React.FC<PostSubmissionInfoProps> = ({ depositI
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address)
       .then(() => {
-        toast.success("Адрес скопирован в буфер обмена!", {
+        toast.success(t('notifications.copySuccess.title'), {
           description: address,
           duration: 3000,
         });
       })
       .catch(err => {
         console.error('Failed to copy address: ', err);
-        toast.error("Не удалось скопировать адрес.", {
-          description: "Пожалуйста, скопируйте вручную.",
+        toast.error(t('notifications.copyError.title'), {
+          description: t('notifications.copyError.description'),
           duration: 5000,
         });
       });

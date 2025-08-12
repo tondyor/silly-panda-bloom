@@ -1,51 +1,60 @@
 {
-  "headerTitle": "Viet Swap",
-  "exchangeForm": {
-    "exchangeCurrencyLabel": "Tiền tệ để đổi",
-    "usdt": "USDT",
-    "rub": "Rúp",
-    "amountLabel": "Số tiền {{currency}}",
-    "amountPlaceholder": "Nhập số tiền bằng {{currency}}",
-    "youWillReceiveLabel": "Bạn sẽ nhận được (VND)",
-    "usdtNetworkLabel": "Mạng USDT",
-    "selectNetworkPlaceholder": "Chọn mạng USDT",
-    "currentRate": "1 {{currency}} ≈ {{rate}} VND",
-    "loadingRateError": "Không thể tải tỷ giá",
-    "deliveryMethodLabel": "Phương thức nhận VND",
-    "bankAccount": "Vào tài khoản",
-    "cash": "Tiền mặt",
-    "bankAccountNumberLabel": "Số thẻ hoặc tài khoản VND",
-    "bankAccountNumberPlaceholder": "Nhập số thẻ hoặc tài khoản",
-    "bankNameLabel": "Tên ngân hàng VND",
-    "bankNamePlaceholder": "Ví dụ: Vietcombank",
-    "deliveryAddressLabel": "Địa chỉ giao hàng (Đà Nẵng/Hội An)",
-    "deliveryAddressDescription": "Vui lòng cung cấp càng nhiều chi tiết càng tốt: tên khách sạn, số phòng, địa chỉ chính xác hoặc liên kết Google Maps.",
-    "deliveryAddressPlaceholder": "Nhập địa chỉ giao hàng đầy đủ",
-    "telegramLabel": "Telegram của bạn (để liên lạc)",
-    "telegramPlaceholder": "@ten_nguoi_dung",
-    "phoneLabel": "Số điện thoại liên hệ",
-    "phonePlaceholder": "Nhập số điện thoại của bạn",
-    "exchangeNowButton": "Đổi ngay",
-    "processingButton": "Đang xử lý...",
-    "loadingRateButton": "Đang tải tỷ giá...",
-    "cashDeliveryInfo": "Chúng tôi giao tiền mặt tại Đà Nẵng và Hội An trong vòng 15-30 phút."
+  "headerTitle": "Đổi tiền tại Việt Nam",
+  "howItWorks": {
+    "title": "Hoạt động như thế nào?",
+    "step1": "Bước 1: Điền vào biểu mẫu",
+    "step1Description": "Chỉ định số tiền, loại tiền tệ và phương thức nhận.",
+    "step2": "Bước 2: Xác nhận giao dịch",
+    "step2Description": "Chúng tôi sẽ liên hệ với bạn qua Telegram để xác nhận.",
+    "step3": "Bước 3: Nhận tiền",
+    "step3Description": "Nhận tiền mặt hoặc chuyển khoản."
   },
   "whyChooseUs": {
     "title": "Tại sao chọn chúng tôi?",
     "fast": "Nhanh chóng",
-    "fastDescription": "Việc đổi tiền mất 15-30 phút.",
-    "profitable": "Lợi nhuận",
-    "profitableDescription": "Tỷ giá tốt nhất trên thị trường.",
+    "fastDescription": "Việc đổi tiền mất từ 5 đến 15 phút.",
+    "profitable": "Có lợi",
+    "profitableDescription": "Tỷ giá hối đoái tốt nhất.",
     "reliable": "Đáng tin cậy",
     "reliableDescription": "Đảm bảo an toàn cho tiền của bạn."
   },
-  "howItWorks": {
-    "title": "Nó hoạt động như thế nào?",
-    "step1": "Bước 1: Điền vào biểu mẫu",
-    "step1Description": "Chỉ định số tiền, tiền tệ và phương thức nhận.",
-    "step2": "Bước 2: Chuyển tiền",
-    "step2Description": "Gửi USDT đến ví được chỉ định.",
-    "step3": "Bước 3: Nhận VND",
-    "step3Description": "Chúng tôi sẽ giao tiền mặt hoặc chuyển vào tài khoản của bạn."
+  "exchangeForm": {
+    "usdt": "Tôi đưa USDT",
+    "rub": "Tôi đưa RUB",
+    "amountLabel": "Số tiền {{currency}}",
+    "amountPlaceholder": "Nhập số tiền",
+    "usdtNetworkLabel": "Mạng USDT",
+    "selectNetworkPlaceholder": "Chọn mạng",
+    "deliveryMethodLabel": "Phương thức nhận",
+    "bankAccount": "Vào tài khoản",
+    "cash": "Tiền mặt",
+    "bankAccountNumberLabel": "Số tài khoản",
+    "bankAccountNumberPlaceholder": "Nhập số tài khoản",
+    "bankNameLabel": "Tên ngân hàng",
+    "bankNamePlaceholder": "Nhập tên ngân hàng",
+    "cashDeliveryInfo": "Giao tiền mặt bằng chuyển phát nhanh đến địa chỉ của bạn.",
+    "deliveryAddressLabel": "Địa chỉ giao hàng",
+    "deliveryAddressDescription": "Thành phố, đường, nhà, căn hộ",
+    "deliveryAddressPlaceholder": "Nhập địa chỉ giao hàng",
+    "phoneLabel": "Điện thoại liên hệ",
+    "phonePlaceholder": "Nhập số điện thoại",
+    "loadingRateError": "Lỗi tải tỷ giá",
+    "exchangeCurrencyLabel": "Tiền tệ trao đổi",
+    "youWillReceiveLabel": "Bạn sẽ nhận được (VND)",
+    "processingButton": "Đang xử lý...",
+    "loadingRateButton": "Đang tải tỷ giá..."
+  },
+  "notifications": {
+    "copySuccess": {
+      "title": "Địa chỉ đã được sao chép vào clipboard!"
+    },
+    "copyError": {
+      "title": "Không thể sao chép địa chỉ.",
+      "description": "Vui lòng sao chép thủ công."
+    },
+    "exchangeSuccess": {
+      "title": "Yêu cầu trao đổi của bạn đã được gửi thành công!",
+      "description": "Số đơn hàng của bạn là: {{orderId}}. Bạn đã đổi {{fromAmount}} {{paymentCurrency}} lấy {{calculatedVND}} VND."
+    }
   }
 }
