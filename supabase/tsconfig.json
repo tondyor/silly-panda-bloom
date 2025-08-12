@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
+    // This tells TypeScript to include the Deno-specific APIs and globals like `Deno`.
     "lib": ["deno.ns", "dom"],
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    // These are standard best practices for modern TypeScript.
     "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    // This is important: it tells the compiler not to generate any output files.
+    "noEmit": true
   },
+  // This ensures the settings are applied to all your function files.
   "include": ["functions/**/*.ts"]
 }

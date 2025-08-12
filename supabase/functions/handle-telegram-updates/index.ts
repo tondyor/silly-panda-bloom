@@ -27,47 +27,59 @@ serve(async (req) => {
 
     const chatId = message.chat.id;
     const text = message.text;
+    const user = message.from;
 
-    // SECURITY: Only process messages from the admin
-    if (chatId.toString() !== ADMIN_TELEGRAM_ID) {
-      console.log(`Ignoring message from non-admin user: ${chatId}`);
+    // Handle /start command from any user
+    if (text === '/start') {
+      if (user) {
+        await supabase
+          .from('telegram_users')
+          .upsert({
+            telegram_id: user.id,
+            first_name: user.first_name,
+            username: user.username || null,
+          }, { onConflict: 'telegram_id' });
+      }
+      // Optionally, send a welcome message back
+      // await supabase.functions.invoke('send-telegram-notification', {
+      //   body: { chatId: chatId, text: 'Добро пожаловать!' },
+      // });
       return new Response("ok");
     }
 
-    // Check for the /ok_ORDERID command
-    const match = text.match(/^\/ok_([A-Z]{3}\d+)$/);
-    if (match && match[1]) {
-      const orderId = match[1];
+    // Handle /ok_ORDERID command ONLY from the admin
+    if (chatId.toString() === ADMIN_TELEGRAM_ID) {
+      const match = text.match(/^\/ok_([A-Z]{3}\d+)$/);
+      if (match && match[1]) {
+        const orderId = match[1];
 
-      // Update the order status to "Завершен"
-      const { data: updatedOrder, error: updateError } = await supabase
-        .from('orders')
-        .update({ status: 'Завершен' })
-        .eq('public_id', orderId)
-        .select('telegram_user_id')
-        .single();
+        const { data: updatedOrder, error: updateError } = await supabase
+          .from('orders')
+          .update({ status: 'Завершен' })
+          .eq('public_id', orderId)
+          .select('telegram_user_id')
+          .single();
 
-      if (updateError) {
-        throw new Error(`Failed to update order ${orderId}: ${updateError.message}`);
-      }
+        if (updateError) {
+          throw new Error(`Failed to update order ${orderId}: ${updateError.message}`);
+        }
 
-      if (updatedOrder && updatedOrder.telegram_user_id) {
-        // Send completion notification to the client
+        if (updatedOrder && updatedOrder.telegram_user_id) {
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: {
+              chatId: updatedOrder.telegram_user_id,
+              text: 'Ваш обмен завершен!',
+            },
+          });
+        }
+        
         await supabase.functions.invoke('send-telegram-notification', {
           body: {
-            chatId: updatedOrder.telegram_user_id,
-            text: 'Ваш обмен завершен!',
+            chatId: ADMIN_TELEGRAM_ID,
+            text: `Заказ #${orderId} успешно помечен как "Завершен".`,
           },
         });
       }
-      
-      // Confirm completion to the admin
-      await supabase.functions.invoke('send-telegram-notification', {
-        body: {
-          chatId: ADMIN_TELEGRAM_ID,
-          text: `Заказ #${orderId} успешно помечен как "Завершен".`,
-        },
-      });
     }
 
     return new Response("ok", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
