@@ -46,13 +46,15 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const orderData = body.orderData;
+    // ИСПРАВЛЕНО: Извлекаем orderData из тела запроса
+    const orderData = body.orderData; 
     
     console.log('=== ORDER REQUEST RECEIVED ===');
     console.log('Request method:', req.method);
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     console.log('Full orderData:', JSON.stringify(orderData, null, 2));
     
+    // ИСПРАВЛЕНО: Ищем telegramId внутри объекта orderData
     const telegramId = orderData.telegramId;
     
     console.log('=== TELEGRAM ID VALIDATION ===');
@@ -95,7 +97,7 @@ serve(async (req) => {
       public_id: publicId,
       status: "Новая заявка",
       created_at: new Date().toISOString(),
-      telegram_id: telegramId,
+      telegram_id: telegramId, // <-- Используем проверенный telegramId
     };
 
     const { data: insertedOrder, error: insertError } = await supabase

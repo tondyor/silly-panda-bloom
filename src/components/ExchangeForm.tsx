@@ -372,21 +372,20 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
       }
 
       const orderPayload = {
-        orderData: {
-          ...values,
-          calculatedVND,
-          exchangeRate,
-          telegramId: telegramUser.id,
-          telegramUserFirstName: telegramUser.first_name,
-          depositAddress: depositAddress,
-        },
+        // ИСПРАВЛЕНО: Теперь используется единое поле `telegramId`
+        ...values,
+        calculatedVND,
+        exchangeRate,
+        telegramId: telegramUser.id, // <-- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ
+        telegramUserFirstName: telegramUser.first_name,
+        depositAddress: depositAddress,
       };
 
       console.log('Final orderData being sent:', orderPayload);
       console.log('Will send notification to Telegram ID:', telegramUser.id);
 
       const { data, error } = await supabase.functions.invoke("create-exchange-order", {
-        body: orderPayload,
+        body: { orderData: orderPayload }, // Оборачиваем в orderData, как ожидает сервер
       });
 
       if (error) {
