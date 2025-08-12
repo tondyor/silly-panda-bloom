@@ -207,7 +207,6 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
 
   if (rates.length === 0) {
     console.warn(`No rates fetched for ${currency}-VND, falling back to default rate.`);
-    // fallback rates (example values, adjust as needed)
     return currency === "USDT" ? 24000 : 300;
   }
 
@@ -215,24 +214,63 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   return avgRate * (1 + PROFIT_MARGIN);
 };
 
-interface TelegramUser {
-  telegram_id: number; // Используем telegram_id, как в вашей таблице
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-}
-
 export interface ExchangeFormProps {
   onExchangeSuccess: (
     network: string,
     address: string,
     orderData: any,
   ) => void;
-  telegramUser: TelegramUser | null;
+  telegramUser: {
+    id: number;
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+  } | null;
+  isInitializing: boolean;
 }
 
-export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormProps) {
+const getButtonState = (
+  isInitializing: boolean, 
+  telegramUser: any, 
+  isSubmitting: boolean, 
+  isLoadingRate: boolean
+) => {
+  if (isInitializing) {
+    return { 
+      disabled: true, 
+      text: "Получение данных...", 
+      className: "bg-gray-400 cursor-not-allowed" 
+    };
+  }
+  if (!telegramUser) {
+    return { 
+      disabled: true, 
+      text: "Ошибка авторизации", 
+      className: "bg-red-400 cursor-not-allowed" 
+    };
+  }
+  if (isSubmitting) {
+    return { 
+      disabled: true, 
+      text: "Создание заявки...", 
+      className: "bg-blue-400 cursor-not-allowed" 
+    };
+  }
+  if (isLoadingRate) {
+    return { 
+      disabled: true, 
+      text: "Загрузка курса...", 
+      className: "bg-yellow-400 cursor-not-allowed" 
+    };
+  }
+  return { 
+    disabled: false, 
+    text: "Создать заявку", 
+    className: "bg-green-600 hover:bg-green-700" 
+  };
+};
+
+export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }: ExchangeFormProps) {
   const { t } = useTranslation();
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
@@ -240,14 +278,9 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 
-  // Добавляем принудительное логирование для отладки
-  useEffect(() => {
-    console.log("ExchangeForm received telegramUser:", telegramUser);
-  }, [telegramUser]);
-
   const {
     data: usdtVndRate,
-    isLoading: isLoadingRate,
+    isLoading: isLoadingUsdtRate,
     isError: isErrorRate,
     dataUpdatedAt: usdtDataUpdatedAt,
   } = useQuery<number>({
@@ -258,7 +291,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
     refetchOnWindowFocus: true,
   });
 
-  const { data: rubVndRate, dataUpdatedAt: rubDataUpdatedAt } = useQuery<number>({
+  const { data: rubVndRate, isLoading: isLoadingRubRate, dataUpdatedAt: rubDataUpdatedAt } = useQuery<number>({
     queryKey: ["rub-vnd-rate"],
     queryFn: () => fetchExchangeRate("RUB"),
     refetchInterval: 30000,
@@ -318,8 +351,19 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!telegramUser?.id) {
+      console.error('CRITICAL ERROR: No telegram user ID available');
+      console.error('telegramUser:', telegramUser);
+      alert('Ошибка авторизации. Перезапустите приложение.');
+      return;
+    }
+
+    console.log('=== SUBMITTING ORDER ===');
+    console.log('telegramUser.id:', telegramUser.id);
+    console.log('typeof telegramUser.id:', typeof telegramUser.id);
+    console.log('User form data:', values);
+
     setIsSubmitting(true);
-    console.log("Form onSubmit, telegramUser is:", telegramUser); // Логируем перед отправкой
 
     try {
       let depositAddress = "N/A";
@@ -332,13 +376,14 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
           ...values,
           calculatedVND,
           exchangeRate,
-          telegramId: telegramUser ? telegramUser.telegram_id : null,
-          telegramUserFirstName: telegramUser ? telegramUser.first_name : null,
+          telegramId: telegramUser.id,
+          telegramUserFirstName: telegramUser.first_name,
           depositAddress: depositAddress,
         },
       };
 
-      console.log("Sending order payload to server:", orderPayload); // Логируем полезную нагрузку
+      console.log('Final orderData being sent:', orderPayload);
+      console.log('Will send notification to Telegram ID:', telegramUser.id);
 
       const { data, error } = await supabase.functions.invoke("create-exchange-order", {
         body: orderPayload,
@@ -357,7 +402,6 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
       }
 
       let network = "N/A";
-
       if (values.paymentCurrency === "USDT" && values.usdtNetwork) {
         network = values.usdtNetwork;
       }
@@ -373,8 +417,8 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
     }
   }
 
-  const isUsdtRateUnavailable = paymentCurrency === "USDT" && (isLoadingRate || isErrorRate || !usdtVndRate);
-  const isRubRateUnavailable = paymentCurrency === "RUB" && !rubVndRate;
+  const isLoadingRate = paymentCurrency === 'USDT' ? isLoadingUsdtRate : isLoadingRubRate;
+  const buttonState = getButtonState(isInitializing, telegramUser, isSubmitting, isLoadingRate);
 
   return (
     <>
@@ -398,9 +442,9 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
             <div className="flex h-8 items-center justify-center gap-2 text-sm text-gray-600">
               {paymentCurrency === "USDT" && (
                 <>
-                  {isLoadingRate && <Skeleton className="h-4 w-48" />}
+                  {isLoadingUsdtRate && <Skeleton className="h-4 w-48" />}
                   {isErrorRate && <span className="text-red-500 font-medium">{t("exchangeForm.loadingRateError")}</span>}
-                  {!isLoadingRate && !isErrorRate && usdtVndRate && (
+                  {!isLoadingUsdtRate && !isErrorRate && usdtVndRate && (
                     <>
                       <span>1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
                       <CountdownCircle key={usdtDataUpdatedAt} duration={30} />
@@ -410,8 +454,8 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
               )}
               {paymentCurrency === "RUB" && (
                 <>
-                  {isRubRateUnavailable && <Skeleton className="h-4 w-48" />}
-                  {!isRubRateUnavailable && rubVndRate && (
+                  {isLoadingRubRate && <Skeleton className="h-4 w-48" />}
+                  {!isLoadingRubRate && rubVndRate && (
                     <>
                       <span>1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
                       <CountdownCircle key={rubDataUpdatedAt} duration={30} />
@@ -431,8 +475,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
             <input
               type="text"
               value={
-                (isUsdtRateUnavailable && paymentCurrency === "USDT") ||
-                (isRubRateUnavailable && paymentCurrency === "RUB")
+                isLoadingRate
                   ? "Расчет..."
                   : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
               }
@@ -454,22 +497,11 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
 
           <Button
             type="submit"
-            className="w-full h-14 text-lg font-medium rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400"
-            disabled={isSubmitting || (isUsdtRateUnavailable && paymentCurrency === "USDT") || (isRubRateUnavailable && paymentCurrency === "RUB")}
+            disabled={buttonState.disabled}
+            className={`w-full h-14 text-lg font-medium rounded-xl text-white shadow-lg transition-all duration-300 ease-in-out ${buttonState.className}`}
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {t("exchangeForm.processingButton")}
-              </>
-            ) : isLoadingRate && paymentCurrency === "USDT" ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {t("exchangeForm.loadingRateButton")}
-              </>
-            ) : (
-              "Создать заявку"
-            )}
+            {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+            {buttonState.text}
           </Button>
         </form>
       </Form>

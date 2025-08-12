@@ -18,13 +18,11 @@ const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
-async function sendTelegramMessage(chatId: string | number, text: string): Promise<boolean> {
-  if (!TELEGRAM_BOT_TOKEN || !chatId) {
-    console.error("sendTelegramMessage failed: Missing token or chatId.", { chatId: chatId });
-    return false;
-  }
-
-  try {
+async function sendTelegramMessage(chatId: string | number, text: string): Promise<void> {
+    if (!TELEGRAM_BOT_TOKEN || !chatId) {
+      console.error("sendTelegramMessage failed: Missing token or chatId.", { chatId });
+      return;
+    }
     const response = await fetch(TELEGRAM_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -34,109 +32,52 @@ async function sendTelegramMessage(chatId: string | number, text: string): Promi
         parse_mode: 'Markdown',
       }),
     });
-
     if (!response.ok) {
       const errorData = await response.json();
-      // Улучшенное логирование ошибки от Telegram API
-      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}. Full error:`, JSON.stringify(errorData, null, 2));
-      return false;
+      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}.`, errorData);
+      throw new Error(`Telegram API error: ${errorData.description}`);
     }
-    
-    console.log(`Successfully sent message to chatId ${chatId}.`);
-    return true;
-  } catch (error) {
-    console.error(`Failed to send telegram message to ${chatId} due to a network or other error:`, error);
-    return false;
-  }
-}
-
-function formatOrderForTelegram(order: any, forAdmin: boolean): string {
-  if (forAdmin) {
-    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id}` : 'Клиент';
-    const details = [
-      `😏 Новый заказ!`,
-      ``,
-      `#${order.public_id}`,
-      `Клиент: ${clientIdentifier}`,
-      `-----------------------------------`,
-      `Вы получите: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `Отправить (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-      `-----------------------------------`,
-      `Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
-    ];
-
-    if (order.payment_currency === 'USDT') {
-      details.push(`Сеть USDT: ${order.usdt_network}`);
-    }
-
-    if (order.delivery_method === 'bank') {
-      details.push(`Банк: ${order.vnd_bank_name}`);
-      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
-    } else {
-      details.push(`Адрес доставки: ${order.delivery_address}`);
-    }
-
-    if (order.contact_phone) {
-      details.push(`Телефон для связи: ${order.contact_phone}`);
-    }
-    
-    details.push(`-----------------------------------`);
-    details.push(`Статус: ${order.status}`);
-
-    return details.join('\n');
-  } else {
-    const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
-    const title = `*🥰${firstName} Вы оформили новую заявку!*`;
-    
-    const details = [
-      title,
-      `#${order.public_id}`,
-      `-----------------------------------`,
-      `Вы отправляете: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `К получению (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-    ];
-
-    if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
-      details.push(``);
-      details.push(`Кошелек для пополнения:`);
-      details.push(`\`${order.deposit_address}\``);
-      details.push(`Сеть USDT: ${order.usdt_network}`);
-      details.push(``);
-      details.push(`Внимание отправляйте средства только на указанный адрес в сети ${order.usdt_network}. В противном случае ваши средства могут быть навсегда утеряны.`);
-    }
-
-    details.push(`-----------------------------------`);
-    details.push(`Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`);
-
-    if (order.delivery_method === 'bank') {
-      details.push(`Банк: ${order.vnd_bank_name}`);
-      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
-    } else if (order.delivery_method === 'cash') {
-        details.push(`Адрес доставки: ${order.delivery_address}`);
-    }
-    
-    details.push(`-----------------------------------`);
-    details.push(`Статус: Новая заявка (Не оплачен)`);
-
-    return details.join('\n');
-  }
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    if (req.method === "OPTIONS") {
+        return new Response(null, { headers: corsHeaders });
+    }
 
     const body = await req.json();
     const orderData = body.orderData;
     
-    console.log("Received orderData with telegramId:", orderData.telegramId);
+    console.log('=== ORDER REQUEST RECEIVED ===');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Full orderData:', JSON.stringify(orderData, null, 2));
+    
+    const telegramId = orderData.telegramId;
+    
+    console.log('=== TELEGRAM ID VALIDATION ===');
+    console.log('telegramId value:', telegramId);
+    console.log('telegramId type:', typeof telegramId);
+    
+    if (!telegramId || typeof telegramId !== 'number' || telegramId <= 0) {
+      console.error('❌ VALIDATION FAILED: Invalid telegram ID');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid or missing telegram ID',
+          received: telegramId,
+          type: typeof telegramId
+        }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('✅ VALIDATION PASSED');
+    console.log('Using telegramId:', telegramId);
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -154,7 +95,7 @@ serve(async (req) => {
       public_id: publicId,
       status: "Новая заявка",
       created_at: new Date().toISOString(),
-      telegram_id: orderData.telegramId ?? null,
+      telegram_id: telegramId,
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
@@ -171,48 +112,46 @@ serve(async (req) => {
       );
     }
 
-    console.log("Inserted order with telegram_id:", insertedOrder.telegram_id);
+    console.log('✅ Order saved to database with telegram_id:', insertedOrder.telegram_id);
 
-    const fullOrderDetailsForNotification = {
-        ...insertedOrder,
-        telegram_user_first_name: orderData.telegramUserFirstName,
-        deposit_address: orderData.depositAddress,
-    };
-
-    // --- НОВАЯ ЛОГИКА ОТПРАВКИ ---
-
-    // 1. Сначала отправляем сообщение КЛИЕНТУ и определяем статус
-    let clientNotificationStatus = "❌ Уведомление клиенту не отправлено (ID не получен).";
-    if (insertedOrder.telegram_id) {
-      console.log("Attempting to send client message to:", insertedOrder.telegram_id);
-      const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-      const wasClientNotified = await sendTelegramMessage(insertedOrder.telegram_id, clientMessage);
-
-      if (wasClientNotified) {
-        clientNotificationStatus = `✅ Уведомление клиенту (ID: ${insertedOrder.telegram_id}) отправлено.`;
-      } else {
-        clientNotificationStatus = `❌ Ошибка отправки уведомления клиенту (ID: ${insertedOrder.telegram_id}).`;
+    // === ОТПРАВКА УВЕДОМЛЕНИЙ ===
+    console.log('Sending notification to client:', telegramId);
+    try {
+      await sendTelegramMessage(telegramId, `🎉 Ваш заказ #${publicId} создан успешно! Мы свяжемся с вами в ближайшее время.`);
+      console.log('✅ Client notification sent successfully to:', telegramId);
+    } catch (error) {
+      console.error('❌ Failed to send client notification:', error);
+    }
+    
+    if (ADMIN_TELEGRAM_CHAT_ID) {
+      console.log('Sending notification to admin:', ADMIN_TELEGRAM_CHAT_ID);
+      try {
+        await sendTelegramMessage(
+          ADMIN_TELEGRAM_CHAT_ID, 
+          `📋 Новый заказ #${publicId} от пользователя ${telegramId}\n\nДанные заказа: ${JSON.stringify(orderData, null, 2)}`
+        );
+        console.log('✅ Admin notification sent successfully');
+      } catch (error) {
+        console.error('❌ Failed to send admin notification:', error);
       }
     }
-
-    // 2. Затем отправляем сообщение АДМИНИСТРАТОРУ со статусом
-    if (ADMIN_TELEGRAM_CHAT_ID) {
-      let adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
-      adminMessage += `\n\n---\n*Статус уведомления:*\n${clientNotificationStatus}`;
-      await sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
-    } else {
-      console.warn("ADMIN_TELEGRAM_CHAT_ID is not set. Cannot send admin notification.");
-    }
-
+    
+    console.log('=== ORDER PROCESSING COMPLETE ===');
+    
     return new Response(
-      JSON.stringify(insertedOrder),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify(insertedOrder), 
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+    
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error('=== SERVER ERROR ===');
+    console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: "Внутренняя ошибка сервера" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message 
+      }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
