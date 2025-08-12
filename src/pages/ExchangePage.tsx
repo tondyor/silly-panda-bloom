@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { TelegramAuthGate } from "@/components/TelegramAuthGate";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client"; // Импортируем supabase клиент
 
 interface TelegramUser {
   id: number;
@@ -30,17 +31,44 @@ const ExchangePage = () => {
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    // Проверяем, что мы в контексте Telegram и есть данные
     if (tg && tg.initData) {
       tg.ready();
-      // Проверяем, что объект пользователя существует
+      // Попытка получить user из initDataUnsafe
       if (tg.initDataUnsafe?.user) {
         setTelegramUser(tg.initDataUnsafe.user);
       }
+
+      // Отправляем initData на сервер для регистрации пользователя
+      const registerUser = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke("register-telegram-user", {
+            body: { initData: tg.initData },
+          });
+
+          if (error) {
+            console.error("Error registering Telegram user on server:", error);
+            // Можно показать тост пользователю, если регистрация не удалась
+            toast.error("Не удалось зарегистрировать пользователя на сервере. Попробуйте позже.", { duration: 5000 });
+          } else {
+            console.log("Telegram user registered/updated on server:", data);
+            // Если telegramUser не был установлен из initDataUnsafe, но сервер вернул данные, используем их
+            if (!telegramUser && data?.user) {
+              setTelegramUser(data.user);
+            }
+          }
+        } catch (err) {
+          console.error("Network error during Telegram user registration:", err);
+          toast.error("Ошибка сети при регистрации пользователя.", { duration: 5000 });
+        } finally {
+          setIsLoading(false); // Завершаем загрузку после попытки регистрации
+        }
+      };
+
+      registerUser();
+    } else {
+      setIsLoading(false); // Если не в Telegram, сразу завершаем загрузку
     }
-    // В любом случае прекращаем загрузку после проверки
-    setIsLoading(false);
-  }, []);
+  }, []); // Пустой массив зависимостей, чтобы эффект запускался только один раз
 
   const handleExchangeSuccess = (
     network: string,
