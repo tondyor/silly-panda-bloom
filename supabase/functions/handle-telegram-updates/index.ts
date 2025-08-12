@@ -14,6 +14,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function formatUserInfo(user: any): string {
+  return `Ваш профиль:
+ID: ${user.id}
+Имя: ${user.first_name}
+Фамилия: ${user.last_name ?? "-"}
+Язык: ${user.language_code ?? "-"}
+Премиум: ${user.is_premium ? "Да" : "Нет"}
+Дата регистрации: ${new Date(user.registered_at).toLocaleString("ru-RU")}
+Завершено сделок: ${user.completed_deals_count}
+Объем VND: ${user.total_volume_vnd}
+Объем USDT: ${user.total_volume_usdt}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,7 +51,7 @@ serve(async (req) => {
 
     if (text === "/start" && user) {
       // Upsert user data with new schema
-      const { error } = await supabase
+      const { error: upsertError } = await supabase
         .from("telegram_users")
         .upsert(
           {
@@ -55,15 +68,33 @@ serve(async (req) => {
           { onConflict: "telegram_id" }
         );
 
-      if (error) {
-        console.error("Error upserting telegram user:", error);
+      if (upsertError) {
+        console.error("Error upserting telegram user:", upsertError);
         // Do not return error to Telegram, just log
       }
 
-      // Send welcome message back
-      await supabase.functions.invoke("send-telegram-notification", {
-        body: { chatId: chatId, text: "Добро пожаловать! Мы сохранили ваш профиль." },
-      });
+      // Fetch user info from DB to send full profile
+      const { data: userInfo, error: fetchError } = await supabase
+        .from("telegram_users")
+        .select("*")
+        .eq("telegram_id", user.id)
+        .single();
+
+      if (fetchError || !userInfo) {
+        console.error("Error fetching telegram user info:", fetchError);
+        // Send fallback welcome message
+        await supabase.functions.invoke("send-telegram-notification", {
+          body: { chatId: chatId, text: "Добро пожаловать! Мы сохранили ваш профиль." },
+        });
+      } else {
+        // Format user info message
+        const infoText = formatUserInfo(userInfo);
+
+        // Send detailed user info message
+        await supabase.functions.invoke("send-telegram-notification", {
+          body: { chatId: chatId, text: infoText },
+        });
+      }
 
       return new Response("ok");
     }
