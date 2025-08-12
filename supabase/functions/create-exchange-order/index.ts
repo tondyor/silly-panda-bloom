@@ -1,7 +1,6 @@
 // @ts-ignore
-// supabase-flags: --no-verify-jwt
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -38,30 +37,16 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { orderData, telegramUser } = await req.json();
+    const { orderData } = await req.json();
 
-    if (!orderData || !telegramUser || !telegramUser.id) {
-      throw new Error("Missing order data or Telegram user information.");
+    if (!orderData) {
+      throw new Error("Missing order data.");
     }
 
-    // 1. Save or update user in the database
-    const { error: userUpsertError } = await supabase
-      .from("telegram_users")
-      .upsert(
-        {
-          telegram_id: telegramUser.id,
-          first_name: telegramUser.first_name,
-          username: telegramUser.username || null,
-        },
-        { onConflict: "telegram_id" },
-      );
+    // Here we assume telegram_user_id is set by other means (e.g. server-side logic or webhook)
+    // So we do NOT expect telegramUser data from client anymore
 
-    if (userUpsertError) {
-      console.error("User Upsert Error:", userUpsertError);
-      throw new Error(`Failed to save user data: ${userUpsertError.message}`);
-    }
-
-    // 2. Get next order number
+    // 1. Get next order number
     const { data: nextOrderNumberData, error: rpcError } = await supabase.rpc(
       "get_next_order_id",
     );
@@ -83,12 +68,12 @@ serve(async (req) => {
       throw new Error("Invalid response from get_next_order_id function.");
     }
 
-    // 3. Generate public order ID
+    // 2. Generate public order ID
     const alphabeticalIndex = nextOrderNumber - 564;
     const prefix = getAlphabeticalPrefix(alphabeticalIndex);
     const publicId = `${prefix}${nextOrderNumber}`;
 
-    // 4. Prepare order data for insertion
+    // 3. Prepare order data for insertion
     const {
       paymentCurrency,
       fromAmount,
@@ -102,6 +87,7 @@ serve(async (req) => {
       usdtNetwork,
     } = orderData;
 
+    // Since telegram_user_id is no longer passed from client, set it to null or handle accordingly
     const newOrder = {
       public_id: publicId,
       payment_currency: paymentCurrency,
@@ -115,10 +101,10 @@ serve(async (req) => {
       contact_phone: contactPhone || null,
       usdt_network: usdtNetwork || null,
       status: "Новая заявка",
-      telegram_user_id: telegramUser.id,
+      telegram_user_id: null,
     };
 
-    // 5. Insert new order into the table
+    // 4. Insert new order into the table
     const { data: insertedOrder, error: insertError } = await supabase
       .from("orders")
       .insert(newOrder)
@@ -130,14 +116,11 @@ serve(async (req) => {
       throw new Error(`Failed to insert order: ${insertError.message}`);
     }
 
-    // 6. Send notifications
+    // 5. Send notifications
     const clientMessage = `Вы создали заявку номер ${publicId}. Следуйте инструкциям по оплате или дождитесь сообщения оператора.`;
 
     const adminMessage = `
 Новая заявка: *#${publicId}*
-Пользователь: ${telegramUser.first_name} (${
-      telegramUser.username ? `@${telegramUser.username}` : "нет username"
-    })
 
 *Детали:*
 Отдает: ${fromAmount} ${paymentCurrency}
@@ -151,18 +134,14 @@ ${
 ${paymentCurrency === "USDT" ? `Сеть: ${usdtNetwork}` : ""}
     `.trim();
 
-    // Invoke notification function (fire and forget)
-    supabase.functions.invoke("send-telegram-notification", {
-      body: { chatId: telegramUser.id, text: clientMessage },
-    });
-
+    // Notifications to admin only, since client chatId unknown
     if (ADMIN_TELEGRAM_ID) {
       supabase.functions.invoke("send-telegram-notification", {
         body: { chatId: ADMIN_TELEGRAM_ID, text: adminMessage },
       });
     }
 
-    // 7. Return the created order to the frontend
+    // 6. Return the created order to the frontend
     return new Response(JSON.stringify(insertedOrder), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

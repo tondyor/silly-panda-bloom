@@ -228,18 +228,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [telegramUser, setTelegramUser] = useState<any | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      const user = window.Telegram.WebApp.initDataUnsafe?.user;
-      if (user) {
-        setTelegramUser(user);
-      }
-    }
-  }, []);
 
   const {
     data: usdtVndRate,
@@ -314,12 +304,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!telegramUser) {
-      setErrorMessage("Ошибка: не удалось определить пользователя Telegram.");
-      setIsErrorDialogOpen(true);
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -329,7 +313,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           calculatedVND,
           exchangeRate,
         },
-        telegramUser: telegramUser,
       };
 
       const { data, error } = await supabase.functions.invoke("create-exchange-order", {
