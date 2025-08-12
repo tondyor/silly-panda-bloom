@@ -14,6 +14,78 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
+const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
+const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+async function sendTelegramMessage(chatId: string | number, text: string) {
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.error("TELEGRAM_BOT_TOKEN is not set.");
+    return;
+  }
+  if (!chatId) {
+    console.error("chatId is not provided for telegram message.");
+    return;
+  }
+
+  try {
+    const response = await fetch(TELEGRAM_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: 'Markdown',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error(`Telegram API error for chatId ${chatId}:`, errorData);
+    }
+  } catch (error) {
+    console.error(`Failed to send telegram message to ${chatId}:`, error);
+  }
+}
+
+function formatOrderForTelegram(order: any, forAdmin: boolean): string {
+  const clientIdentifier = order.telegram_contact ? `@${order.telegram_contact}` : `ID: ${order.telegram_user_id}`;
+  const title = forAdmin 
+    ? `*Новая заявка #${order.public_id}* от ${clientIdentifier}`
+    : `*Ваша заявка #${order.public_id} успешно создана!*`;
+
+  const details = [
+    title,
+    `-----------------------------------`,
+    `*Вы отдаете:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+    `*Вы получаете (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+    `*Способ получения:* ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
+  ];
+
+  if (order.payment_currency === 'USDT') {
+    details.push(`*Сеть USDT:* ${order.usdt_network}`);
+  }
+
+  if (order.delivery_method === 'bank') {
+    details.push(`*Банк:* ${order.vnd_bank_name}`);
+    details.push(`*Номер счета:* \`${order.vnd_bank_account_number}\``);
+  } else {
+    details.push(`*Адрес доставки:* ${order.delivery_address}`);
+  }
+
+  if (forAdmin && order.contact_phone) {
+    details.push(`*Телефон для связи:* \`${order.contact_phone}\``);
+  }
+  
+  details.push(`-----------------------------------`);
+  if (!forAdmin) {
+    details.push(`Наш менеджер скоро свяжется с вами для подтверждения деталей.`);
+  }
+  details.push(`_Статус: ${order.status}_`);
+
+  return details.join('\n');
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,7 +102,6 @@ serve(async (req) => {
 
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-    // Маппинг полей в snake_case
     const insertData = {
       payment_currency: orderData.paymentCurrency,
       from_amount: orderData.fromAmount,
@@ -41,11 +112,12 @@ serve(async (req) => {
       vnd_bank_name: orderData.vndBankName ?? null,
       vnd_bank_account_number: orderData.vndBankAccountNumber ?? null,
       delivery_address: orderData.deliveryAddress ?? null,
-      telegram_contact: orderData.contactPhone ?? "",  // обязательное not null
+      telegram_contact: orderData.telegramContactUsername ?? null,
       contact_phone: orderData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
       created_at: new Date().toISOString(),
+      telegram_user_id: orderData.telegramUserId ?? null,
     };
 
     console.log("Inserting order:", insertData);
@@ -62,6 +134,21 @@ serve(async (req) => {
         JSON.stringify({ error: error.message || "Ошибка при создании заказа" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Send notifications
+    // To Admin
+    if (ADMIN_TELEGRAM_CHAT_ID) {
+      const adminMessage = formatOrderForTelegram(data, true);
+      await sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
+    } else {
+      console.warn("ADMIN_TELEGRAM_CHAT_ID is not set. Cannot send admin notification.");
+    }
+
+    // To Client
+    if (data.telegram_user_id) {
+      const clientMessage = formatOrderForTelegram(data, false);
+      await sendTelegramMessage(data.telegram_user_id, clientMessage);
     }
 
     return new Response(

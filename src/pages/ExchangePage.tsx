@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,11 +10,30 @@ import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+}
+
 const ExchangePage = () => {
   const { t } = useTranslation();
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
+  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      if (tg.initDataUnsafe?.user) {
+        setTelegramUser(tg.initDataUnsafe.user);
+      }
+    }
+  }, []);
 
   const handleExchangeSuccess = (
     network: string,
@@ -75,7 +94,7 @@ const ExchangePage = () => {
               <PostSubmissionInfo depositInfo={depositInfo} formData={submittedFormData} />
             </>
           ) : (
-            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />
+            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} telegramUser={telegramUser} />
           )}
         </CardContent>
       </Card>

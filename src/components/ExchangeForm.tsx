@@ -215,15 +215,21 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   return avgRate * (1 + PROFIT_MARGIN);
 };
 
+interface TelegramUser {
+  id: number;
+  username?: string;
+}
+
 export interface ExchangeFormProps {
   onExchangeSuccess: (
     network: string,
     address: string,
     orderData: any,
   ) => void;
+  telegramUser: TelegramUser | null;
 }
 
-export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
+export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormProps) {
   const { t } = useTranslation();
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
@@ -312,6 +318,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
           ...values,
           calculatedVND,
           exchangeRate,
+          telegramUserId: telegramUser ? telegramUser.id : null,
+          telegramContactUsername: telegramUser ? telegramUser.username : null,
         },
       };
 
