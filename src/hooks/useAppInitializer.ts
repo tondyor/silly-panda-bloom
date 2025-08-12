@@ -4,30 +4,27 @@ import { useAppStore } from '@/store';
 let isInitialized = false;
 
 export const useAppInitializer = () => {
-  const { authenticate, fetchUsdtRate, fetchRubRate } = useAppStore(state => ({
-    authenticate: state.actions.auth.authenticate,
-    fetchUsdtRate: () => state.actions.rates.fetchRate('USDT'),
-    fetchRubRate: () => state.actions.rates.fetchRate('RUB'),
-  }));
+  const authenticate = useAppStore((state) => state.actions.auth.authenticate);
+  const fetchRate = useAppStore((state) => state.actions.rates.fetchRate);
 
   useEffect(() => {
     if (!isInitialized) {
       isInitialized = true;
       authenticate().then(() => {
         // Fetch rates after successful authentication
-        fetchUsdtRate();
-        fetchRubRate();
+        fetchRate('USDT');
+        fetchRate('RUB');
       });
     }
-  }, [authenticate, fetchUsdtRate, fetchRubRate]);
+  }, [authenticate, fetchRate]);
 
   // Set up interval to refetch rates periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchUsdtRate();
-      fetchRubRate();
+      fetchRate('USDT');
+      fetchRate('RUB');
     }, 30000); // Refetch every 30 seconds
 
     return () => clearInterval(interval);
-  }, [fetchUsdtRate, fetchRubRate]);
+  }, [fetchRate]);
 };
