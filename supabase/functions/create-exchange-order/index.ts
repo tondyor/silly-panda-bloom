@@ -51,7 +51,7 @@ async function sendTelegramMessage(chatId: string | number, text: string): Promi
 
 function formatOrderForTelegram(order: any, forAdmin: boolean): string {
   if (forAdmin) {
-    const clientIdentifier = order.telegram_contact ? `@${order.telegram_contact}` : (order.telegram_user_id ? `ID: ${order.telegram_user_id}` : 'Клиент');
+    const clientIdentifier = order.telegram_user_id ? `ID: ${order.telegram_user_id}` : 'Клиент';
     const details = [
       `😏 Новый заказ!`,
       ``,
@@ -149,7 +149,6 @@ serve(async (req) => {
       vnd_bank_name: orderData.vndBankName ?? null,
       vnd_bank_account_number: orderData.vndBankAccountNumber ?? null,
       delivery_address: orderData.deliveryAddress ?? null,
-      telegram_contact: orderData.telegramContactUsername ?? null,
       contact_phone: orderData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
