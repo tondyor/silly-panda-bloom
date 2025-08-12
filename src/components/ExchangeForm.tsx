@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
 import { Loader2, AlertCircle, Landmark, HandCoins } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -220,9 +219,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
 
-  // Ref to track if the no-telegram-user toast is active
-  const noTelegramUserToastId = useRef<string | number | null>(null);
-
   useEffect(() => {
     if (window.Telegram && window.Telegram.WebApp) {
       const user = window.Telegram.WebApp.initDataUnsafe?.user;
@@ -311,15 +307,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser) {
-      if (noTelegramUserToastId.current === null) {
-        noTelegramUserToastId.current = toast.error("Ошибка: не удалось определить пользователя Telegram.", {
-          description: "Пожалуйста, убедитесь, что вы используете приложение внутри Telegram.",
-          duration: 5000,
-          onDismiss: () => {
-            noTelegramUserToastId.current = null;
-          }
-        });
-      }
+      // Убрано любое всплывающее уведомление
       return;
     }
     
@@ -340,8 +328,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       });
 
       if (error) {
-        const errorMessage = (error as any).context?.errorMessage || error.message;
-        throw new Error(errorMessage);
+        // Убрано любое всплывающее уведомление
+        throw new Error(error.message || "Ошибка при создании заявки.");
       }
       
       if (!newOrder || !newOrder.public_id) {
@@ -364,10 +352,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
       form.reset();
       setCalculatedVND(0);
-      noTelegramUserToastId.current = null;
-    } catch (error: any) {
+    } catch (error) {
+      // Убрано любое всплывающее уведомление
       console.error("Error submitting exchange:", error);
-      toast.error("Ошибка при создании заявки.", { description: error.message || "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000, position: "top-center" });
     } finally {
       setIsSubmitting(false);
     }
