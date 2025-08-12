@@ -43,10 +43,10 @@ serve(async (req) => {
             username: user.username || null,
           }, { onConflict: 'telegram_id' });
       }
-      // Optionally, send a welcome message back
-      // await supabase.functions.invoke('send-telegram-notification', {
-      //   body: { chatId: chatId, text: 'Добро пожаловать!' },
-      // });
+      // Send a welcome message back
+      await supabase.functions.invoke('send-telegram-notification', {
+        body: { chatId: chatId, text: 'Добро пожаловать! Мы сохранили ваш профиль.' },
+      });
       return new Response("ok");
     }
 
