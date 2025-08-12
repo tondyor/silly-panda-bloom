@@ -36,6 +36,12 @@ async function enqueueNotification(supabase: any, telegramId: number, messageTyp
 }
 
 serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const startTime = Date.now();
+
   try {
     if (req.method === "OPTIONS") {
         return new Response(null, { headers: corsHeaders });
@@ -52,10 +58,29 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Check for recent duplicate orders to prevent accidental multiple submissions
+    const oneMinuteAgo = new Date(startTime - 60 * 1000).toISOString();
+    const { data: recentOrder, error: duplicateCheckError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('telegram_id', telegramId)
+        .eq('payment_currency', orderData.paymentCurrency)
+        .eq('from_amount', orderData.fromAmount)
+        .eq('delivery_method', orderData.deliveryMethod)
+        .gte('created_at', oneMinuteAgo)
+        .limit(1)
+        .maybeSingle();
+
+    if (duplicateCheckError) {
+        console.error('Error checking for duplicate orders:', duplicateCheckError.message);
+    }
+
+    if (recentOrder) {
+        return new Response(
+            JSON.stringify({ error: 'Похожий заказ был недавно создан. Пожалуйста, подождите минуту перед повторной отправкой.' }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+    }
 
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -89,7 +114,6 @@ serve(async (req) => {
       );
     }
 
-    // Enqueue notifications instead of sending directly
     const notificationPayload = {
       publicId: publicId,
       telegramId: telegramId,
@@ -116,5 +140,17 @@ serve(async (req) => {
       JSON.stringify({ error: 'Internal server error', details: error.message }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  } finally {
+    const duration = Date.now() - startTime;
+    // Log performance metric (fire and forget)
+    supabase.from('performance_metrics').insert({
+        metric_name: 'orders.create.duration',
+        metric_value: duration,
+        labels: { function_version: '1.2' }
+    }).then(({ error }) => {
+        if (error) {
+            console.error('Failed to log performance metric:', error.message);
+        }
+    });
   }
 });

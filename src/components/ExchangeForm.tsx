@@ -10,6 +10,7 @@ import { Form } from "@/components/ui/form";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store";
+import { useDebounce } from "@/hooks/use-debounce";
 
 import CountdownCircle from "./CountdownCircle";
 import { CurrencyTabs, AmountInput, UsdtNetworkSelect, DeliveryMethodTabs, ContactInputs } from "./exchange-form";
@@ -171,6 +172,8 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
   const fromAmount = form.watch("fromAmount");
   const deliveryMethod = form.watch("deliveryMethod");
 
+  const debouncedFromAmount = useDebounce(fromAmount, 500);
+
   const { rates } = useAppStore();
   const currentRateData = rates[paymentCurrency];
   const exchangeRate = currentRateData?.rate ?? 0;
@@ -188,12 +191,12 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
 
   useEffect(() => {
     const displayRate = Math.round(exchangeRate);
-    if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0 && displayRate > 0) {
-      setCalculatedVND(fromAmount * displayRate);
+    if (typeof debouncedFromAmount === "number" && !isNaN(debouncedFromAmount) && debouncedFromAmount > 0 && displayRate > 0) {
+      setCalculatedVND(debouncedFromAmount * displayRate);
     } else {
       setCalculatedVND(0);
     }
-  }, [fromAmount, exchangeRate]);
+  }, [debouncedFromAmount, exchangeRate]);
 
   const handleCurrencyChange = (value: "USDT" | "RUB") => {
     form.setValue("paymentCurrency", value);

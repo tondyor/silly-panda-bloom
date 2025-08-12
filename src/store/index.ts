@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TelegramUser {
