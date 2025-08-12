@@ -1,20 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useAppStore } from "@/store";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useExchangeCalculation } from "@/hooks/useExchangeCalculation";
+import { useRatesStore } from "@/store/ratesStore";
+import { useAuthStore } from "@/store/authStore";
 
 import CountdownCircle from "./CountdownCircle";
 import { CurrencyTabs, AmountInput, UsdtNetworkSelect, DeliveryMethodTabs, ContactInputs } from "./exchange-form";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -107,109 +108,61 @@ export interface ExchangeFormProps {
     address: string,
     orderData: any,
   ) => void;
-  telegramUser: {
-    id: number;
-    username?: string;
-    first_name?: string;
-    last_name?: string;
-  } | null;
-  isInitializing: boolean;
 }
 
-const getButtonState = (
-  isInitializing: boolean, 
-  isSubmitting: boolean, 
-  isLoadingRate: boolean
-) => {
-  if (isInitializing) {
-    return { 
-      disabled: true, 
-      text: "Инициализация...", 
-      className: "bg-gray-400 cursor-not-allowed" 
-    };
-  }
-  if (isSubmitting) {
-    return { 
-      disabled: true, 
-      text: "Создание заявки...", 
-      className: "bg-blue-400 cursor-not-allowed" 
-    };
-  }
-  if (isLoadingRate) {
-    return { 
-      disabled: true, 
-      text: "Загрузка курса...", 
-      className: "bg-yellow-400 cursor-not-allowed" 
-    };
-  }
-  return { 
-    disabled: false, 
-    text: "Создать заявку", 
-    className: "bg-green-600 hover:bg-green-700" 
-  };
-};
-
-export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }: ExchangeFormProps) {
+export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const { t } = useTranslation();
-  const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const { user, isReady: isAuthReady, isLoading: isAuthLoading } = useAuthStore();
+  const { lastUpdated, fetchRate } = useRatesStore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       paymentCurrency: "USDT",
+      fromAmount: 100,
       deliveryMethod: "bank",
       usdtNetwork: "TRC20",
-      contactPhone: "",
-      vndBankAccountNumber: "",
-      vndBankName: "",
     },
   });
 
-  const paymentCurrency = form.watch("paymentCurrency");
   const fromAmount = form.watch("fromAmount");
+  const paymentCurrency = form.watch("paymentCurrency");
   const deliveryMethod = form.watch("deliveryMethod");
+  
+  const debouncedFromAmount = useDebounce(fromAmount, 300);
 
-  const debouncedFromAmount = useDebounce(fromAmount, 500);
-
-  const { rates } = useAppStore();
-  const currentRateData = rates[paymentCurrency];
-  const exchangeRate = currentRateData?.rate ?? 0;
-  const isLoadingRate = currentRateData?.isLoading;
-  const isErrorRate = !!currentRateData?.error;
-  const dataUpdatedAt = currentRateData?.lastUpdated;
+  const { formattedVND, exchangeRate, isLoadingRate, calculatedVND } = useExchangeCalculation({
+    fromAmount: debouncedFromAmount ?? 0,
+    paymentCurrency: paymentCurrency,
+  });
 
   useEffect(() => {
-    if (isInitializing) return;
-    const isInitialMount = !form.formState.isDirty;
-    if (isInitialMount && fromAmount === undefined) {
-      form.setValue("fromAmount", 100, { shouldValidate: true });
-    }
-  }, [isInitializing, form, fromAmount]);
-
-  useEffect(() => {
-    const displayRate = Math.round(exchangeRate);
-    if (typeof debouncedFromAmount === "number" && !isNaN(debouncedFromAmount) && debouncedFromAmount > 0 && displayRate > 0) {
-      setCalculatedVND(debouncedFromAmount * displayRate);
-    } else {
-      setCalculatedVND(0);
-    }
-  }, [debouncedFromAmount, exchangeRate]);
+    fetchRate('USDT');
+    fetchRate('RUB');
+    const interval = setInterval(() => {
+      fetchRate('USDT');
+      fetchRate('RUB');
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchRate]);
 
   const handleCurrencyChange = (value: "USDT" | "RUB") => {
-    form.setValue("paymentCurrency", value);
-    form.clearErrors("fromAmount");
-    if (value === "RUB") {
-      form.setValue("deliveryMethod", "cash");
-      form.setValue("vndBankAccountNumber", "");
-      form.setValue("vndBankName", "");
-    }
+    startTransition(() => {
+      form.setValue("paymentCurrency", value);
+      form.clearErrors("fromAmount");
+      if (value === "RUB") {
+        form.setValue("deliveryMethod", "cash");
+      }
+    });
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!telegramUser?.id) {
+    if (!user?.id) {
       setErrorMessage('Критическая ошибка: ID пользователя Telegram не найден. Пожалуйста, перезапустите приложение.');
       setIsErrorDialogOpen(true);
       return;
@@ -219,73 +172,47 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
     setErrorMessage(null);
 
     try {
-      let depositAddress = "N/A";
-      if (values.paymentCurrency === "USDT" && values.usdtNetwork) {
-        depositAddress = USDT_WALLETS[values.usdtNetwork] || "Адрес не найден.";
-      }
-
       const orderPayload = {
         ...values,
+        fromAmount: debouncedFromAmount,
         calculatedVND,
         exchangeRate,
-        telegramId: telegramUser.id,
+        telegramId: user.id,
       };
 
       const { data, error } = await supabase.functions.invoke("orders-create", {
         body: { orderData: orderPayload },
       });
 
-      if (error) {
-        setErrorMessage(`Ошибка сервера: ${error.message || 'Неизвестная ошибка'}`);
-        setIsErrorDialogOpen(true);
-        return;
-      }
-
-      if (!data || !("public_id" in data)) {
-        setErrorMessage("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
-        setIsErrorDialogOpen(true);
-        return;
-      }
-
+      if (error) throw new Error(error.message);
+      
+      const depositAddress = values.paymentCurrency === "USDT" && values.usdtNetwork ? USDT_WALLETS[values.usdtNetwork] : "N/A";
       onExchangeSuccess(values.usdtNetwork || "N/A", depositAddress, data);
+
       form.reset();
-      setCalculatedVND(0);
     } catch (error) {
-      console.error("Error submitting exchange:", error);
       setErrorMessage(error instanceof Error ? error.message : 'Произошла непредвиденная ошибка.');
       setIsErrorDialogOpen(true);
     } finally {
       setIsSubmitting(false);
     }
   }
-
-  const buttonState = getButtonState(isInitializing, isSubmitting, isLoadingRate);
+  
+  const isInitializing = isAuthLoading || !isAuthReady;
+  const buttonDisabled = isInitializing || isSubmitting || isLoadingRate || isPending;
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          {isErrorRate && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>{t("exchangeForm.loadingRateError")}</AlertTitle>
-              <AlertDescription>
-                Не удалось получить актуальный курс. Обмен временно недоступен. Попробуйте обновить страницу.
-              </AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-1">
-            <Label>
-              {t("exchangeForm.exchangeCurrencyLabel")} <span className="text-red-500">*</span>
-            </Label>
+            <Label>{t("exchangeForm.exchangeCurrencyLabel")} <span className="text-red-500">*</span></Label>
             <CurrencyTabs value={paymentCurrency} onChange={handleCurrencyChange} />
             <div className="flex h-8 items-center justify-center gap-2 text-sm text-gray-600">
-              {isLoadingRate && <Skeleton className="h-4 w-48" />}
-              {!isLoadingRate && !isErrorRate && exchangeRate > 0 && (
+              {isLoadingRate ? <Skeleton className="h-4 w-48" /> : (
                 <>
                   <span>1 {paymentCurrency} / {Math.round(exchangeRate).toLocaleString("vi-VN")} VND</span>
-                  <CountdownCircle key={dataUpdatedAt} duration={30} />
+                  <CountdownCircle key={lastUpdated[paymentCurrency]} duration={30} />
                 </>
               )}
             </div>
@@ -294,18 +221,12 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
           <AmountInput control={form.control} name="fromAmount" currency={paymentCurrency} />
 
           <div className="w-full">
-            <div className="flex items-center gap-2 mb-2">
-              <Label>{t("exchangeForm.youWillReceiveLabel")}</Label>
-            </div>
+            <Label>{t("exchangeForm.youWillReceiveLabel")}</Label>
             <input
               type="text"
-              value={
-                isLoadingRate
-                  ? "Расчет..."
-                  : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
-              }
+              value={isLoadingRate || isPending ? "Расчет..." : formattedVND}
               readOnly
-              className="h-12 p-3 text-base w-full min-w-[70%] bg-gray-100 font-bold text-green-700 text-lg rounded-md"
+              className="h-12 p-3 text-base w-full bg-gray-100 font-bold text-green-700 text-lg rounded-md"
             />
           </div>
 
@@ -320,17 +241,12 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
 
           <ContactInputs control={form.control} />
 
-          <Button
-            type="submit"
-            disabled={buttonState.disabled}
-            className={`w-full h-14 text-lg font-medium rounded-xl text-white shadow-lg transition-all duration-300 ease-in-out ${buttonState.className}`}
-          >
-            {isSubmitting || isLoadingRate || isInitializing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-            {buttonState.text}
+          <Button type="submit" disabled={buttonDisabled} className="w-full h-14 text-lg font-medium">
+            {isSubmitting || isInitializing || isLoadingRate ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+            {isSubmitting ? "Создание заявки..." : "Создать заявку"}
           </Button>
         </form>
       </Form>
-
       <AlertDialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -339,7 +255,6 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Закрыть</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setIsErrorDialogOpen(false)}>Ок</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

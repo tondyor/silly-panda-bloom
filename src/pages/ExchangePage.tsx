@@ -9,25 +9,13 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useAppStore } from '@/store';
-import { useAppInitializer } from '@/hooks/useAppInitializer';
-import { StatusIndicator } from '@/components/StatusIndicator';
+import { TelegramConnectionStatus } from "@/components/TelegramConnectionStatus";
 
 const ExchangePage = () => {
   const { t } = useTranslation();
-  useAppInitializer(); // This hook initializes the app state
-
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
-  
-  const { user, isLoading, error, isReady, retry } = useAppStore(state => ({
-    user: state.auth.user,
-    isLoading: state.auth.isLoading,
-    error: state.auth.error,
-    isReady: state.auth.isReady,
-    retry: state.actions.auth.authenticate,
-  }));
 
   const handleExchangeSuccess = (
     network: string,
@@ -53,7 +41,7 @@ const ExchangePage = () => {
     setIsFormSubmitted(true);
 
     toast.success("Ваш запрос на обмен успешно отправлен!", {
-      description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
+      description: `Номер вашего заказа: ${displayData.orderId}.`,
       duration: 3000,
       position: "top-center",
     });
@@ -81,23 +69,14 @@ const ExchangePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
-          <StatusIndicator 
-            isLoading={isLoading}
-            error={error}
-            isReady={isReady}
-            onRetry={retry}
-          />
+          <TelegramConnectionStatus />
           {isFormSubmitted ? (
             <>
               <ExchangeSummary data={submittedFormData} />
               <PostSubmissionInfo depositInfo={depositInfo} formData={submittedFormData} />
             </>
           ) : (
-            <ExchangeForm 
-              onExchangeSuccess={handleExchangeSuccess} 
-              telegramUser={user} 
-              isInitializing={isLoading || !isReady}
-            />
+            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />
           )}
         </CardContent>
       </Card>
