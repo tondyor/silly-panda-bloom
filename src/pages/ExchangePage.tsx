@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,7 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useAuthStore } from '@/store/authStore';
-import { useRatesStore } from '@/store/ratesStore';
-import { StatusIndicator } from '@/components/StatusIndicator';
+import { useTelegramUser } from '@/hooks/useTelegramUser';
 
 const ExchangePage = () => {
   const { t } = useTranslation();
@@ -19,21 +17,7 @@ const ExchangePage = () => {
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
   
-  const { isLoading, error, isReady, retry } = useAuthStore();
-  const { fetchRate } = useRatesStore();
-
-  useEffect(() => {
-    retry(); // Initial authentication attempt
-    
-    fetchRate('USDT');
-    fetchRate('RUB');
-    const interval = setInterval(() => {
-      fetchRate('USDT');
-      fetchRate('RUB');
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, []); // Empty dependency array ensures this runs only once on mount
+  const { user, isLoading, error, isReady, retry } = useTelegramUser();
 
   const handleExchangeSuccess = (
     network: string,
@@ -59,7 +43,7 @@ const ExchangePage = () => {
     setIsFormSubmitted(true);
 
     toast.success("Ваш запрос на обмен успешно отправлен!", {
-      description: `Номер вашего заказа: ${displayData.orderId}.`,
+      description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
       duration: 3000,
       position: "top-center",
     });
@@ -87,12 +71,13 @@ const ExchangePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
-          <StatusIndicator 
-            isLoading={isLoading}
-            error={error}
-            isReady={isReady}
-            onRetry={retry}
-          />
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <strong className="font-bold">Ошибка! </strong>
+              <span className="block sm:inline">{error}</span>
+              <button onClick={retry} className="ml-4 bg-red-500 text-white p-1 rounded">Попробовать снова</button>
+            </div>
+          )}
           {isFormSubmitted ? (
             <>
               <ExchangeSummary data={submittedFormData} />
@@ -101,6 +86,8 @@ const ExchangePage = () => {
           ) : (
             <ExchangeForm 
               onExchangeSuccess={handleExchangeSuccess} 
+              telegramUser={user} 
+              isInitializing={isLoading || !isReady}
             />
           )}
         </CardContent>
