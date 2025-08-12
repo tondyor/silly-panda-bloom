@@ -135,8 +135,6 @@ serve(async (req) => {
     const body = await req.json();
     const orderData = body.orderData;
     
-    console.log("Received order payload:", JSON.stringify(orderData, null, 2));
-
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
     const insertData = {
@@ -176,18 +174,22 @@ serve(async (req) => {
         deposit_address: orderData.depositAddress,
     };
 
-    let clientNotificationStatus = "❌ Уведомление клиенту не отправлено (ID не получен).";
+    // --- НОВАЯ ЛОГИКА ОТПРАВКИ ---
 
+    // 1. Сначала отправляем сообщение КЛИЕНТУ и определяем статус
+    let clientNotificationStatus = "❌ Уведомление клиенту не отправлено (ID не получен).";
     if (insertedOrder.telegram_user_id) {
       const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-      const success = await sendTelegramMessage(insertedOrder.telegram_user_id, clientMessage);
-      if (success) {
+      const wasClientNotified = await sendTelegramMessage(insertedOrder.telegram_user_id, clientMessage);
+
+      if (wasClientNotified) {
         clientNotificationStatus = `✅ Уведомление клиенту (ID: ${insertedOrder.telegram_user_id}) отправлено.`;
       } else {
         clientNotificationStatus = `❌ Ошибка отправки уведомления клиенту (ID: ${insertedOrder.telegram_user_id}).`;
       }
     }
 
+    // 2. Затем отправляем сообщение АДМИНИСТРАТОРУ со статусом
     if (ADMIN_TELEGRAM_CHAT_ID) {
       let adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
       adminMessage += `\n\n---\n*Статус уведомления:*\n${clientNotificationStatus}`;
