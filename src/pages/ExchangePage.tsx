@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TelegramUser {
-  id: number;
+  telegram_id: number; // Используем telegram_id, как в вашей таблице
   first_name: string;
   last_name?: string;
   username?: string;
@@ -32,24 +32,35 @@ const ExchangePage = () => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
-      if (tg.initDataUnsafe?.user) {
-        setTelegramUser(tg.initDataUnsafe.user);
-      }
-
-      const registerUser = async () => {
+      const initTelegramUser = async () => {
         try {
-          await supabase.functions.invoke("register-telegram-user", {
+          // Вызываем Edge Function для регистрации/обновления пользователя Telegram
+          const { data, error } = await supabase.functions.invoke("register-telegram-user", {
             body: { initData: tg.initData },
           });
+
+          if (error) {
+            console.error("Error invoking register-telegram-user function:", error);
+            // Если вызов функции не удался, пользовательские данные могут быть недоступны
+            // telegramUser останется null в этом случае.
+          } else if (data && data.user) {
+            // Если успешно, устанавливаем состояние telegramUser данными, возвращенными из Edge Function
+            setTelegramUser(data.user);
+            console.log("Telegram user initialized from DB:", data.user);
+          } else {
+            console.warn("register-telegram-user function returned no user data.");
+          }
         } catch (err) {
-          console.error("Network error during Telegram user registration:", err);
+          console.error("Network error during Telegram user initialization:", err);
         } finally {
           setIsTelegramInitComplete(true);
         }
       };
 
-      registerUser();
+      initTelegramUser();
     } else {
+      // Если не в среде Telegram Web App, считаем инициализацию завершенной, но без пользователя Telegram
+      console.warn("Not running in Telegram Web App environment. Telegram user will be null.");
       setIsTelegramInitComplete(true);
     }
   }, []);

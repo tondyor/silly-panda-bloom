@@ -216,9 +216,11 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
 };
 
 interface TelegramUser {
-  id: number;
+  telegram_id: number; // Используем telegram_id, как в вашей таблице
+  first_name: string;
+  last_name?: string;
   username?: string;
-  first_name?: string;
+  language_code?: string;
 }
 
 export interface ExchangeFormProps {
@@ -324,7 +326,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
           ...values,
           calculatedVND,
           exchangeRate,
-          telegramUserId: telegramUser ? telegramUser.id : null,
+          telegramUserId: telegramUser ? telegramUser.telegram_id : null, // ИСПОЛЬЗУЕМ telegram_id
           telegramUserFirstName: telegramUser ? telegramUser.first_name : null,
           depositAddress: depositAddress,
         },
