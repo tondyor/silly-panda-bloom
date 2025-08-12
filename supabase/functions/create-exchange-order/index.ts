@@ -43,7 +43,7 @@ serve(async (req) => {
     const { data, error } = await supabase.from("orders").insert(insertData).select().single();
 
     if (error) {
-      console.error("Error inserting order:", error);
+      console.error("Insert error:", error);
       return new Response(
         JSON.stringify({ error: error.message || "Ошибка при создании заказа" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -54,9 +54,8 @@ serve(async (req) => {
       JSON.stringify(data),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error) {
-    console.error("Unexpected error in create-exchange-order:", error);
+    console.error("Unexpected error:", error);
     return new Response(
       JSON.stringify({ error: "Внутренняя ошибка сервера" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
