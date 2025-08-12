@@ -4,12 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAppStore } from "@/store";
 
 import CountdownCircle from "./CountdownCircle";
 import { CurrencyTabs, AmountInput, UsdtNetworkSelect, DeliveryMethodTabs, ContactInputs } from "./exchange-form";
@@ -171,28 +171,12 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
   const fromAmount = form.watch("fromAmount");
   const deliveryMethod = form.watch("deliveryMethod");
 
-  const {
-    data: rateData,
-    isLoading: isLoadingRate,
-    isError: isErrorRate,
-    dataUpdatedAt,
-  } = useQuery({
-    queryKey: ["exchangeRate", paymentCurrency],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("exchange-rates-get", {
-        body: { currency: paymentCurrency },
-      });
-      if (error) throw new Error(error.message);
-      if (!data?.rate) throw new Error("Rate not found in server response.");
-      return data;
-    },
-    refetchInterval: 30000,
-    staleTime: 28000,
-    refetchOnWindowFocus: true,
-    enabled: !!paymentCurrency,
-  });
-
-  const exchangeRate = rateData?.rate ?? 0;
+  const { rates } = useAppStore();
+  const currentRateData = rates[paymentCurrency];
+  const exchangeRate = currentRateData?.rate ?? 0;
+  const isLoadingRate = currentRateData?.isLoading;
+  const isErrorRate = !!currentRateData?.error;
+  const dataUpdatedAt = currentRateData?.lastUpdated;
 
   useEffect(() => {
     if (isInitializing) return;

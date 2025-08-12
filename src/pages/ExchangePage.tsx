@@ -9,16 +9,25 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useTelegramUser } from '@/hooks/useTelegramUser';
+import { useAppStore } from '@/store';
+import { useAppInitializer } from '@/hooks/useAppInitializer';
 import { StatusIndicator } from '@/components/StatusIndicator';
 
 const ExchangePage = () => {
   const { t } = useTranslation();
+  useAppInitializer(); // This hook initializes the app state
+
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
   
-  const { user, isLoading, error, isReady, retry } = useTelegramUser();
+  const { user, isLoading, error, isReady, retry } = useAppStore(state => ({
+    user: state.auth.user,
+    isLoading: state.auth.isLoading,
+    error: state.auth.error,
+    isReady: state.auth.isReady,
+    retry: state.actions.auth.authenticate,
+  }));
 
   const handleExchangeSuccess = (
     network: string,
