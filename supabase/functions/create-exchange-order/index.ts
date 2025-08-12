@@ -1,10 +1,25 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { z } from 'https://esm.sh/zod@3.23.2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+const orderSchema = z.object({
+  paymentCurrency: z.enum(["USDT", "RUB"]),
+  fromAmount: z.number().min(1),
+  calculatedVND: z.number(),
+  exchangeRate: z.number(),
+  deliveryMethod: z.enum(["bank", "cash"]),
+  vndBankName: z.string().optional().nullable(),
+  vndBankAccountNumber: z.string().optional().nullable(),
+  deliveryAddress: z.string().optional().nullable(),
+  telegramContact: z.string().min(3),
+  contactPhone: z.string().optional().nullable(),
+  usdtNetwork: z.string().optional().nullable(),
+});
 
 function getAlphabeticalPrefix(index: number): string {
   let result = '';
@@ -16,6 +31,16 @@ function getAlphabeticalPrefix(index: number): string {
   }
   return result;
 };
+
+async function sendTelegramMessage(supabase: any, chatId: number | string, text: string) {
+  try {
+    await supabase.functions.invoke('send-telegram-notification', {
+      body: { chatId, text },
+    });
+  } catch (e) {
+    console.error("Failed to send Telegram message:", e);
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -34,6 +59,19 @@ serve(async (req) => {
 
     if (!orderData || !telegramUser || !telegramUser.id) {
         throw new Error("Missing order data or Telegram user information.");
+    }
+
+    // Валидация данных заказа
+    const parseResult = orderSchema.safeParse(orderData);
+    if (!parseResult.success) {
+      const errorMessages = parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n');
+      const errorText = `Ошибка в данных заявки:\n${errorMessages}`;
+      // Отправляем сообщение пользователю в Telegram
+      await sendTelegramMessage(supabase, telegramUser.id, errorText);
+      return new Response(
+        JSON.stringify({ error: errorText }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // 1. Save or update user in the database
@@ -58,12 +96,10 @@ serve(async (req) => {
         throw new Error(`Failed to get next order ID: ${rpcError.message}`);
     }
     
-    // nextOrderNumberData can be an object with key 'get_next_order_id' or a number directly
     let nextOrderNumber: number;
     if (typeof nextOrderNumberData === 'number') {
       nextOrderNumber = nextOrderNumberData;
     } else if (nextOrderNumberData && typeof nextOrderNumberData === 'object') {
-      // Supabase sometimes returns { get_next_order_id: number }
       const key = Object.keys(nextOrderNumberData)[0];
       nextOrderNumber = nextOrderNumberData[key];
     } else {
@@ -131,7 +167,7 @@ serve(async (req) => {
 Отдает: ${fromAmount} ${paymentCurrency}
 Получает: ${calculatedVND.toLocaleString('vi-VN')} VND
 Способ: ${deliveryMethod === 'bank' ? 'Банк' : 'Наличные'}
-${deliveryMethod === 'bank' ? `Банк: ${vndBankName}\\nСчет: ${vndBankAccountNumber}` : `Адрес: ${deliveryAddress}`}
+${deliveryMethod === 'bank' ? `Банк: ${vndBankName}\nСчет: ${vndBankAccountNumber}` : `Адрес: ${deliveryAddress}`}
 ${paymentCurrency === 'USDT' ? `Сеть: ${usdtNetwork}` : ''}
     `.trim();
 
