@@ -9,6 +9,8 @@ declare const Deno: {
   };
 };
 
+const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
+const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -31,78 +33,61 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
   try {
+    if (!TELEGRAM_BOT_TOKEN) {
+      console.error("Telegram bot token is not set.");
+      return new Response("ok", { headers: corsHeaders });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const body = await req.json();
-    const message = body.message;
-
-    if (!message || !message.chat || !message.text) {
+    const { message } = await req.json();
+    if (!message?.text || !message?.chat?.id || !message.from) {
       return new Response("ok", { headers: corsHeaders });
     }
 
-    const chatId = message.chat.id;
-    const text = message.text;
-    const user = message.from;
+    if (message.text === "/start") {
+      const user = message.from;
 
-    if (!user) {
-      return new Response("ok", { headers: corsHeaders });
-    }
+      // Upsert user
+      await supabase.from("telegram_users").upsert(
+        {
+          telegram_id: user.id,
+          first_name: user.first_name,
+          last_name: user.last_name || null,
+          language_code: user.language_code || null,
+          is_premium: false,
+          registered_at: new Date().toISOString(),
+          completed_deals_count: 0,
+          total_volume_vnd: 0,
+          total_volume_usdt: 0,
+        },
+        { onConflict: "telegram_id" }
+      );
 
-    if (text === "/start") {
-      // Upsert user data
-      const upsertPayload = {
-        telegram_id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name || null,
-        language_code: user.language_code || null,
-        is_premium: false,
-        registered_at: new Date().toISOString(),
-        completed_deals_count: 0,
-        total_volume_vnd: 0,
-        total_volume_usdt: 0,
-      };
-
-      const { error: upsertError } = await supabase
-        .from("telegram_users")
-        .upsert(upsertPayload, { onConflict: "telegram_id" });
-
-      if (upsertError) {
-        console.error("Upsert error:", upsertError);
-      }
-
-      // Fetch user info
-      const { data: userInfo, error: fetchError } = await supabase
+      // Fetch fresh data
+      const { data: userInfo } = await supabase
         .from("telegram_users")
         .select("*")
         .eq("telegram_id", user.id)
         .single();
 
-      let textToSend = "Добро пожаловать! Мы сохранили ваш профиль.";
+      const text = userInfo ? formatUserInfo(userInfo) : "Добро пожаловать! Мы сохранили ваш профиль.";
 
-      if (!fetchError && userInfo) {
-        textToSend = formatUserInfo(userInfo);
-      }
-
-      // Send message
-      try {
-        await supabase.functions.invoke("send-telegram-notification", {
-          body: { chatId, text: textToSend },
-        });
-      } catch (sendError) {
-        console.error("Send message error:", sendError);
-      }
-
-      return new Response("ok", { headers: corsHeaders });
+      // Send response to Telegram
+      await fetch(TELEGRAM_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: message.chat.id, text }),
+      });
     }
 
     return new Response("ok", { headers: corsHeaders });
   } catch (error) {
-    console.error("Handler error:", error);
+    console.error("Error in handle-telegram-updates:", error);
     return new Response("ok", { headers: corsHeaders });
   }
 });
