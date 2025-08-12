@@ -137,7 +137,6 @@ ${paymentCurrency === "USDT" ? `Сеть: ${usdtNetwork}` : ""}
       });
     }
 
-    // Return the created order to the frontend
     return new Response(JSON.stringify(insertedOrder), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
