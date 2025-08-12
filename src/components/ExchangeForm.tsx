@@ -10,13 +10,24 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 
 import CountdownCircle from "./CountdownCircle";
 import { CurrencyTabs, AmountInput, UsdtNetworkSelect, DeliveryMethodTabs, ContactInputs } from "./exchange-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const PROFIT_MARGIN = -0.02;
 
@@ -198,6 +209,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [telegramUser, setTelegramUser] = useState<any | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 
   useEffect(() => {
     if (window.Telegram && window.Telegram.WebApp) {
@@ -283,7 +296,8 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser) {
-      toast.error("Ошибка: не удалось определить пользователя Telegram.");
+      setErrorMessage("Ошибка: не удалось определить пользователя Telegram.");
+      setIsErrorDialogOpen(true);
       return;
     }
 
@@ -304,12 +318,14 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       });
 
       if (error) {
-        toast.error(`Ошибка сервера: ${error.message || error}`);
+        setErrorMessage(`Ошибка сервера: ${error.message || error}`);
+        setIsErrorDialogOpen(true);
         throw new Error(`Server error: ${error.message || error}`);
       }
 
       if (!data || !("public_id" in data)) {
-        toast.error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
+        setErrorMessage("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
+        setIsErrorDialogOpen(true);
         throw new Error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
       }
 
@@ -327,11 +343,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       setCalculatedVND(0);
     } catch (error) {
       console.error("Error submitting exchange:", error);
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Неизвестная ошибка при отправке формы.");
-      }
+      // Ошибка уже показана в модальном окне, не нужно дополнительно показывать toast
     } finally {
       setIsSubmitting(false);
     }
@@ -341,100 +353,115 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const isRubRateUnavailable = paymentCurrency === "RUB" && !rubVndRate;
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-        {isErrorRate && paymentCurrency === "USDT" && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>{t("exchangeForm.loadingRateError")}</AlertTitle>
-            <AlertDescription>
-              Не удалось получить актуальный курс USDT. Обмен временно недоступен. Попробуйте обновить страницу.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-1">
-          <Label>
-            {t("exchangeForm.exchangeCurrencyLabel")} <span className="text-red-500">*</span>
-          </Label>
-          <CurrencyTabs value={paymentCurrency} onChange={handleCurrencyChange} />
-          <div className="flex h-8 items-center justify-center gap-2 text-sm text-gray-600">
-            {paymentCurrency === "USDT" && (
-              <>
-                {isLoadingRate && <Skeleton className="h-4 w-48" />}
-                {isErrorRate && <span className="text-red-500 font-medium">{t("exchangeForm.loadingRateError")}</span>}
-                {!isLoadingRate && !isErrorRate && usdtVndRate && (
-                  <>
-                    <span>1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
-                    <CountdownCircle key={usdtDataUpdatedAt} duration={30} />
-                  </>
-                )}
-              </>
-            )}
-            {paymentCurrency === "RUB" && (
-              <>
-                {isRubRateUnavailable && <Skeleton className="h-4 w-48" />}
-                {!isRubRateUnavailable && rubVndRate && (
-                  <>
-                    <span>1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
-                    <CountdownCircle key={rubDataUpdatedAt} duration={30} />
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        <AmountInput control={form.control} name="fromAmount" currency={paymentCurrency} />
-
-        <div className="w-full">
-          <div className="flex items-center gap-2 mb-2">
-            <Label>{t("exchangeForm.youWillReceiveLabel")}</Label>
-          </div>
-          <input
-            type="text"
-            value={
-              (isUsdtRateUnavailable && paymentCurrency === "USDT") ||
-              (isRubRateUnavailable && paymentCurrency === "RUB")
-                ? "Расчет..."
-                : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
-            }
-            readOnly
-            className="h-12 p-3 text-base w-full min-w-[70%] bg-gray-100 font-bold text-green-700 text-lg rounded-md"
-          />
-        </div>
-
-        {paymentCurrency === "USDT" && <UsdtNetworkSelect control={form.control} name="usdtNetwork" />}
-
-        <DeliveryMethodTabs
-          value={deliveryMethod}
-          onChange={(val) => form.setValue("deliveryMethod", val)}
-          paymentCurrency={paymentCurrency}
-          control={form.control}
-        />
-
-        <ContactInputs control={form.control} />
-
-        <Button
-          type="submit"
-          className="w-full h-14 text-lg font-medium rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400"
-          disabled={isSubmitting || (isUsdtRateUnavailable && paymentCurrency === "USDT") || (isRubRateUnavailable && paymentCurrency === "RUB")}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {t("exchangeForm.processingButton")}
-            </>
-          ) : isLoadingRate && paymentCurrency === "USDT" ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {t("exchangeForm.loadingRateButton")}
-            </>
-          ) : (
-            "Создать заявку"
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+          {isErrorRate && paymentCurrency === "USDT" && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{t("exchangeForm.loadingRateError")}</AlertTitle>
+              <AlertDescription>
+                Не удалось получить актуальный курс USDT. Обмен временно недоступен. Попробуйте обновить страницу.
+              </AlertDescription>
+            </Alert>
           )}
-        </Button>
-      </form>
-    </Form>
+
+          <div className="space-y-1">
+            <Label>
+              {t("exchangeForm.exchangeCurrencyLabel")} <span className="text-red-500">*</span>
+            </Label>
+            <CurrencyTabs value={paymentCurrency} onChange={handleCurrencyChange} />
+            <div className="flex h-8 items-center justify-center gap-2 text-sm text-gray-600">
+              {paymentCurrency === "USDT" && (
+                <>
+                  {isLoadingRate && <Skeleton className="h-4 w-48" />}
+                  {isErrorRate && <span className="text-red-500 font-medium">{t("exchangeForm.loadingRateError")}</span>}
+                  {!isLoadingRate && !isErrorRate && usdtVndRate && (
+                    <>
+                      <span>1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
+                      <CountdownCircle key={usdtDataUpdatedAt} duration={30} />
+                    </>
+                  )}
+                </>
+              )}
+              {paymentCurrency === "RUB" && (
+                <>
+                  {isRubRateUnavailable && <Skeleton className="h-4 w-48" />}
+                  {!isRubRateUnavailable && rubVndRate && (
+                    <>
+                      <span>1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
+                      <CountdownCircle key={rubDataUpdatedAt} duration={30} />
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <AmountInput control={form.control} name="fromAmount" currency={paymentCurrency} />
+
+          <div className="w-full">
+            <div className="flex items-center gap-2 mb-2">
+              <Label>{t("exchangeForm.youWillReceiveLabel")}</Label>
+            </div>
+            <input
+              type="text"
+              value={
+                (isUsdtRateUnavailable && paymentCurrency === "USDT") ||
+                (isRubRateUnavailable && paymentCurrency === "RUB")
+                  ? "Расчет..."
+                  : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
+              }
+              readOnly
+              className="h-12 p-3 text-base w-full min-w-[70%] bg-gray-100 font-bold text-green-700 text-lg rounded-md"
+            />
+          </div>
+
+          {paymentCurrency === "USDT" && <UsdtNetworkSelect control={form.control} name="usdtNetwork" />}
+
+          <DeliveryMethodTabs
+            value={deliveryMethod}
+            onChange={(val) => form.setValue("deliveryMethod", val)}
+            paymentCurrency={paymentCurrency}
+            control={form.control}
+          />
+
+          <ContactInputs control={form.control} />
+
+          <Button
+            type="submit"
+            className="w-full h-14 text-lg font-medium rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400"
+            disabled={isSubmitting || (isUsdtRateUnavailable && paymentCurrency === "USDT") || (isRubRateUnavailable && paymentCurrency === "RUB")}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {t("exchangeForm.processingButton")}
+              </>
+            ) : isLoadingRate && paymentCurrency === "USDT" ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {t("exchangeForm.loadingRateButton")}
+              </>
+            ) : (
+              "Создать заявку"
+            )}
+          </Button>
+        </form>
+      </Form>
+
+      <AlertDialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ошибка</AlertDialogTitle>
+            <AlertDialogDescription>{errorMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Закрыть</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setIsErrorDialogOpen(false)}>Ок</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
