@@ -18,17 +18,11 @@ const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
-async function sendTelegramMessage(chatId: string | number, text: string) {
-  if (!TELEGRAM_BOT_TOKEN) {
-    console.error("TELEGRAM_BOT_TOKEN is not set.");
-    return;
+async function sendTelegramMessage(chatId: string | number, text: string): Promise<boolean> {
+  if (!TELEGRAM_BOT_TOKEN || !chatId) {
+    console.error("sendTelegramMessage failed: Missing token or chatId.", { chatId: chatId });
+    return false;
   }
-  if (!chatId) {
-    console.error("chatId is not provided for telegram message.");
-    return;
-  }
-
-  console.log(`Attempting to send message to chatId: ${chatId}`);
 
   try {
     const response = await fetch(TELEGRAM_API_URL, {
@@ -41,15 +35,17 @@ async function sendTelegramMessage(chatId: string | number, text: string) {
       }),
     });
 
-    const responseBody = await response.json();
-
     if (!response.ok) {
-      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}`, responseBody);
-    } else {
-      console.log(`Successfully sent message to chatId ${chatId}. Response:`, responseBody);
+      const errorData = await response.json();
+      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}`, errorData);
+      return false;
     }
+    
+    console.log(`Successfully sent message to chatId ${chatId}.`);
+    return true;
   } catch (error) {
     console.error(`Failed to send telegram message to ${chatId} due to a network or other error:`, error);
+    return false;
   }
 }
 
@@ -138,6 +134,8 @@ serve(async (req) => {
 
     const body = await req.json();
     const orderData = body.orderData;
+    
+    console.log("Received order payload:", JSON.stringify(orderData, null, 2));
 
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -159,47 +157,48 @@ serve(async (req) => {
       telegram_user_id: orderData.telegramUserId ?? null,
     };
 
-    const { data, error } = await supabase
+    const { data: insertedOrder, error: insertError } = await supabase
       .from("orders")
       .insert(insertData)
       .select()
       .single();
 
-    if (error) {
-      console.error("Insert error:", error);
+    if (insertError) {
+      console.error("Insert error:", insertError);
       return new Response(
-        JSON.stringify({ error: error.message || "Ошибка при создании заказа" }),
+        JSON.stringify({ error: insertError.message || "Ошибка при создании заказа" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const fullOrderDetailsForNotification = {
-        ...data,
+        ...insertedOrder,
         telegram_user_first_name: orderData.telegramUserFirstName,
         deposit_address: orderData.depositAddress,
     };
 
-    // Send notifications in parallel
-    const notificationPromises = [];
+    let clientNotificationStatus = "❌ Уведомление клиенту не отправлено (ID не получен).";
 
-    // To Admin
+    if (insertedOrder.telegram_user_id) {
+      const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
+      const success = await sendTelegramMessage(insertedOrder.telegram_user_id, clientMessage);
+      if (success) {
+        clientNotificationStatus = `✅ Уведомление клиенту (ID: ${insertedOrder.telegram_user_id}) отправлено.`;
+      } else {
+        clientNotificationStatus = `❌ Ошибка отправки уведомления клиенту (ID: ${insertedOrder.telegram_user_id}).`;
+      }
+    }
+
     if (ADMIN_TELEGRAM_CHAT_ID) {
-      const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
-      notificationPromises.push(sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage));
+      let adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
+      adminMessage += `\n\n---\n*Статус уведомления:*\n${clientNotificationStatus}`;
+      await sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
     } else {
       console.warn("ADMIN_TELEGRAM_CHAT_ID is not set. Cannot send admin notification.");
     }
 
-    // To Client
-    if (data.telegram_user_id) {
-      const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-      notificationPromises.push(sendTelegramMessage(data.telegram_user_id, clientMessage));
-    }
-
-    await Promise.all(notificationPromises);
-
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(insertedOrder),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
