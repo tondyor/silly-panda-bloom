@@ -23,19 +23,22 @@ async function sendTelegramMessage(chatId: string | number, text: string): Promi
       console.error("sendTelegramMessage failed: Missing token or chatId.", { chatId });
       return;
     }
-    const response = await fetch(TELEGRAM_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text,
-        parse_mode: 'Markdown',
-      }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}.`, errorData);
-      throw new Error(`Telegram API error: ${errorData.description}`);
+    try {
+      const response = await fetch(TELEGRAM_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: 'Markdown',
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}.`, errorData);
+      }
+    } catch (e) {
+        console.error(`Failed to send telegram message to ${chatId}`, e);
     }
 }
 
@@ -45,36 +48,22 @@ serve(async (req) => {
         return new Response(null, { headers: corsHeaders });
     }
 
-    const body = await req.json();
-    // ИСПРАВЛЕНО: Извлекаем orderData из тела запроса
-    const orderData = body.orderData; 
+    const { orderData } = await req.json();
     
     console.log('=== ORDER REQUEST RECEIVED ===');
-    console.log('Request method:', req.method);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     console.log('Full orderData:', JSON.stringify(orderData, null, 2));
     
-    // ИСПРАВЛЕНО: Ищем telegramId внутри объекта orderData
     const telegramId = orderData.telegramId;
     
-    console.log('=== TELEGRAM ID VALIDATION ===');
-    console.log('telegramId value:', telegramId);
-    console.log('telegramId type:', typeof telegramId);
-    
     if (!telegramId || typeof telegramId !== 'number' || telegramId <= 0) {
-      console.error('❌ VALIDATION FAILED: Invalid telegram ID');
+      console.error('❌ VALIDATION FAILED: Invalid telegram ID', { received: telegramId });
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid or missing telegram ID',
-          received: telegramId,
-          type: typeof telegramId
-        }), 
+        JSON.stringify({ error: 'Invalid or missing telegram ID' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log('✅ VALIDATION PASSED');
-    console.log('Using telegramId:', telegramId);
+    console.log('✅ VALIDATION PASSED. Using telegramId:', telegramId);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -96,8 +85,7 @@ serve(async (req) => {
       contact_phone: orderData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
-      created_at: new Date().toISOString(),
-      telegram_id: telegramId, // <-- Используем проверенный telegramId
+      telegram_id: telegramId,
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
@@ -107,35 +95,22 @@ serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error("Insert error:", insertError);
+      console.error("❌ DB Insert error:", insertError);
       return new Response(
         JSON.stringify({ error: insertError.message || "Ошибка при создании заказа" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     console.log('✅ Order saved to database with telegram_id:', insertedOrder.telegram_id);
 
-    // === ОТПРАВКА УВЕДОМЛЕНИЙ ===
-    console.log('Sending notification to client:', telegramId);
-    try {
-      await sendTelegramMessage(telegramId, `🎉 Ваш заказ #${publicId} создан успешно! Мы свяжемся с вами в ближайшее время.`);
-      console.log('✅ Client notification sent successfully to:', telegramId);
-    } catch (error) {
-      console.error('❌ Failed to send client notification:', error);
-    }
+    // === ОТПРАВКА УВЕДОМЛЕНИЙ (асинхронно, не блокируем ответ) ===
+    const clientMessage = `🎉 Ваш заказ #${publicId} создан успешно! Мы свяжемся с вами в ближайшее время.`;
+    sendTelegramMessage(telegramId, clientMessage).catch(e => console.error("Failed to send client notification in background", e));
     
     if (ADMIN_TELEGRAM_CHAT_ID) {
-      console.log('Sending notification to admin:', ADMIN_TELEGRAM_CHAT_ID);
-      try {
-        await sendTelegramMessage(
-          ADMIN_TELEGRAM_CHAT_ID, 
-          `📋 Новый заказ #${publicId} от пользователя ${telegramId}\n\nДанные заказа: ${JSON.stringify(orderData, null, 2)}`
-        );
-        console.log('✅ Admin notification sent successfully');
-      } catch (error) {
-        console.error('❌ Failed to send admin notification:', error);
-      }
+      const adminMessage = `📋 Новый заказ #${publicId}\nОт: \`${telegramId}\`\nСумма: ${orderData.fromAmount} ${orderData.paymentCurrency}\nСпособ: ${orderData.deliveryMethod}`;
+      sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage).catch(e => console.error("Failed to send admin notification in background", e));
     }
     
     console.log('=== ORDER PROCESSING COMPLETE ===');
@@ -146,13 +121,10 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('=== SERVER ERROR ===');
+    console.error('=== UNHANDLED SERVER ERROR ===');
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        details: error.message 
-      }), 
+      JSON.stringify({ error: 'Internal server error', details: error.message }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

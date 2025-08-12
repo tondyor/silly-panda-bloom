@@ -87,7 +87,7 @@ const ExchangePage = () => {
             <ExchangeForm 
               onExchangeSuccess={handleExchangeSuccess} 
               telegramUser={user} 
-              isInitializing={isLoading}
+              isInitializing={isLoading || !isReady}
             />
           )}
         </CardContent>

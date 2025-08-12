@@ -231,22 +231,14 @@ export interface ExchangeFormProps {
 
 const getButtonState = (
   isInitializing: boolean, 
-  telegramUser: any, 
   isSubmitting: boolean, 
   isLoadingRate: boolean
 ) => {
   if (isInitializing) {
     return { 
       disabled: true, 
-      text: "Получение данных...", 
+      text: "Инициализация...", 
       className: "bg-gray-400 cursor-not-allowed" 
-    };
-  }
-  if (!telegramUser) {
-    return { 
-      disabled: true, 
-      text: "Ошибка авторизации", 
-      className: "bg-red-400 cursor-not-allowed" 
     };
   }
   if (isSubmitting) {
@@ -352,18 +344,13 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser?.id) {
-      console.error('CRITICAL ERROR: No telegram user ID available');
-      console.error('telegramUser:', telegramUser);
-      alert('Ошибка авторизации. Перезапустите приложение.');
+      setErrorMessage('Критическая ошибка: ID пользователя Telegram не найден. Пожалуйста, перезапустите приложение.');
+      setIsErrorDialogOpen(true);
       return;
     }
 
-    console.log('=== SUBMITTING ORDER ===');
-    console.log('telegramUser.id:', telegramUser.id);
-    console.log('typeof telegramUser.id:', typeof telegramUser.id);
-    console.log('User form data:', values);
-
     setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
       let depositAddress = "N/A";
@@ -372,32 +359,26 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
       }
 
       const orderPayload = {
-        // ИСПРАВЛЕНО: Теперь используется единое поле `telegramId`
         ...values,
         calculatedVND,
         exchangeRate,
-        telegramId: telegramUser.id, // <-- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ
-        telegramUserFirstName: telegramUser.first_name,
-        depositAddress: depositAddress,
+        telegramId: telegramUser.id,
       };
 
-      console.log('Final orderData being sent:', orderPayload);
-      console.log('Will send notification to Telegram ID:', telegramUser.id);
-
       const { data, error } = await supabase.functions.invoke("create-exchange-order", {
-        body: { orderData: orderPayload }, // Оборачиваем в orderData, как ожидает сервер
+        body: { orderData: orderPayload },
       });
 
       if (error) {
-        setErrorMessage(`Ошибка сервера: ${error.message || error}`);
+        setErrorMessage(`Ошибка сервера: ${error.message || 'Неизвестная ошибка'}`);
         setIsErrorDialogOpen(true);
-        throw new Error(`Server error: ${error.message || error}`);
+        return;
       }
 
       if (!data || !("public_id" in data)) {
         setErrorMessage("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
         setIsErrorDialogOpen(true);
-        throw new Error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
+        return;
       }
 
       let network = "N/A";
@@ -411,13 +392,15 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
       setCalculatedVND(0);
     } catch (error) {
       console.error("Error submitting exchange:", error);
+      setErrorMessage(error instanceof Error ? error.message : 'Произошла непредвиденная ошибка.');
+      setIsErrorDialogOpen(true);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   const isLoadingRate = paymentCurrency === 'USDT' ? isLoadingUsdtRate : isLoadingRubRate;
-  const buttonState = getButtonState(isInitializing, telegramUser, isSubmitting, isLoadingRate);
+  const buttonState = getButtonState(isInitializing, isSubmitting, isLoadingRate);
 
   return (
     <>

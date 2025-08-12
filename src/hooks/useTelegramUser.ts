@@ -27,48 +27,75 @@ export const useTelegramUser = (): UseTelegramUserResult => {
     setUser(null);
     setError(null);
 
-    if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
-      throw new Error('Приложение должно быть открыто в Telegram.');
+    try {
+      // 1. Проверка контекста и ожидание Telegram WebApp
+      if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
+        throw new Error('Приложение должно быть открыто в Telegram.');
+      }
+
+      const tg = window.Telegram.WebApp;
+      
+      // 2. Вызов ready() и expand()
+      tg.ready();
+      if (!tg.isExpanded) {
+        tg.expand();
+      }
+
+      // 3. Ожидание initData с таймаутом
+      const initData = await new Promise<string>((resolve, reject) => {
+        if (tg.initData) {
+          return resolve(tg.initData);
+        }
+        const timeout = setTimeout(() => {
+          reject(new Error('Не удалось получить данные от Telegram (timeout). Убедитесь, что приложение запущено через бота.'));
+        }, 5000); // 5 секунд таймаут
+
+        // Попытка получить данные, если они появятся
+        const interval = setInterval(() => {
+          if (tg.initData) {
+            clearInterval(interval);
+            clearTimeout(timeout);
+            resolve(tg.initData);
+          }
+        }, 100);
+      });
+
+      if (!initData) {
+        throw new Error('Данные инициализации от Telegram пусты. Попробуйте перезапустить приложение.');
+      }
+
+      // 4. Валидация на бэкенде и регистрация пользователя
+      const { data: serverResponse, error: functionError } = await supabase.functions.invoke('register-telegram-user', {
+        body: { initData },
+      });
+
+      if (functionError) {
+        const errorMessage = functionError.message.includes('Invalid data')
+          ? 'Ошибка верификации. Данные не являются подлинными.'
+          : `Ошибка сервера: ${functionError.message}`;
+        throw new Error(errorMessage);
+      }
+
+      if (!serverResponse?.success || !serverResponse?.user) {
+        throw new Error('Сервер вернул ошибку при регистрации пользователя.');
+      }
+
+      // 5. Установка данных пользователя
+      const serverUser = serverResponse.user;
+      const clientUser: TelegramUser = {
+        id: serverUser.telegram_id,
+        username: serverUser.username,
+        first_name: serverUser.first_name,
+        last_name: serverUser.last_name,
+      };
+
+      setUser(clientUser);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка.');
+    } finally {
+      setIsLoading(false);
     }
-
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    if (!tg.isExpanded) {
-      tg.expand();
-    }
-
-    // Даем Telegram до 500мс на подготовку данных после вызова ready()
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (!tg.initData) {
-      console.error("Telegram.WebApp.initData is empty. This can happen if the app is opened directly, not through a bot. For debugging, initDataUnsafe is:", tg.initDataUnsafe);
-      throw new Error('Не удалось получить данные от Telegram. Убедитесь, что приложение запущено через бота, а не по прямой ссылке.');
-    }
-
-    const { data: serverResponse, error: functionError } = await supabase.functions.invoke('register-telegram-user', {
-      body: { initData: tg.initData },
-    });
-
-    if (functionError) {
-      const errorMessage = functionError.message.includes('Invalid data')
-        ? 'Ошибка верификации. Данные не являются подлинными.'
-        : `Ошибка сервера: ${functionError.message}`;
-      throw new Error(errorMessage);
-    }
-
-    if (!serverResponse?.success || !serverResponse?.user) {
-      throw new Error('Сервер вернул ошибку при регистрации пользователя.');
-    }
-
-    const serverUser = serverResponse.user;
-    const clientUser: TelegramUser = {
-      id: serverUser.telegram_id,
-      username: serverUser.username,
-      first_name: serverUser.first_name,
-      last_name: serverUser.last_name,
-    };
-
-    setUser(clientUser);
   }, []);
 
   const retry = useCallback(() => {
@@ -76,13 +103,7 @@ export const useTelegramUser = (): UseTelegramUserResult => {
   }, []);
 
   useEffect(() => {
-    initializeAndRegister()
-      .catch(err => {
-        setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка.');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    initializeAndRegister();
   }, [retryCount, initializeAndRegister]);
 
   return {

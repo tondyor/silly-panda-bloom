@@ -95,9 +95,8 @@ serve(async (req) => {
           username: user.username || null,
           language_code: user.language_code || null,
           is_premium: user.is_premium || false,
-          registered_at: new Date().toISOString(),
         },
-        { onConflict: "telegram_id" }
+        { onConflict: "telegram_id", ignoreDuplicates: false }
       )
       .select()
       .single();
