@@ -37,7 +37,8 @@ async function sendTelegramMessage(chatId: string | number, text: string): Promi
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}`, errorData);
+      // Улучшенное логирование ошибки от Telegram API
+      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}. Full error:`, JSON.stringify(errorData, null, 2));
       return false;
     }
     
@@ -135,6 +136,9 @@ serve(async (req) => {
     const body = await req.json();
     const orderData = body.orderData;
     
+    // Логируем ID пользователя Telegram, полученный с фронтенда
+    console.log("Received orderData with telegramUserId:", orderData.telegramUserId);
+
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
     const insertData = {
@@ -168,6 +172,9 @@ serve(async (req) => {
       );
     }
 
+    // Логируем ID пользователя Telegram, который был вставлен в базу данных
+    console.log("Inserted order with telegram_user_id:", insertedOrder.telegram_user_id);
+
     const fullOrderDetailsForNotification = {
         ...insertedOrder,
         telegram_user_first_name: orderData.telegramUserFirstName,
@@ -179,6 +186,7 @@ serve(async (req) => {
     // 1. Сначала отправляем сообщение КЛИЕНТУ и определяем статус
     let clientNotificationStatus = "❌ Уведомление клиенту не отправлено (ID не получен).";
     if (insertedOrder.telegram_user_id) {
+      console.log("Attempting to send client message to:", insertedOrder.telegram_user_id); // Логируем попытку отправки клиенту
       const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
       const wasClientNotified = await sendTelegramMessage(insertedOrder.telegram_user_id, clientMessage);
 
