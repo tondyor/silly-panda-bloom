@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Send } from 'lucide-react';
 
-// !!! ВАЖНО: Замените 'YOUR_BOT_NAME_HERE' на реальное имя вашего Telegram бота !!!
-const BOT_USERNAME = "YOUR_BOT_NAME_HERE"; 
+const BOT_USERNAME = "Vietswapbot"; 
 
 export const TelegramAuthGate = () => {
   const handleOpenTelegram = () => {
