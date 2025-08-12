@@ -57,7 +57,6 @@ const ExchangePage = () => {
       vndBankName: orderData.vnd_bank_name,
       vndBankAccountNumber: orderData.vnd_bank_account_number,
       deliveryAddress: orderData.delivery_address,
-      telegramContact: orderData.telegram_contact,
       contactPhone: orderData.contact_phone,
       usdtNetwork: orderData.usdt_network,
     };
