@@ -41,12 +41,13 @@ serve(async (req) => {
     // Handle /start command from any user
     if (text === "/start") {
       if (user) {
-        // Upsert user data with extended fields
+        // Upsert user data with extended fields including optional username
         const { error } = await supabase
           .from("telegram_users")
           .upsert(
             {
               telegram_id: user.id,
+              username: user.username || null,
               first_name: user.first_name,
               last_name: user.last_name || null,
               language_code: user.language_code || null,
