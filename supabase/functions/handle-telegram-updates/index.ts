@@ -16,9 +16,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Форматируем информацию о пользователе: вместо UUID показываем telegram_id
 function formatUserInfo(user: any): string {
   return `Ваш профиль:
-ID: ${user.id}
+Telegram-ID: ${user.telegram_id}
 Имя: ${user.first_name}
 Фамилия: ${user.last_name ?? "-"}
 Язык: ${user.language_code ?? "-"}
@@ -33,6 +34,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
   try {
     if (!TELEGRAM_BOT_TOKEN) {
       console.error("Telegram bot token is not set.");
@@ -44,15 +46,18 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { message } = await req.json();
-    if (!message?.text || !message?.chat?.id || !message.from) {
+    const payload = await req.json();
+    const message = payload.message;
+    if (!message?.text || !message.chat?.id || !message.from) {
       return new Response("ok", { headers: corsHeaders });
     }
 
-    if (message.text === "/start") {
-      const user = message.from;
+    const chatId = message.chat.id;
+    const text = message.text;
+    const user = message.from;
 
-      // Upsert user
+    if (text === "/start") {
+      // Upsert user data
       await supabase.from("telegram_users").upsert(
         {
           telegram_id: user.id,
@@ -68,20 +73,22 @@ serve(async (req) => {
         { onConflict: "telegram_id" }
       );
 
-      // Fetch fresh data
+      // Fetch updated user profile
       const { data: userInfo } = await supabase
         .from("telegram_users")
         .select("*")
         .eq("telegram_id", user.id)
         .single();
 
-      const text = userInfo ? formatUserInfo(userInfo) : "Добро пожаловать! Мы сохранили ваш профиль.";
+      const responseText = userInfo
+        ? formatUserInfo(userInfo)
+        : "Добро пожаловать! Мы сохранили ваш профиль.";
 
-      // Send response to Telegram
+      // Отправляем ответ в Telegram
       await fetch(TELEGRAM_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: message.chat.id, text }),
+        body: JSON.stringify({ chat_id: chatId, text: responseText }),
       });
     }
 
