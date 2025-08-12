@@ -36,13 +36,15 @@ export const useTelegramUser = (): UseTelegramUserResult => {
     }
 
     let attempts = 0;
-    while (!tg.initData && attempts < 50) {
+    // Увеличиваем время ожидания до 10 секунд (100 попыток по 100 мс)
+    while (!tg.initData && attempts < 100) {
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
 
     if (!tg.initData) {
-      throw new Error('Не удалось получить данные для инициализации от Telegram.');
+      // Обновляем сообщение об ошибке, чтобы оно было более понятным
+      throw new Error('Время ожидания ответа от Telegram истекло.');
     }
     
     console.log('✅ Got initData, proceeding to server validation.');
