@@ -43,10 +43,10 @@ serve(async (req) => {
       throw new Error("Missing order data.");
     }
 
-    // Here we assume telegram_user_id is set by other means (e.g. server-side logic or webhook)
-    // So we do NOT expect telegramUser data from client anymore
+    // telegram_user_id is no longer passed from client
+    // Set telegram_user_id to null or handle accordingly
 
-    // 1. Get next order number
+    // Get next order number
     const { data: nextOrderNumberData, error: rpcError } = await supabase.rpc(
       "get_next_order_id",
     );
@@ -68,12 +68,12 @@ serve(async (req) => {
       throw new Error("Invalid response from get_next_order_id function.");
     }
 
-    // 2. Generate public order ID
+    // Generate public order ID
     const alphabeticalIndex = nextOrderNumber - 564;
     const prefix = getAlphabeticalPrefix(alphabeticalIndex);
     const publicId = `${prefix}${nextOrderNumber}`;
 
-    // 3. Prepare order data for insertion
+    // Prepare order data for insertion
     const {
       paymentCurrency,
       fromAmount,
@@ -87,7 +87,6 @@ serve(async (req) => {
       usdtNetwork,
     } = orderData;
 
-    // Since telegram_user_id is no longer passed from client, set it to null or handle accordingly
     const newOrder = {
       public_id: publicId,
       payment_currency: paymentCurrency,
@@ -104,7 +103,7 @@ serve(async (req) => {
       telegram_user_id: null,
     };
 
-    // 4. Insert new order into the table
+    // Insert new order into the table
     const { data: insertedOrder, error: insertError } = await supabase
       .from("orders")
       .insert(newOrder)
@@ -116,9 +115,7 @@ serve(async (req) => {
       throw new Error(`Failed to insert order: ${insertError.message}`);
     }
 
-    // 5. Send notifications
-    const clientMessage = `Вы создали заявку номер ${publicId}. Следуйте инструкциям по оплате или дождитесь сообщения оператора.`;
-
+    // Send notifications to admin only
     const adminMessage = `
 Новая заявка: *#${publicId}*
 
@@ -134,14 +131,13 @@ ${
 ${paymentCurrency === "USDT" ? `Сеть: ${usdtNetwork}` : ""}
     `.trim();
 
-    // Notifications to admin only, since client chatId unknown
     if (ADMIN_TELEGRAM_ID) {
       supabase.functions.invoke("send-telegram-notification", {
         body: { chatId: ADMIN_TELEGRAM_ID, text: adminMessage },
       });
     }
 
-    // 6. Return the created order to the frontend
+    // Return the created order to the frontend
     return new Response(JSON.stringify(insertedOrder), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
