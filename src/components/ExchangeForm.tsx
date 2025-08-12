@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast, type ExternalToast } from "sonner";
 import { Loader2, AlertCircle, Landmark, HandCoins } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -109,7 +109,7 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
     }
 });
 
-interface ExchangeFormProps {
+export interface ExchangeFormProps {
   onExchangeSuccess: (
     network: string,
     address: string,
@@ -117,24 +117,21 @@ interface ExchangeFormProps {
   ) => void;
 }
 
-interface TelegramUser {
+export interface TelegramUser {
   id: number;
   first_name: string;
   username?: string;
   language_code?: string;
 }
 
-// Вспомогательная функция для усреднения массива чисел
 function average(arr: number[]): number {
   if (arr.length === 0) return 0;
   return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
-// Получение курса USDT-VND с 3 источников
 async function fetchUsdtVndRates(): Promise<number[]> {
   const results: number[] = [];
 
-  // 1. CoinGecko
   try {
     const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd");
     if (res.ok) {
@@ -144,7 +141,6 @@ async function fetchUsdtVndRates(): Promise<number[]> {
     }
   } catch {}
 
-  // 2. Coinpaprika
   try {
     const res = await fetch("https://api.coinpaprika.com/v1/tickers/usdt-tether");
     if (res.ok) {
@@ -154,7 +150,6 @@ async function fetchUsdtVndRates(): Promise<number[]> {
     }
   } catch {}
 
-  // 3. CryptoCompare
   try {
     const res = await fetch("https://min-api.cryptocompare.com/data/price?fsym=USDT&tsyms=VND");
     if (res.ok) {
@@ -167,11 +162,9 @@ async function fetchUsdtVndRates(): Promise<number[]> {
   return results;
 }
 
-// Получение курса RUB-VND с 3 источников
 async function fetchRubVndRates(): Promise<number[]> {
   const results: number[] = [];
 
-  // 1. Exchangerate.host
   try {
     const res = await fetch("https://api.exchangerate.host/convert?from=RUB&to=VND");
     if (res.ok) {
@@ -181,7 +174,6 @@ async function fetchRubVndRates(): Promise<number[]> {
     }
   } catch {}
 
-  // 2. Frankfurter.app
   try {
     const res = await fetch("https://api.frankfurter.app/latest?from=RUB&to=VND");
     if (res.ok) {
@@ -191,7 +183,6 @@ async function fetchRubVndRates(): Promise<number[]> {
     }
   } catch {}
 
-  // 3. Open Exchange Rates (публичный endpoint без ключа)
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/RUB");
     if (res.ok) {
@@ -204,7 +195,6 @@ async function fetchRubVndRates(): Promise<number[]> {
   return results;
 }
 
-// Основная функция загрузки курса с усреднением и вычитанием 2%
 const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   let rates: number[] = [];
   if (currency === "USDT") {
@@ -218,7 +208,7 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   }
 
   const avgRate = average(rates);
-  return avgRate * (1 + PROFIT_MARGIN); // PROFIT_MARGIN отрицательный, вычитание 2%
+  return avgRate * (1 + PROFIT_MARGIN);
 };
 
 export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
@@ -227,6 +217,9 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+
+  // Ref to track if the no-telegram-user toast is active
+  const noTelegramUserToastId = useRef<string | null>(null);
 
   useEffect(() => {
     if (window.Telegram && window.Telegram.WebApp) {
@@ -316,10 +309,15 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser) {
-      toast.error("Ошибка: не удалось определить пользователя Telegram.", {
-        description: "Пожалуйста, убедитесь, что вы используете приложение внутри Telegram.",
-        duration: 5000,
-      });
+      if (!noTelegramUserToastId.current) {
+        noTelegramUserToastId.current = toast.error("Ошибка: не удалось определить пользователя Telegram.", {
+          description: "Пожалуйста, убедитесь, что вы используете приложение внутри Telegram.",
+          duration: 5000,
+          onClose: () => {
+            noTelegramUserToastId.current = null;
+          }
+        });
+      }
       return;
     }
     
