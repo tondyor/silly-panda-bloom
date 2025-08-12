@@ -1,29 +1,10 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// @ts-ignore
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-declare const Deno: {
-  env: {
-    get(key: string): string | undefined;
-  };
-};
-
-function getAlphabeticalPrefix(index: number): string {
-  let result = "";
-  let tempIndex = index;
-  for (let i = 0; i < 3; i++) {
-    const charCode = "A".charCodeAt(0) + (tempIndex % 26);
-    result = String.fromCharCode(charCode) + result;
-    tempIndex = Math.floor(tempIndex / 26);
-  }
-  return result;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -31,119 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const ADMIN_TELEGRAM_ID = Deno.env.get("ADMIN_TELEGRAM_ID");
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    const { orderData } = await req.json();
-
-    if (!orderData) {
-      throw new Error("Missing order data.");
-    }
-
-    // telegram_user_id is no longer passed from client
-    // Set telegram_user_id to null or handle accordingly
-
-    // Get next order number
-    const { data: nextOrderNumberData, error: rpcError } = await supabase.rpc(
-      "get_next_order_id",
-    );
-
-    if (rpcError) {
-      console.error("RPC Error:", rpcError);
-      throw new Error(`Failed to get next order ID: ${rpcError.message}`);
-    }
-
-    let nextOrderNumber: number;
-    if (typeof nextOrderNumberData === "number") {
-      nextOrderNumber = nextOrderNumberData;
-    } else if (
-      nextOrderNumberData && typeof nextOrderNumberData === "object"
-    ) {
-      const key = Object.keys(nextOrderNumberData)[0];
-      nextOrderNumber = nextOrderNumberData[key];
-    } else {
-      throw new Error("Invalid response from get_next_order_id function.");
-    }
-
-    // Generate public order ID
-    const alphabeticalIndex = nextOrderNumber - 564;
-    const prefix = getAlphabeticalPrefix(alphabeticalIndex);
-    const publicId = `${prefix}${nextOrderNumber}`;
-
-    // Prepare order data for insertion
-    const {
-      paymentCurrency,
-      fromAmount,
-      calculatedVND,
-      exchangeRate,
-      deliveryMethod,
-      vndBankName,
-      vndBankAccountNumber,
-      deliveryAddress,
-      contactPhone,
-      usdtNetwork,
-    } = orderData;
-
-    const newOrder = {
-      public_id: publicId,
-      payment_currency: paymentCurrency,
-      from_amount: fromAmount,
-      calculated_vnd: calculatedVND,
-      exchange_rate: exchangeRate,
-      delivery_method: deliveryMethod,
-      vnd_bank_name: vndBankName || null,
-      vnd_bank_account_number: vndBankAccountNumber || null,
-      delivery_address: deliveryAddress || null,
-      contact_phone: contactPhone || null,
-      usdt_network: usdtNetwork || null,
-      status: "Новая заявка",
-      telegram_user_id: null,
-    };
-
-    // Insert new order into the table
-    const { data: insertedOrder, error: insertError } = await supabase
-      .from("orders")
-      .insert(newOrder)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error("Insert Error:", insertError);
-      throw new Error(`Failed to insert order: ${insertError.message}`);
-    }
-
-    // Send notifications to admin only
-    const adminMessage = `
-Новая заявка: *#${publicId}*
-
-*Детали:*
-Отдает: ${fromAmount} ${paymentCurrency}
-Получает: ${calculatedVND.toLocaleString("vi-VN")} VND
-Способ: ${deliveryMethod === "bank" ? "Банк" : "Наличные"}
-${
-      deliveryMethod === "bank"
-        ? `Банк: ${vndBankName}\nСчет: ${vndBankAccountNumber}`
-        : `Адрес: ${deliveryAddress}`
-    }
-${paymentCurrency === "USDT" ? `Сеть: ${usdtNetwork}` : ""}
-    `.trim();
-
-    if (ADMIN_TELEGRAM_ID) {
-      supabase.functions.invoke("send-telegram-notification", {
-        body: { chatId: ADMIN_TELEGRAM_ID, text: adminMessage },
-      });
-    }
-
-    return new Response(JSON.stringify(insertedOrder), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error creating order:", error);
+    // Simply return success without doing anything
     return new Response(
-      JSON.stringify({ error: `Failed to create order: ${error.message}` }),
+      JSON.stringify({ message: "Order creation logic removed. Function reset to minimal response." }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: `Unexpected error: ${error.message || error}` }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
