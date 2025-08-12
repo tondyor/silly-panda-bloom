@@ -240,6 +240,11 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 
+  // Добавляем принудительное логирование для отладки
+  useEffect(() => {
+    console.log("ExchangeForm received telegramUser:", telegramUser);
+  }, [telegramUser]);
+
   const {
     data: usdtVndRate,
     isLoading: isLoadingRate,
@@ -314,6 +319,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    console.log("Form onSubmit, telegramUser is:", telegramUser); // Логируем перед отправкой
 
     try {
       let depositAddress = "N/A";
@@ -331,6 +337,8 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
           depositAddress: depositAddress,
         },
       };
+
+      console.log("Sending order payload to server:", orderPayload); // Логируем полезную нагрузку
 
       const { data, error } = await supabase.functions.invoke("create-exchange-order", {
         body: orderPayload,
