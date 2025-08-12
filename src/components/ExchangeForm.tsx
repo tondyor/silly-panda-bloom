@@ -307,6 +307,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser) {
+      // Ошибка показывается только валидацией формы, всплывающих уведомлений нет
       return;
     }
     
@@ -327,6 +328,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       });
 
       if (error) {
+        // Ошибка логируется в консоль, всплывающих уведомлений нет
         throw new Error(error.message || "Ошибка при создании заявки.");
       }
       
