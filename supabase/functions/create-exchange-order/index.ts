@@ -49,41 +49,67 @@ async function sendTelegramMessage(chatId: string | number, text: string) {
 }
 
 function formatOrderForTelegram(order: any, forAdmin: boolean): string {
-  const clientIdentifier = order.telegram_contact ? `@${order.telegram_contact}` : (order.telegram_user_id ? `ID: ${order.telegram_user_id}`: 'Клиент');
-  const title = forAdmin 
-    ? `*Новая заявка #${order.public_id}* от ${clientIdentifier}`
-    : `*Ваша заявка #${order.public_id} успешно создана!*`;
+  if (forAdmin) {
+    const clientIdentifier = order.telegram_contact ? `@${order.telegram_contact}` : (order.telegram_user_id ? `ID: ${order.telegram_user_id}` : 'Клиент');
+    const details = [
+      `😏 Новый заказ!`,
+      ``,
+      `#${order.public_id}`,
+      `Клиент: ${clientIdentifier}`,
+      `-----------------------------------`,
+      `Вы получите: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+      `Отправить (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `-----------------------------------`,
+      `Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
+    ];
 
-  const details = [
-    title,
-    `-----------------------------------`,
-    `*Вы отдаете:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-    `*Вы получаете (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-    `*Способ получения:* ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
-  ];
+    if (order.payment_currency === 'USDT') {
+      details.push(`Сеть USDT: ${order.usdt_network}`);
+    }
 
-  if (order.payment_currency === 'USDT') {
-    details.push(`*Сеть USDT:* ${order.usdt_network}`);
-  }
+    if (order.delivery_method === 'bank') {
+      details.push(`Банк: ${order.vnd_bank_name}`);
+      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
+    } else {
+      details.push(`Адрес доставки: ${order.delivery_address}`);
+    }
 
-  if (order.delivery_method === 'bank') {
-    details.push(`*Банк:* ${order.vnd_bank_name}`);
-    details.push(`*Номер счета:* \`${order.vnd_bank_account_number}\``);
+    if (order.contact_phone) {
+      details.push(`Телефон для связи: ${order.contact_phone}`);
+    }
+    
+    details.push(`-----------------------------------`);
+    details.push(`Статус: ${order.status}`);
+
+    return details.join('\n');
   } else {
-    details.push(`*Адрес доставки:* ${order.delivery_address}`);
-  }
+    // Client message format remains unchanged
+    const title = `*Ваша заявка #${order.public_id} успешно создана!*`;
+    const details = [
+      title,
+      `-----------------------------------`,
+      `*Вы отдаете:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+      `*Вы получаете (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `*Способ получения:* ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
+    ];
 
-  if (forAdmin && order.contact_phone) {
-    details.push(`*Телефон для связи:* \`${order.contact_phone}\``);
-  }
-  
-  details.push(`-----------------------------------`);
-  if (!forAdmin) {
+    if (order.payment_currency === 'USDT') {
+      details.push(`*Сеть USDT:* ${order.usdt_network}`);
+    }
+
+    if (order.delivery_method === 'bank') {
+      details.push(`*Банк:* ${order.vnd_bank_name}`);
+      details.push(`*Номер счета:* \`${order.vnd_bank_account_number}\``);
+    } else {
+      details.push(`*Адрес доставки:* ${order.delivery_address}`);
+    }
+    
+    details.push(`-----------------------------------`);
     details.push(`Наш менеджер скоро свяжется с вами для подтверждения деталей.`);
-  }
-  details.push(`_Статус: ${order.status}_`);
+    details.push(`_Статус: ${order.status}_`);
 
-  return details.join('\n');
+    return details.join('\n');
+  }
 }
 
 serve(async (req) => {
