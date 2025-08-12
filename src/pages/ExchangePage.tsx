@@ -9,7 +9,6 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { TelegramAuthGate } from "@/components/TelegramAuthGate";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,11 +26,11 @@ const ExchangePage = () => {
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isTelegramInitComplete, setIsTelegramInitComplete] = useState(false);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    if (tg && tg.initData) {
+    if (tg) {
       tg.ready();
       if (tg.initDataUnsafe?.user) {
         setTelegramUser(tg.initDataUnsafe.user);
@@ -44,12 +43,15 @@ const ExchangePage = () => {
           });
         } catch (err) {
           console.error("Network error during Telegram user registration:", err);
+        } finally {
+          setIsTelegramInitComplete(true);
         }
       };
 
       registerUser();
+    } else {
+      setIsTelegramInitComplete(true);
     }
-    setIsLoading(false);
   }, []);
 
   const handleExchangeSuccess = (
@@ -82,7 +84,7 @@ const ExchangePage = () => {
     });
   };
 
-  if (isLoading) {
+  if (!isTelegramInitComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <Loader2 className="h-12 w-12 animate-spin text-gray-500" />
@@ -90,12 +92,6 @@ const ExchangePage = () => {
     );
   }
 
-  // Строгая проверка: если объект пользователя или его ID не был получен, показываем заглушку.
-  if (!telegramUser || !telegramUser.id) {
-    return <TelegramAuthGate />;
-  }
-
-  // Если мы здесь, значит telegramUser и его ID гарантированно существуют.
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-2 sm:p-4 lg:p-6"
