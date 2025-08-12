@@ -28,6 +28,8 @@ async function sendTelegramMessage(chatId: string | number, text: string) {
     return;
   }
 
+  console.log(`Attempting to send message to chatId: ${chatId}`);
+
   try {
     const response = await fetch(TELEGRAM_API_URL, {
       method: 'POST',
@@ -39,12 +41,15 @@ async function sendTelegramMessage(chatId: string | number, text: string) {
       }),
     });
 
+    const responseBody = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`Telegram API error for chatId ${chatId}:`, errorData);
+      console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}`, responseBody);
+    } else {
+      console.log(`Successfully sent message to chatId ${chatId}. Response:`, responseBody);
     }
   } catch (error) {
-    console.error(`Failed to send telegram message to ${chatId}:`, error);
+    console.error(`Failed to send telegram message to ${chatId} due to a network or other error:`, error);
   }
 }
 
@@ -174,11 +179,13 @@ serve(async (req) => {
         deposit_address: orderData.depositAddress,
     };
 
-    // Send notifications
+    // Send notifications in parallel
+    const notificationPromises = [];
+
     // To Admin
     if (ADMIN_TELEGRAM_CHAT_ID) {
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
-      await sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
+      notificationPromises.push(sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage));
     } else {
       console.warn("ADMIN_TELEGRAM_CHAT_ID is not set. Cannot send admin notification.");
     }
@@ -186,8 +193,10 @@ serve(async (req) => {
     // To Client
     if (data.telegram_user_id) {
       const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-      await sendTelegramMessage(data.telegram_user_id, clientMessage);
+      notificationPromises.push(sendTelegramMessage(data.telegram_user_id, clientMessage));
     }
+
+    await Promise.all(notificationPromises);
 
     return new Response(
       JSON.stringify(data),
