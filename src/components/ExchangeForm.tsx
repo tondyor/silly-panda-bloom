@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast, type ExternalToast } from "sonner";
+import { toast } from "sonner";
 import { Loader2, AlertCircle, Landmark, HandCoins } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -219,7 +221,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
 
   // Ref to track if the no-telegram-user toast is active
-  const noTelegramUserToastId = useRef<string | null>(null);
+  const noTelegramUserToastId = useRef<number | null>(null);
 
   useEffect(() => {
     if (window.Telegram && window.Telegram.WebApp) {
@@ -309,11 +311,11 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser) {
-      if (!noTelegramUserToastId.current) {
+      if (noTelegramUserToastId.current === null) {
         noTelegramUserToastId.current = toast.error("Ошибка: не удалось определить пользователя Telegram.", {
           description: "Пожалуйста, убедитесь, что вы используете приложение внутри Telegram.",
           duration: 5000,
-          onClose: () => {
+          onDismiss: () => {
             noTelegramUserToastId.current = null;
           }
         });
@@ -365,6 +367,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
       form.reset();
       setCalculatedVND(0);
+      noTelegramUserToastId.current = null;
     } catch (error: any) {
       console.error("Error submitting exchange:", error);
       toast.dismiss(loadingToastId);
