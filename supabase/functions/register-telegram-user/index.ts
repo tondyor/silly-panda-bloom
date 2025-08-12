@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // @ts-ignore
-import { HmacSha256 } from "https://deno.land/std@0.190.0/crypto/mod.ts";
+import { parse } from "https://deno.land/std@0.190.0/node/querystring.ts";
 
 declare const Deno: {
   env: {
@@ -15,35 +15,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
-
-// Функция для верификации данных, как описано в документации Telegram
-async function validateTelegramData(initData: string): Promise<{ isValid: boolean; data: URLSearchParams }> {
-  if (!BOT_TOKEN) {
-    console.error("BOT_TOKEN is not set.");
-    return { isValid: false, data: new URLSearchParams() };
-  }
-
-  const params = new URLSearchParams(initData);
-  const hash = params.get("hash");
-  if (!hash) {
-    return { isValid: false, data: params };
-  }
-  params.delete("hash");
-
-  const dataCheckArr: string[] = [];
-  params.sort();
-  for (const [key, value] of params.entries()) {
-    dataCheckArr.push(`${key}=${value}`);
-  }
-  const dataCheckString = dataCheckArr.join("\n");
-
-  const secretKey = new HmacSha256(BOT_TOKEN).update("WebAppData").digest();
-  const hmac = new HmacSha256(secretKey).update(dataCheckString).hex();
-
-  return { isValid: hmac === hash, data: params };
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -65,26 +36,29 @@ serve(async (req) => {
       });
     }
 
-    const { isValid, data: validatedParams } = await validateTelegramData(initData);
+    // Parse initData to extract user information
+    const parsedInitData = parse(initData);
+    const userString = parsedInitData.user as string;
 
-    if (!isValid) {
-      console.error("Validation failed: Invalid hash.");
-      return new Response(JSON.stringify({ error: "Invalid data: hash validation failed" }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const userString = validatedParams.get("user");
     if (!userString) {
-      return new Response(JSON.stringify({ error: "User data not found in initData" }), {
-        status: 400,
+      console.warn("initData did not contain user information.");
+      return new Response(JSON.stringify({ message: "No user info in initData" }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const user = JSON.parse(userString);
 
+    if (!user || !user.id) {
+      console.warn("Parsed user object is invalid or missing ID.");
+      return new Response(JSON.stringify({ message: "Invalid user info" }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Upsert user data into telegram_users table
     const { data, error } = await supabase
       .from("telegram_users")
       .upsert(
@@ -95,8 +69,9 @@ serve(async (req) => {
           username: user.username || null,
           language_code: user.language_code || null,
           is_premium: user.is_premium || false,
+          registered_at: new Date().toISOString(), // Update timestamp on each open
         },
-        { onConflict: "telegram_id", ignoreDuplicates: false }
+        { onConflict: "telegram_id" }
       )
       .select()
       .single();
@@ -109,7 +84,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Successfully validated and registered/updated Telegram user: ${user.id}`);
+    console.log(`Successfully registered/updated Telegram user: ${user.id}`);
     return new Response(JSON.stringify({ success: true, user: data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

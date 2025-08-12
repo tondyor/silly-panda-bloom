@@ -14,8 +14,6 @@ interface Window {
           language_code?: string;
         };
       };
-      isExpanded: boolean;
-      expand: () => void;
     };
   };
 }
