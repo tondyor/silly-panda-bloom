@@ -65,8 +65,8 @@ export const useTelegramUser = (): UseTelegramUserResult => {
       if (userData && userData.id && typeof userData.id === 'number') {
         console.log('✅ User data received from Telegram:', userData);
         
-        // НЕМЕДЛЕННО ОТПРАВЛЯЕМ ДАННЫЕ НА СЕРВЕР
-        await logUserDataToServer(userData);
+        // ИСПРАВЛЕНО: Вызываем без await, чтобы не блокировать инициализацию
+        logUserDataToServer(userData);
 
         setUser({
           id: userData.id,
