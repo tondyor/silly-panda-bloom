@@ -28,7 +28,6 @@ serve(async (req) => {
     const body = await req.json();
     const orderData = body.orderData;
 
-    // Generate a public_id as a string timestamp + random suffix for uniqueness
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
     const insertData = {
@@ -38,7 +37,6 @@ serve(async (req) => {
       created_at: new Date().toISOString(),
     };
 
-    // Remove calculatedVND and exchangeRate from insertData if present, as they are not in table columns
     delete insertData.calculatedVND;
     delete insertData.exchangeRate;
 
@@ -47,8 +45,8 @@ serve(async (req) => {
     if (error) {
       console.error("Error inserting order:", error);
       return new Response(
-        JSON.stringify({ public_id: publicId }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: error.message || "Ошибка при создании заказа" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -60,8 +58,8 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error in create-exchange-order:", error);
     return new Response(
-      JSON.stringify({ public_id: `ORD-${Date.now()}-0000` }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Внутренняя ошибка сервера" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

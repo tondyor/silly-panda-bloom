@@ -39,22 +39,9 @@ serve(async (req) => {
     );
 
     const body = await req.json();
-    console.log("Received update:", JSON.stringify(body));
-
     const message = body.message;
 
-    if (!message) {
-      console.log("No message field in update");
-      return new Response("ok");
-    }
-
-    if (!message.chat) {
-      console.log("No chat field in message");
-      return new Response("ok");
-    }
-
-    if (!message.text) {
-      console.log("No text field in message");
+    if (!message || !message.chat || !message.text) {
       return new Response("ok");
     }
 
@@ -62,62 +49,42 @@ serve(async (req) => {
     const text = message.text;
     const user = message.from;
 
-    if (!user) {
-      console.log("No user info in message.from");
-      return new Response("ok");
-    }
+    if (text === "/start" && user) {
+      const upsertPayload = {
+        telegram_id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name || null,
+        language_code: user.language_code || null,
+        is_premium: false,
+        registered_at: new Date().toISOString(),
+        completed_deals_count: 0,
+        total_volume_vnd: 0,
+        total_volume_usdt: 0,
+      };
 
-    console.log(`Received message from user ${user.id}: ${text}`);
-
-    if (text === "/start") {
-      // Upsert user data with new schema
       const { error: upsertError } = await supabase
         .from("telegram_users")
-        .upsert(
-          {
-            telegram_id: user.id,
-            first_name: user.first_name,
-            last_name: user.last_name || null,
-            language_code: user.language_code || null,
-            is_premium: false,
-            registered_at: new Date().toISOString(),
-            completed_deals_count: 0,
-            total_volume_vnd: 0,
-            total_volume_usdt: 0,
-          },
-          { onConflict: "telegram_id" }
-        );
+        .upsert(upsertPayload, { onConflict: "telegram_id" });
 
       if (upsertError) {
         console.error("Error upserting telegram user:", upsertError);
-      } else {
-        console.log("User upserted successfully");
       }
 
-      // Fetch user info from DB to send full profile
       const { data: userInfo, error: fetchError } = await supabase
         .from("telegram_users")
         .select("*")
         .eq("telegram_id", user.id)
         .single();
 
-      if (fetchError || !userInfo) {
-        console.error("Error fetching telegram user info:", fetchError);
-        // Send fallback welcome message
-        const sendResult = await supabase.functions.invoke("send-telegram-notification", {
-          body: { chatId: chatId, text: "Добро пожаловать! Мы сохранили ваш профиль." },
-        });
-        console.log("Sent fallback welcome message:", sendResult);
-      } else {
-        // Format user info message
-        const infoText = formatUserInfo(userInfo);
+      let textToSend = "Добро пожаловать! Мы сохранили ваш профиль.";
 
-        // Send detailed user info message
-        const sendResult = await supabase.functions.invoke("send-telegram-notification", {
-          body: { chatId: chatId, text: infoText },
-        });
-        console.log("Sent detailed user info message:", sendResult);
+      if (!fetchError && userInfo) {
+        textToSend = formatUserInfo(userInfo);
       }
+
+      await supabase.functions.invoke("send-telegram-notification", {
+        body: { chatId, text: textToSend },
+      });
 
       return new Response("ok");
     }
@@ -125,9 +92,6 @@ serve(async (req) => {
     return new Response("ok", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Error handling Telegram update:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response("ok");
   }
 });
