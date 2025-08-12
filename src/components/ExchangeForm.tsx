@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import CountdownCircle from "./CountdownCircle";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 const PROFIT_MARGIN = -0.02;
 
@@ -307,7 +308,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser) {
-      // Ошибка показывается только валидацией формы, всплывающих уведомлений нет
+      toast.error("Ошибка: не удалось определить пользователя Telegram.");
       return;
     }
     
@@ -328,11 +329,12 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       });
 
       if (error) {
-        // Ошибка логируется в консоль, всплывающих уведомлений нет
+        toast.error(error.message || "Ошибка при создании заявки.");
         throw new Error(error.message || "Ошибка при создании заявки.");
       }
       
       if (!newOrder || !newOrder.public_id) {
+        toast.error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
         throw new Error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
       }
 
