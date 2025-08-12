@@ -16,7 +16,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Форматируем информацию о пользователе: вместо UUID показываем telegram_id
 function formatUserInfo(user: any): string {
   return `Ваш профиль:
 Telegram-ID: ${user.telegram_id}
@@ -35,66 +34,60 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let body: any;
   try {
-    if (!TELEGRAM_BOT_TOKEN) {
-      console.error("Telegram bot token is not set.");
-      return new Response("ok", { headers: corsHeaders });
-    }
+    body = await req.json();
+  } catch {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
+  const message = body.message;
+  if (!message?.text || !message.chat?.id) {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Only react to /start
+  if (message.text.trim().startsWith("/start")) {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    const payload = await req.json();
-    const message = payload.message;
-    if (!message?.text || !message.chat?.id || !message.from) {
-      return new Response("ok", { headers: corsHeaders });
-    }
-
-    const chatId = message.chat.id;
-    const text = message.text;
     const user = message.from;
 
-    if (text === "/start") {
-      // Upsert user data
-      await supabase.from("telegram_users").upsert(
-        {
-          telegram_id: user.id,
-          first_name: user.first_name,
-          last_name: user.last_name || null,
-          language_code: user.language_code || null,
-          is_premium: false,
-          registered_at: new Date().toISOString(),
-          completed_deals_count: 0,
-          total_volume_vnd: 0,
-          total_volume_usdt: 0,
-        },
-        { onConflict: "telegram_id" }
-      );
+    // Upsert user data
+    await supabase.from("telegram_users").upsert(
+      {
+        telegram_id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name || null,
+        language_code: user.language_code || null,
+        is_premium: false,
+        registered_at: new Date().toISOString(),
+        completed_deals_count: 0,
+        total_volume_vnd: 0,
+        total_volume_usdt: 0,
+      },
+      { onConflict: "telegram_id" }
+    );
 
-      // Fetch updated user profile
-      const { data: userInfo } = await supabase
-        .from("telegram_users")
-        .select("*")
-        .eq("telegram_id", user.id)
-        .single();
+    // Fetch user profile
+    const { data: userInfo } = await supabase
+      .from("telegram_users")
+      .select("*")
+      .eq("telegram_id", user.id)
+      .single();
 
-      const responseText = userInfo
-        ? formatUserInfo(userInfo)
-        : "Добро пожаловать! Мы сохранили ваш профиль.";
+    const text = userInfo
+      ? formatUserInfo(userInfo)
+      : "Добро пожаловать! Мы сохранили ваш профиль.";
 
-      // Отправляем ответ в Telegram
-      await fetch(TELEGRAM_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: chatId, text: responseText }),
-      });
-    }
-
-    return new Response("ok", { headers: corsHeaders });
-  } catch (error) {
-    console.error("Error in handle-telegram-updates:", error);
-    return new Response("ok", { headers: corsHeaders });
+    // Send back to Telegram
+    await fetch(TELEGRAM_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: message.chat.id, text }),
+    });
   }
+
+  return new Response("ok", { headers: corsHeaders });
 });
