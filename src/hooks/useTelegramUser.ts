@@ -23,10 +23,12 @@ export const useTelegramUser = (): UseTelegramUserResult => {
   const [retryCount, setRetryCount] = useState(0);
 
   const initializeAndRegister = useCallback(async () => {
-    console.log('=== TELEGRAM INIT START ===');
-    
+    setIsLoading(true);
+    setUser(null);
+    setError(null);
+
     if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
-      throw new Error('Приложение должно быть открыто в Telegram');
+      throw new Error('Приложение должно быть открыто в Telegram.');
     }
 
     const tg = window.Telegram.WebApp;
@@ -35,66 +37,52 @@ export const useTelegramUser = (): UseTelegramUserResult => {
       tg.expand();
     }
 
-    let attempts = 0;
-    // Увеличиваем время ожидания до 10 секунд (100 попыток по 100 мс)
-    while (!tg.initData && attempts < 100) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
+    // Даем Telegram до 500мс на подготовку данных после вызова ready()
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     if (!tg.initData) {
-      // Обновляем сообщение об ошибке, чтобы оно было более понятным
-      throw new Error('Время ожидания ответа от Telegram истекло.');
+      console.error("Telegram.WebApp.initData is empty. This can happen if the app is opened directly, not through a bot. For debugging, initDataUnsafe is:", tg.initDataUnsafe);
+      throw new Error('Не удалось получить данные от Telegram. Убедитесь, что приложение запущено через бота, а не по прямой ссылке.');
     }
-    
-    console.log('✅ Got initData, proceeding to server validation.');
 
     const { data: serverResponse, error: functionError } = await supabase.functions.invoke('register-telegram-user', {
       body: { initData: tg.initData },
     });
 
     if (functionError) {
-      console.error('Server validation error:', functionError);
-      const errorMessage = functionError.message.includes('Invalid data') 
+      const errorMessage = functionError.message.includes('Invalid data')
         ? 'Ошибка верификации. Данные не являются подлинными.'
         : `Ошибка сервера: ${functionError.message}`;
       throw new Error(errorMessage);
     }
-    
-    if (!serverResponse.success || !serverResponse.user) {
-      console.error('Server responded with an error:', serverResponse);
+
+    if (!serverResponse?.success || !serverResponse?.user) {
       throw new Error('Сервер вернул ошибку при регистрации пользователя.');
     }
 
-    console.log('✅ Server validation successful. User registered/updated.');
-    
     const serverUser = serverResponse.user;
     const clientUser: TelegramUser = {
-        id: serverUser.telegram_id,
-        username: serverUser.username,
-        first_name: serverUser.first_name,
-        last_name: serverUser.last_name,
+      id: serverUser.telegram_id,
+      username: serverUser.username,
+      first_name: serverUser.first_name,
+      last_name: serverUser.last_name,
     };
-    
+
     setUser(clientUser);
-    setError(null);
-    setIsLoading(false);
-    console.log('=== TELEGRAM INIT SUCCESS ===');
   }, []);
 
   const retry = useCallback(() => {
     setRetryCount(prev => prev + 1);
-    setError(null);
-    setIsLoading(true);
-    setUser(null);
   }, []);
 
   useEffect(() => {
-    initializeAndRegister().catch(err => {
-      console.error('Initialization failed:', err);
-      setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка.');
-      setIsLoading(false);
-    });
+    initializeAndRegister()
+      .catch(err => {
+        setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка.');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [retryCount, initializeAndRegister]);
 
   return {
