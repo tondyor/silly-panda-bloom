@@ -14,32 +14,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
-const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
-async function sendTelegramMessage(chatId: string | number, text: string): Promise<void> {
-    if (!TELEGRAM_BOT_TOKEN || !chatId) {
-      console.error("sendTelegramMessage failed: Missing token or chatId.", { chatId });
-      return;
-    }
-    try {
-      const response = await fetch(TELEGRAM_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: text,
-          parse_mode: 'Markdown',
-        }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}.`, errorData);
-      }
-    } catch (e) {
-        console.error(`Failed to send telegram message to ${chatId}`, e);
-    }
+async function enqueueNotification(supabase: any, telegramId: number, messageType: string, payload: any, priority: 'high' | 'normal' = 'normal') {
+  if (!telegramId) return;
+
+  const { error } = await supabase
+    .from('notification_queue')
+    .insert({
+      telegram_id: telegramId,
+      message_type: messageType,
+      payload: payload,
+      priority: priority,
+    });
+
+  if (error) {
+    console.error(`Failed to enqueue notification ${messageType} for ${telegramId}:`, error);
+  } else {
+    console.log(`Successfully enqueued notification ${messageType} for ${telegramId}`);
+  }
 }
 
 serve(async (req) => {
@@ -50,20 +43,14 @@ serve(async (req) => {
 
     const { orderData } = await req.json();
     
-    console.log('=== ORDER REQUEST RECEIVED ===');
-    console.log('Full orderData:', JSON.stringify(orderData, null, 2));
-    
     const telegramId = orderData.telegramId;
     
     if (!telegramId || typeof telegramId !== 'number' || telegramId <= 0) {
-      console.error('❌ VALIDATION FAILED: Invalid telegram ID', { received: telegramId });
       return new Response(
         JSON.stringify({ error: 'Invalid or missing telegram ID' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    console.log('✅ VALIDATION PASSED. Using telegramId:', telegramId);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -102,18 +89,20 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ Order saved to database with telegram_id:', insertedOrder.telegram_id);
+    // Enqueue notifications instead of sending directly
+    const notificationPayload = {
+      publicId: publicId,
+      telegramId: telegramId,
+      fromAmount: orderData.fromAmount,
+      paymentCurrency: orderData.paymentCurrency,
+      deliveryMethod: orderData.deliveryMethod,
+    };
 
-    // === ОТПРАВКА УВЕДОМЛЕНИЙ (асинхронно, не блокируем ответ) ===
-    const clientMessage = `🎉 Ваш заказ #${publicId} создан успешно! Мы свяжемся с вами в ближайшее время.`;
-    sendTelegramMessage(telegramId, clientMessage).catch(e => console.error("Failed to send client notification in background", e));
+    await enqueueNotification(supabase, telegramId, 'order_created_user', notificationPayload, 'high');
     
     if (ADMIN_TELEGRAM_CHAT_ID) {
-      const adminMessage = `📋 Новый заказ #${publicId}\nОт: \`${telegramId}\`\nСумма: ${orderData.fromAmount} ${orderData.paymentCurrency}\nСпособ: ${orderData.deliveryMethod}`;
-      sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage).catch(e => console.error("Failed to send admin notification in background", e));
+      await enqueueNotification(supabase, Number(ADMIN_TELEGRAM_CHAT_ID), 'order_created_admin', notificationPayload, 'normal');
     }
-    
-    console.log('=== ORDER PROCESSING COMPLETE ===');
     
     return new Response(
       JSON.stringify(insertedOrder), 

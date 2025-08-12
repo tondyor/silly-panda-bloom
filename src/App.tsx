@@ -3,7 +3,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
-import ExchangePage from "./pages/ExchangePage"; // Import the new page
+import React, { Suspense } from "react";
+
+const ExchangePage = React.lazy(() => import("./pages/ExchangePage"));
 
 const queryClient = new QueryClient();
 
@@ -12,11 +14,12 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<ExchangePage />} /> {/* Set ExchangePage as the default route */}
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<div className="w-full h-screen flex items-center justify-center">Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<ExchangePage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
