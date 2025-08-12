@@ -324,7 +324,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     }
     
     setIsSubmitting(true);
-    const loadingToastId = toast.loading("Обработка вашего запроса на обмен...", { className: "opacity-75", position: "bottom-center" });
 
     try {
       const orderPayload = {
@@ -357,8 +356,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         network = values.usdtNetwork;
       }
 
-      toast.dismiss(loadingToastId);
-
       onExchangeSuccess(
         network,
         depositAddress,
@@ -370,8 +367,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       noTelegramUserToastId.current = null;
     } catch (error: any) {
       console.error("Error submitting exchange:", error);
-      toast.dismiss(loadingToastId);
-      toast.error("Ошибка при создании заявки.", { description: error.message || "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000, position: "bottom-center" });
+      toast.error("Ошибка при создании заявки.", { description: error.message || "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой.", duration: 5000, position: "top-center" });
     } finally {
       setIsSubmitting(false);
     }
