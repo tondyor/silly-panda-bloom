@@ -52,7 +52,7 @@ async function sendTelegramMessage(chatId: string | number, text: string): Promi
 
 function formatOrderForTelegram(order: any, forAdmin: boolean): string {
   if (forAdmin) {
-    const clientIdentifier = order.telegram_user_id ? `ID: ${order.telegram_user_id}` : 'Клиент';
+    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id}` : 'Клиент';
     const details = [
       `😏 Новый заказ!`,
       ``,
@@ -136,8 +136,7 @@ serve(async (req) => {
     const body = await req.json();
     const orderData = body.orderData;
     
-    // Логируем ID пользователя Telegram, полученный с фронтенда
-    console.log("Received orderData with telegramUserId:", orderData.telegramUserId);
+    console.log("Received orderData with telegramId:", orderData.telegramId);
 
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -155,7 +154,7 @@ serve(async (req) => {
       public_id: publicId,
       status: "Новая заявка",
       created_at: new Date().toISOString(),
-      telegram_user_id: orderData.telegramUserId ?? null,
+      telegram_id: orderData.telegramId ?? null,
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
@@ -172,8 +171,7 @@ serve(async (req) => {
       );
     }
 
-    // Логируем ID пользователя Telegram, который был вставлен в базу данных
-    console.log("Inserted order with telegram_user_id:", insertedOrder.telegram_user_id);
+    console.log("Inserted order with telegram_id:", insertedOrder.telegram_id);
 
     const fullOrderDetailsForNotification = {
         ...insertedOrder,
@@ -185,15 +183,15 @@ serve(async (req) => {
 
     // 1. Сначала отправляем сообщение КЛИЕНТУ и определяем статус
     let clientNotificationStatus = "❌ Уведомление клиенту не отправлено (ID не получен).";
-    if (insertedOrder.telegram_user_id) {
-      console.log("Attempting to send client message to:", insertedOrder.telegram_user_id); // Логируем попытку отправки клиенту
+    if (insertedOrder.telegram_id) {
+      console.log("Attempting to send client message to:", insertedOrder.telegram_id);
       const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-      const wasClientNotified = await sendTelegramMessage(insertedOrder.telegram_user_id, clientMessage);
+      const wasClientNotified = await sendTelegramMessage(insertedOrder.telegram_id, clientMessage);
 
       if (wasClientNotified) {
-        clientNotificationStatus = `✅ Уведомление клиенту (ID: ${insertedOrder.telegram_user_id}) отправлено.`;
+        clientNotificationStatus = `✅ Уведомление клиенту (ID: ${insertedOrder.telegram_id}) отправлено.`;
       } else {
-        clientNotificationStatus = `❌ Ошибка отправки уведомления клиенту (ID: ${insertedOrder.telegram_user_id}).`;
+        clientNotificationStatus = `❌ Ошибка отправки уведомления клиенту (ID: ${insertedOrder.telegram_id}).`;
       }
     }
 

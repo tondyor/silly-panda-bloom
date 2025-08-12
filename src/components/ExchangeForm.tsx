@@ -332,7 +332,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
           ...values,
           calculatedVND,
           exchangeRate,
-          telegramUserId: telegramUser ? telegramUser.telegram_id : null, // ИСПОЛЬЗУЕМ telegram_id
+          telegramId: telegramUser ? telegramUser.telegram_id : null,
           telegramUserFirstName: telegramUser ? telegramUser.first_name : null,
           depositAddress: depositAddress,
         },
