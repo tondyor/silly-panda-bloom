@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,7 +31,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import CountdownCircle from "./CountdownCircle";
 import { useTranslation } from "react-i18next";
 
-const PROFIT_MARGIN = -0.02; // вычитаем 2%
+const PROFIT_MARGIN = -0.02;
 
 const USDT_WALLETS: Record<string, string> = {
   BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
@@ -307,7 +307,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!telegramUser) {
-      // Убрано любое всплывающее уведомление
       return;
     }
     
@@ -328,7 +327,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       });
 
       if (error) {
-        // Убрано любое всплывающее уведомление
         throw new Error(error.message || "Ошибка при создании заявки.");
       }
       
@@ -353,7 +351,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       form.reset();
       setCalculatedVND(0);
     } catch (error) {
-      // Убрано любое всплывающее уведомление
       console.error("Error submitting exchange:", error);
     } finally {
       setIsSubmitting(false);
