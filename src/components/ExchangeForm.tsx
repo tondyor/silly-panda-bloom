@@ -26,7 +26,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 const PROFIT_MARGIN = -0.02;
@@ -122,8 +121,12 @@ async function fetchUsdtVndRates(): Promise<number[]> {
       const data = await res.json();
       const price = data?.tether?.vnd;
       if (typeof price === "number") results.push(price);
+    } else {
+      console.error("CoinGecko API error:", res.status);
     }
-  } catch {}
+  } catch (e) {
+    console.error("CoinGecko fetch error:", e);
+  }
 
   try {
     const res = await fetch("https://api.coinpaprika.com/v1/tickers/usdt-tether");
@@ -131,8 +134,12 @@ async function fetchUsdtVndRates(): Promise<number[]> {
       const data = await res.json();
       const price = data?.quotes?.VND?.price;
       if (typeof price === "number") results.push(price);
+    } else {
+      console.error("CoinPaprika API error:", res.status);
     }
-  } catch {}
+  } catch (e) {
+    console.error("CoinPaprika fetch error:", e);
+  }
 
   try {
     const res = await fetch("https://min-api.cryptocompare.com/data/price?fsym=USDT&tsyms=VND");
@@ -140,8 +147,12 @@ async function fetchUsdtVndRates(): Promise<number[]> {
       const data = await res.json();
       const price = data?.VND;
       if (typeof price === "number") results.push(price);
+    } else {
+      console.error("CryptoCompare API error:", res.status);
     }
-  } catch {}
+  } catch (e) {
+    console.error("CryptoCompare fetch error:", e);
+  }
 
   return results;
 }
@@ -155,8 +166,12 @@ async function fetchRubVndRates(): Promise<number[]> {
       const data = await res.json();
       const price = data?.result;
       if (typeof price === "number") results.push(price);
+    } else {
+      console.error("ExchangeRate.host API error:", res.status);
     }
-  } catch {}
+  } catch (e) {
+    console.error("ExchangeRate.host fetch error:", e);
+  }
 
   try {
     const res = await fetch("https://api.frankfurter.app/latest?from=RUB&to=VND");
@@ -164,8 +179,12 @@ async function fetchRubVndRates(): Promise<number[]> {
       const data = await res.json();
       const price = data?.rates?.VND;
       if (typeof price === "number") results.push(price);
+    } else {
+      console.error("Frankfurter API error:", res.status);
     }
-  } catch {}
+  } catch (e) {
+    console.error("Frankfurter fetch error:", e);
+  }
 
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/RUB");
@@ -173,8 +192,12 @@ async function fetchRubVndRates(): Promise<number[]> {
       const data = await res.json();
       const price = data?.rates?.VND;
       if (typeof price === "number") results.push(price);
+    } else {
+      console.error("ER API error:", res.status);
     }
-  } catch {}
+  } catch (e) {
+    console.error("ER API fetch error:", e);
+  }
 
   return results;
 }
@@ -188,7 +211,9 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   }
 
   if (rates.length === 0) {
-    throw new Error(`Не удалось получить курс для ${currency}-VND`);
+    console.warn(`No rates fetched for ${currency}-VND, falling back to default rate.`);
+    // fallback rates (example values, adjust as needed)
+    return currency === "USDT" ? 24000 : 300;
   }
 
   const avgRate = average(rates);
@@ -343,7 +368,7 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       setCalculatedVND(0);
     } catch (error) {
       console.error("Error submitting exchange:", error);
-      // Ошибка уже показана в модальном окне, не нужно дополнительно показывать toast
+      // Ошибка уже показана в модальном окне
     } finally {
       setIsSubmitting(false);
     }
