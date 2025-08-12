@@ -12,8 +12,9 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Этот интерфейс должен соответствовать структуре, используемой в ExchangeForm
 interface TelegramUser {
-  telegram_id: number; // Используем telegram_id, как в вашей таблице
+  telegram_id: number;
   first_name: string;
   last_name?: string;
   username?: string;
@@ -32,35 +33,40 @@ const ExchangePage = () => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
-      const initTelegramUser = async () => {
-        try {
-          // Вызываем Edge Function для регистрации/обновления пользователя Telegram
-          const { data, error } = await supabase.functions.invoke("register-telegram-user", {
-            body: { initData: tg.initData },
-          });
 
+      // Получаем данные пользователя напрямую из Telegram Web App
+      const unsafeUser = tg.initDataUnsafe?.user;
+
+      if (unsafeUser) {
+        // Преобразуем данные пользователя в наш интерфейс
+        const currentUser: TelegramUser = {
+          telegram_id: unsafeUser.id, // Сопоставляем `id` с `telegram_id`
+          first_name: unsafeUser.first_name,
+          last_name: unsafeUser.last_name,
+          username: unsafeUser.username,
+          language_code: unsafeUser.language_code,
+        };
+        setTelegramUser(currentUser);
+        console.log("Пользователь Telegram инициализирован напрямую из WebApp:", currentUser);
+
+        // Регистрируем/обновляем пользователя в базе данных в фоновом режиме
+        supabase.functions.invoke("register-telegram-user", {
+          body: { initData: tg.initData },
+        }).then(({ error }) => {
           if (error) {
-            console.error("Error invoking register-telegram-user function:", error);
-            // Если вызов функции не удался, пользовательские данные могут быть недоступны
-            // telegramUser останется null в этом случае.
-          } else if (data && data.user) {
-            // Если успешно, устанавливаем состояние telegramUser данными, возвращенными из Edge Function
-            setTelegramUser(data.user);
-            console.log("Telegram user initialized from DB:", data.user);
+            console.error("Фоновая регистрация пользователя не удалась:", error.message);
           } else {
-            console.warn("register-telegram-user function returned no user data.");
+            console.log("Фоновая регистрация пользователя прошла успешно.");
           }
-        } catch (err) {
-          console.error("Network error during Telegram user initialization:", err);
-        } finally {
-          setIsTelegramInitComplete(true);
-        }
-      };
-
-      initTelegramUser();
+        });
+      } else {
+        console.warn("Данные пользователя Telegram не найдены в initDataUnsafe.");
+      }
+      
+      // Отмечаем инициализацию как завершенную, чтобы форма могла отобразиться
+      setIsTelegramInitComplete(true);
     } else {
-      // Если не в среде Telegram Web App, считаем инициализацию завершенной, но без пользователя Telegram
-      console.warn("Not running in Telegram Web App environment. Telegram user will be null.");
+      console.warn("Приложение запущено не в среде Telegram Web App. Пользователь Telegram будет null.");
       setIsTelegramInitComplete(true);
     }
   }, []);
