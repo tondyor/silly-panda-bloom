@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface TelegramUser {
   id: number;
@@ -22,22 +21,6 @@ export const useTelegramUser = (): UseTelegramUserResult => {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  const logUserDataToServer = async (userData: any) => {
-    try {
-      console.log('Sending user data to server for logging...');
-      const { error } = await supabase.functions.invoke('log-telegram-user-data', {
-        body: { userData },
-      });
-      if (error) {
-        console.error('Failed to log user data to server:', error);
-      } else {
-        console.log('Successfully logged user data to server.');
-      }
-    } catch (e) {
-      console.error('Exception while logging user data:', e);
-    }
-  };
-
   const initializeTelegram = async () => {
     console.log('=== TELEGRAM INIT START ===');
     console.log('Attempt:', retryCount + 1);
@@ -51,6 +34,12 @@ export const useTelegramUser = (): UseTelegramUserResult => {
 
     const tg = window.Telegram.WebApp;
     
+    console.log('window.Telegram:', window.Telegram);
+    console.log('WebApp:', tg);
+    console.log('initData:', tg.initData);
+    console.log('initDataUnsafe:', tg.initDataUnsafe);
+    console.log('user:', tg.initDataUnsafe?.user);
+    
     if (!tg.isExpanded) {
       tg.ready();
       tg.expand();
@@ -63,11 +52,7 @@ export const useTelegramUser = (): UseTelegramUserResult => {
       const userData = tg.initDataUnsafe?.user;
       
       if (userData && userData.id && typeof userData.id === 'number') {
-        console.log('✅ User data received from Telegram:', userData);
-        
-        // ИСПРАВЛЕНО: Вызываем без await, чтобы не блокировать инициализацию
-        logUserDataToServer(userData);
-
+        console.log('✅ User data received:', userData);
         setUser({
           id: userData.id,
           username: userData.username,
@@ -80,23 +65,26 @@ export const useTelegramUser = (): UseTelegramUserResult => {
         return;
       }
       
+      console.log(`Waiting for user data... attempt ${attempts + 1}`);
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
 
-    throw new Error('Не удалось получить данные пользователя от Telegram');
+    console.error('Failed to get user data after 1 second');
+    throw new Error('Не удалось получить данные пользователя');
   };
 
   const retry = () => {
-    setRetryCount(0);
+    setRetryCount(0); // Сбрасываем счетчик для полного перезапуска
     setError(null);
     setIsLoading(true);
     setUser(null);
+    // Запускаем новый цикл попыток
     setRetryCount(prev => prev + 1);
   };
 
   useEffect(() => {
-    if (retryCount === 0) return;
+    if (retryCount === 0) return; // Не запускаем при первом рендере, только после вызова retry
 
     const attemptInit = async () => {
       try {
@@ -105,11 +93,12 @@ export const useTelegramUser = (): UseTelegramUserResult => {
         console.error('Telegram init error:', err);
         
         if (retryCount < 3) {
+          console.log(`Retrying in 1 second... (attempt ${retryCount + 1}/3)`);
           setTimeout(() => {
             setRetryCount(prev => prev + 1);
           }, 1000);
         } else {
-          setError(err instanceof Error ? err.message : 'Превышено максимальное количество попыток.');
+          setError(err instanceof Error ? err.message : 'Превышено максимальное количество попыток. Перезапустите приложение.');
           setIsLoading(false);
         }
       }
@@ -118,15 +107,16 @@ export const useTelegramUser = (): UseTelegramUserResult => {
     attemptInit();
   }, [retryCount]);
 
+  // Запускаем первую попытку
   useEffect(() => {
     const timeoutId = setTimeout(() => {
         if (isLoading) {
             setError('Время ожидания ответа от Telegram истекло.');
             setIsLoading(false);
         }
-    }, 5000);
+    }, 5000); // Общий таймаут 5 секунд
 
-    setRetryCount(1);
+    setRetryCount(1); // Запускаем первую попытку
 
     return () => clearTimeout(timeoutId);
   }, []);
