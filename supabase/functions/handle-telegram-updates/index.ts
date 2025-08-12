@@ -39,17 +39,37 @@ serve(async (req) => {
     );
 
     const body = await req.json();
+    console.log("Received update:", JSON.stringify(body));
+
     const message = body.message;
 
-    if (!message || !message.chat || !message.text) {
-      return new Response("ok"); // Not a message we care about
+    if (!message) {
+      console.log("No message field in update");
+      return new Response("ok");
+    }
+
+    if (!message.chat) {
+      console.log("No chat field in message");
+      return new Response("ok");
+    }
+
+    if (!message.text) {
+      console.log("No text field in message");
+      return new Response("ok");
     }
 
     const chatId = message.chat.id;
     const text = message.text;
     const user = message.from;
 
-    if (text === "/start" && user) {
+    if (!user) {
+      console.log("No user info in message.from");
+      return new Response("ok");
+    }
+
+    console.log(`Received message from user ${user.id}: ${text}`);
+
+    if (text === "/start") {
       // Upsert user data with new schema
       const { error: upsertError } = await supabase
         .from("telegram_users")
@@ -70,7 +90,8 @@ serve(async (req) => {
 
       if (upsertError) {
         console.error("Error upserting telegram user:", upsertError);
-        // Do not return error to Telegram, just log
+      } else {
+        console.log("User upserted successfully");
       }
 
       // Fetch user info from DB to send full profile
@@ -83,17 +104,19 @@ serve(async (req) => {
       if (fetchError || !userInfo) {
         console.error("Error fetching telegram user info:", fetchError);
         // Send fallback welcome message
-        await supabase.functions.invoke("send-telegram-notification", {
+        const sendResult = await supabase.functions.invoke("send-telegram-notification", {
           body: { chatId: chatId, text: "Добро пожаловать! Мы сохранили ваш профиль." },
         });
+        console.log("Sent fallback welcome message:", sendResult);
       } else {
         // Format user info message
         const infoText = formatUserInfo(userInfo);
 
         // Send detailed user info message
-        await supabase.functions.invoke("send-telegram-notification", {
+        const sendResult = await supabase.functions.invoke("send-telegram-notification", {
           body: { chatId: chatId, text: infoText },
         });
+        console.log("Sent detailed user info message:", sendResult);
       }
 
       return new Response("ok");
