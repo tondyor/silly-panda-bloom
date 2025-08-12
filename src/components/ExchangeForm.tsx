@@ -28,8 +28,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const PROFIT_MARGIN = -0.02;
-
 const USDT_WALLETS: Record<string, string> = {
   BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
   TON: "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
@@ -102,118 +100,6 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
   }
 });
 
-function average(arr: number[]): number {
-  if (arr.length === 0) return 0;
-  return arr.reduce((a, b) => a + b, 0) / arr.length;
-}
-
-async function fetchUsdtVndRates(): Promise<number[]> {
-  const results: number[] = [];
-
-  try {
-    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd");
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.tether?.vnd;
-      if (typeof price === "number") results.push(price);
-    } else {
-      console.error("CoinGecko API error:", res.status);
-    }
-  } catch (e) {
-    console.error("CoinGecko fetch error:", e);
-  }
-
-  try {
-    const res = await fetch("https://api.coinpaprika.com/v1/tickers/usdt-tether");
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.quotes?.VND?.price;
-      if (typeof price === "number") results.push(price);
-    } else {
-      console.error("CoinPaprika API error:", res.status);
-    }
-  } catch (e) {
-    console.error("CoinPaprika fetch error:", e);
-  }
-
-  try {
-    const res = await fetch("https://min-api.cryptocompare.com/data/price?fsym=USDT&tsyms=VND");
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.VND;
-      if (typeof price === "number") results.push(price);
-    } else {
-      console.error("CryptoCompare API error:", res.status);
-    }
-  } catch (e) {
-    console.error("CryptoCompare fetch error:", e);
-  }
-
-  return results;
-}
-
-async function fetchRubVndRates(): Promise<number[]> {
-  const results: number[] = [];
-
-  try {
-    const res = await fetch("https://api.exchangerate.host/convert?from=RUB&to=VND");
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.result;
-      if (typeof price === "number") results.push(price);
-    } else {
-      console.error("ExchangeRate.host API error:", res.status);
-    }
-  } catch (e) {
-    console.error("ExchangeRate.host fetch error:", e);
-  }
-
-  try {
-    const res = await fetch("https://api.frankfurter.app/latest?from=RUB&to=VND");
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.rates?.VND;
-      if (typeof price === "number") results.push(price);
-    } else {
-      console.error("Frankfurter API error:", res.status);
-    }
-  } catch (e) {
-    console.error("Frankfurter fetch error:", e);
-  }
-
-  try {
-    const res = await fetch("https://open.er-api.com/v6/latest/RUB");
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.rates?.VND;
-      if (typeof price === "number") results.push(price);
-    } else {
-      console.error("ER API error:", res.status);
-    }
-  } catch (e) {
-    console.error("ER API fetch error:", e);
-  }
-
-  return results;
-}
-
-const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
-  let rates: number[] = [];
-  if (currency === "USDT") {
-    rates = await fetchUsdtVndRates();
-  } else {
-    rates = await fetchRubVndRates();
-  }
-
-  if (rates.length === 0) {
-    console.warn(`No rates fetched for ${currency}-VND, falling back to default rate.`);
-    return currency === "USDT" ? 24000 : 300;
-  }
-
-  const avgRate = average(rates);
-  return avgRate * (1 + PROFIT_MARGIN);
-};
-
 export interface ExchangeFormProps {
   onExchangeSuccess: (
     network: string,
@@ -265,31 +151,9 @@ const getButtonState = (
 export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }: ExchangeFormProps) {
   const { t } = useTranslation();
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
-  const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
-
-  const {
-    data: usdtVndRate,
-    isLoading: isLoadingUsdtRate,
-    isError: isErrorRate,
-    dataUpdatedAt: usdtDataUpdatedAt,
-  } = useQuery<number>({
-    queryKey: ["usdt-vnd-rate"],
-    queryFn: () => fetchExchangeRate("USDT"),
-    refetchInterval: 30000,
-    staleTime: 30000,
-    refetchOnWindowFocus: true,
-  });
-
-  const { data: rubVndRate, isLoading: isLoadingRubRate, dataUpdatedAt: rubDataUpdatedAt } = useQuery<number>({
-    queryKey: ["rub-vnd-rate"],
-    queryFn: () => fetchExchangeRate("RUB"),
-    refetchInterval: 30000,
-    staleTime: 30000,
-    refetchOnWindowFocus: true,
-  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -303,38 +167,53 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
     },
   });
 
-  const isInitialMount = React.useRef(true);
-
-  React.useEffect(() => {
-    if (isInitialMount.current) {
-      if (form.getValues("fromAmount") === undefined) {
-        form.setValue("fromAmount", 100, { shouldValidate: true });
-      }
-      isInitialMount.current = false;
-    }
-  }, [form]);
-
+  const paymentCurrency = form.watch("paymentCurrency");
   const fromAmount = form.watch("fromAmount");
   const deliveryMethod = form.watch("deliveryMethod");
-  const paymentCurrency = form.watch("paymentCurrency");
 
-  React.useEffect(() => {
-    const preciseRate = paymentCurrency === "USDT" ? usdtVndRate ?? 0 : rubVndRate ?? 0;
-    setExchangeRate(preciseRate);
+  const {
+    data: rateData,
+    isLoading: isLoadingRate,
+    isError: isErrorRate,
+    dataUpdatedAt,
+  } = useQuery({
+    queryKey: ["exchangeRate", paymentCurrency],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("exchange-rates-get", {
+        body: { currency: paymentCurrency },
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.rate) throw new Error("Rate not found in server response.");
+      return data;
+    },
+    refetchInterval: 30000,
+    staleTime: 28000,
+    refetchOnWindowFocus: true,
+    enabled: !!paymentCurrency,
+  });
 
-    const displayRate = Math.round(preciseRate);
+  const exchangeRate = rateData?.rate ?? 0;
 
-    if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0) {
+  useEffect(() => {
+    if (isInitializing) return;
+    const isInitialMount = !form.formState.isDirty;
+    if (isInitialMount && fromAmount === undefined) {
+      form.setValue("fromAmount", 100, { shouldValidate: true });
+    }
+  }, [isInitializing, form, fromAmount]);
+
+  useEffect(() => {
+    const displayRate = Math.round(exchangeRate);
+    if (typeof fromAmount === "number" && !isNaN(fromAmount) && fromAmount > 0 && displayRate > 0) {
       setCalculatedVND(fromAmount * displayRate);
     } else {
       setCalculatedVND(0);
     }
-  }, [fromAmount, paymentCurrency, usdtVndRate, rubVndRate]);
+  }, [fromAmount, exchangeRate]);
 
   const handleCurrencyChange = (value: "USDT" | "RUB") => {
     form.setValue("paymentCurrency", value);
     form.clearErrors("fromAmount");
-
     if (value === "RUB") {
       form.setValue("deliveryMethod", "cash");
       form.setValue("vndBankAccountNumber", "");
@@ -365,7 +244,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
         telegramId: telegramUser.id,
       };
 
-      const { data, error } = await supabase.functions.invoke("create-exchange-order", {
+      const { data, error } = await supabase.functions.invoke("orders-create", {
         body: { orderData: orderPayload },
       });
 
@@ -381,13 +260,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
         return;
       }
 
-      let network = "N/A";
-      if (values.paymentCurrency === "USDT" && values.usdtNetwork) {
-        network = values.usdtNetwork;
-      }
-
-      onExchangeSuccess(network, depositAddress, data);
-
+      onExchangeSuccess(values.usdtNetwork || "N/A", depositAddress, data);
       form.reset();
       setCalculatedVND(0);
     } catch (error) {
@@ -399,19 +272,18 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
     }
   }
 
-  const isLoadingRate = paymentCurrency === 'USDT' ? isLoadingUsdtRate : isLoadingRubRate;
   const buttonState = getButtonState(isInitializing, isSubmitting, isLoadingRate);
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          {isErrorRate && paymentCurrency === "USDT" && (
+          {isErrorRate && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{t("exchangeForm.loadingRateError")}</AlertTitle>
               <AlertDescription>
-                Не удалось получить актуальный курс USDT. Обмен временно недоступен. Попробуйте обновить страницу.
+                Не удалось получить актуальный курс. Обмен временно недоступен. Попробуйте обновить страницу.
               </AlertDescription>
             </Alert>
           )}
@@ -422,27 +294,11 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
             </Label>
             <CurrencyTabs value={paymentCurrency} onChange={handleCurrencyChange} />
             <div className="flex h-8 items-center justify-center gap-2 text-sm text-gray-600">
-              {paymentCurrency === "USDT" && (
+              {isLoadingRate && <Skeleton className="h-4 w-48" />}
+              {!isLoadingRate && !isErrorRate && exchangeRate > 0 && (
                 <>
-                  {isLoadingUsdtRate && <Skeleton className="h-4 w-48" />}
-                  {isErrorRate && <span className="text-red-500 font-medium">{t("exchangeForm.loadingRateError")}</span>}
-                  {!isLoadingUsdtRate && !isErrorRate && usdtVndRate && (
-                    <>
-                      <span>1 USDT / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
-                      <CountdownCircle key={usdtDataUpdatedAt} duration={30} />
-                    </>
-                  )}
-                </>
-              )}
-              {paymentCurrency === "RUB" && (
-                <>
-                  {isLoadingRubRate && <Skeleton className="h-4 w-48" />}
-                  {!isLoadingRubRate && rubVndRate && (
-                    <>
-                      <span>1 RUB / {exchangeRate.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} VND</span>
-                      <CountdownCircle key={rubDataUpdatedAt} duration={30} />
-                    </>
-                  )}
+                  <span>1 {paymentCurrency} / {Math.round(exchangeRate).toLocaleString("vi-VN")} VND</span>
+                  <CountdownCircle key={dataUpdatedAt} duration={30} />
                 </>
               )}
             </div>
@@ -482,7 +338,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, isInitializing }
             disabled={buttonState.disabled}
             className={`w-full h-14 text-lg font-medium rounded-xl text-white shadow-lg transition-all duration-300 ease-in-out ${buttonState.className}`}
           >
-            {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+            {isSubmitting || isLoadingRate || isInitializing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
             {buttonState.text}
           </Button>
         </form>

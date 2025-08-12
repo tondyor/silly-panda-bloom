@@ -65,7 +65,7 @@ export const useTelegramUser = (): UseTelegramUserResult => {
       }
 
       // 4. Валидация на бэкенде и регистрация пользователя
-      const { data: serverResponse, error: functionError } = await supabase.functions.invoke('register-telegram-user', {
+      const { data: serverResponse, error: functionError } = await supabase.functions.invoke('auth-validate-and-register', {
         body: { initData },
       });
 
