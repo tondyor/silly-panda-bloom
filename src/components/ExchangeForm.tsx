@@ -41,11 +41,6 @@ const USDT_WALLETS: Record<string, string> = {
 const commonFields = {
   paymentCurrency: z.enum(["USDT", "RUB"]),
   fromAmount: z.number({ invalid_type_error: "Сумма должна быть числом." }).optional(),
-  telegramContact: z
-    .string()
-    .min(3, "Имя пользователя Telegram должно содержать не менее 3 символов.")
-    .max(32, "Имя пользователя Telegram должно содержать не более 32 символов.")
-    .regex(/^@[a-zA-Z0-9_]{3,32}$/, "Неверный формат имени пользователя Telegram (начните с @)."),
   usdtNetwork: z.enum(["BEP20", "TRC20", "ERC20", "TON", "SPL"]).optional(),
   contactPhone: z
     .string()
@@ -272,11 +267,10 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
     defaultValues: {
       paymentCurrency: "USDT",
       deliveryMethod: "bank",
-      telegramContact: "@",
       usdtNetwork: "TRC20",
+      contactPhone: "",
       vndBankAccountNumber: "",
       vndBankName: "",
-      contactPhone: "",
     },
   });
 

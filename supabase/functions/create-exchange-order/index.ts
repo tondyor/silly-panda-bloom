@@ -1,11 +1,18 @@
 // @ts-ignore
+// supabase-flags: --no-verify-jwt
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
 };
 
 function getAlphabeticalPrefix(index: number): string {
@@ -25,14 +32,9 @@ serve(async (req) => {
   }
 
   try {
-    // Use globalThis to access environment variables to avoid TS errors
-    const SUPABASE_URL = (globalThis as any).Deno?.env?.get("SUPABASE_URL") || (globalThis as any).SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = (globalThis as any).Deno?.env?.get("SUPABASE_SERVICE_ROLE_KEY") || (globalThis as any).SUPABASE_SERVICE_ROLE_KEY;
-    const ADMIN_TELEGRAM_ID = (globalThis as any).Deno?.env?.get("ADMIN_TELEGRAM_ID") || (globalThis as any).ADMIN_TELEGRAM_ID;
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Missing Supabase environment variables");
-    }
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const ADMIN_TELEGRAM_ID = Deno.env.get("ADMIN_TELEGRAM_ID");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -96,7 +98,6 @@ serve(async (req) => {
       vndBankName,
       vndBankAccountNumber,
       deliveryAddress,
-      telegramContact,
       contactPhone,
       usdtNetwork,
     } = orderData;
@@ -111,7 +112,6 @@ serve(async (req) => {
       vnd_bank_name: vndBankName || null,
       vnd_bank_account_number: vndBankAccountNumber || null,
       delivery_address: deliveryAddress || null,
-      telegram_contact: telegramContact,
       contact_phone: contactPhone || null,
       usdt_network: usdtNetwork || null,
       status: "Новая заявка",
@@ -138,7 +138,6 @@ serve(async (req) => {
 Пользователь: ${telegramUser.first_name} (${
       telegramUser.username ? `@${telegramUser.username}` : "нет username"
     })
-Контакт: ${telegramContact}
 
 *Детали:*
 Отдает: ${fromAmount} ${paymentCurrency}

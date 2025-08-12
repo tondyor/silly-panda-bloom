@@ -17,21 +17,6 @@ export const ContactInputs: React.FC<ContactInputsProps> = ({ control }) => {
     <>
       <FormField
         control={control}
-        name="telegramContact"
-        render={({ field }) => (
-          <FormItem className="w-full">
-            <FormLabel>
-              {t("exchangeForm.telegramLabel")} <span className="text-red-500">*</span>
-            </FormLabel>
-            <FormControl className="w-full">
-              <Input placeholder={t("exchangeForm.telegramPlaceholder")} {...field} className={inputClass} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={control}
         name="contactPhone"
         render={({ field }) => (
           <FormItem className="w-full">

@@ -20,7 +20,6 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data }) => {
     vndBankName,
     vndBankAccountNumber,
     deliveryAddress,
-    telegramContact,
     contactPhone,
     usdtNetwork,
   } = data;
@@ -82,10 +81,6 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data }) => {
                 <span className="font-medium text-gray-800 text-right">{deliveryAddress}</span>
               </li>
             )}
-            <li className="flex justify-between">
-              <span className="text-gray-500">Ваш Telegram:</span>
-              <span className="font-medium text-gray-800">{telegramContact}</span>
-            </li>
             {contactPhone && (
               <li className="flex justify-between">
                 <span className="text-gray-500">Контактный телефон:</span>
