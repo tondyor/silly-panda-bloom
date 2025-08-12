@@ -324,16 +324,18 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
         telegramUser: telegramUser,
       };
 
-      const { data: newOrder, error } = await supabase.functions.invoke('create-exchange-order', {
+      // Fix: supabase.functions.invoke returns FunctionsResponse<T>
+      // which has 'data' and 'error' properties, not 'ok', 'text', or 'json'.
+      const { data, error } = await supabase.functions.invoke('create-exchange-order', {
         body: orderPayload,
       });
 
       if (error) {
-        toast.error(error.message || "Ошибка при создании заявки.");
-        throw new Error(error.message || "Ошибка при создании заявки.");
+        toast.error(`Ошибка сервера: ${error.message || error}`);
+        throw new Error(`Server error: ${error.message || error}`);
       }
-      
-      if (!newOrder || !newOrder.public_id) {
+
+      if (!data || !('public_id' in data)) {
         toast.error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
         throw new Error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
       }
@@ -349,13 +351,18 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       onExchangeSuccess(
         network,
         depositAddress,
-        newOrder,
+        data,
       );
 
       form.reset();
       setCalculatedVND(0);
     } catch (error) {
       console.error("Error submitting exchange:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Неизвестная ошибка при отправке формы.");
+      }
     } finally {
       setIsSubmitting(false);
     }
