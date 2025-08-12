@@ -26,19 +26,20 @@ const ExchangePage = () => {
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
-  const [isTelegramContext, setIsTelegramContext] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
+    // Проверяем, что мы в контексте Telegram и есть данные
     if (tg && tg.initData) {
       tg.ready();
-      setIsTelegramContext(true);
+      // Проверяем, что объект пользователя существует
       if (tg.initDataUnsafe?.user) {
         setTelegramUser(tg.initDataUnsafe.user);
       }
-    } else {
-      setIsTelegramContext(false);
     }
+    // В любом случае прекращаем загрузку после проверки
+    setIsLoading(false);
   }, []);
 
   const handleExchangeSuccess = (
@@ -71,7 +72,7 @@ const ExchangePage = () => {
     });
   };
 
-  if (isTelegramContext === null) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <Loader2 className="h-12 w-12 animate-spin text-gray-500" />
@@ -79,10 +80,12 @@ const ExchangePage = () => {
     );
   }
 
-  if (!isTelegramContext) {
+  // Строгая проверка: если объект пользователя не был получен, показываем заглушку.
+  if (!telegramUser) {
     return <TelegramAuthGate />;
   }
 
+  // Если мы здесь, значит telegramUser гарантированно существует.
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-2 sm:p-4 lg:p-6"
