@@ -345,7 +345,6 @@ export function ExchangeForm({ onExchangeSuccess }: ExchangeFormProps) {
       setCalculatedVND(0);
     } catch (error) {
       console.error("Error submitting exchange:", error);
-      // Ошибка уже показана в модальном окне
     } finally {
       setIsSubmitting(false);
     }
