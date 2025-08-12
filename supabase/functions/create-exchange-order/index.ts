@@ -30,17 +30,31 @@ serve(async (req) => {
 
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
+    // Маппинг полей в snake_case
     const insertData = {
-      ...orderData,
+      payment_currency: orderData.paymentCurrency,
+      from_amount: orderData.fromAmount,
+      calculated_vnd: orderData.calculatedVND,
+      exchange_rate: orderData.exchangeRate,
+      delivery_method: orderData.deliveryMethod,
+      usdt_network: orderData.usdtNetwork ?? null,
+      vnd_bank_name: orderData.vndBankName ?? null,
+      vnd_bank_account_number: orderData.vndBankAccountNumber ?? null,
+      delivery_address: orderData.deliveryAddress ?? null,
+      telegram_contact: orderData.contactPhone ?? "",  // обязательное not null
+      contact_phone: orderData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
       created_at: new Date().toISOString(),
     };
 
-    delete insertData.calculatedVND;
-    delete insertData.exchangeRate;
+    console.log("Inserting order:", insertData);
 
-    const { data, error } = await supabase.from("orders").insert(insertData).select().single();
+    const { data, error } = await supabase
+      .from("orders")
+      .insert(insertData)
+      .select()
+      .single();
 
     if (error) {
       console.error("Insert error:", error);
