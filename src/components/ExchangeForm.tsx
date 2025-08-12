@@ -218,6 +218,7 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
 interface TelegramUser {
   id: number;
   username?: string;
+  first_name?: string;
 }
 
 export interface ExchangeFormProps {
@@ -313,6 +314,11 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
     setIsSubmitting(true);
 
     try {
+      let depositAddress = "N/A";
+      if (values.paymentCurrency === "USDT" && values.usdtNetwork) {
+        depositAddress = USDT_WALLETS[values.usdtNetwork] || "Адрес не найден.";
+      }
+
       const orderPayload = {
         orderData: {
           ...values,
@@ -320,6 +326,8 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
           exchangeRate,
           telegramUserId: telegramUser ? telegramUser.id : null,
           telegramContactUsername: telegramUser ? telegramUser.username : null,
+          telegramUserFirstName: telegramUser ? telegramUser.first_name : null,
+          depositAddress: depositAddress,
         },
       };
 
@@ -339,11 +347,9 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
         throw new Error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
       }
 
-      let depositAddress = "N/A";
       let network = "N/A";
 
       if (values.paymentCurrency === "USDT" && values.usdtNetwork) {
-        depositAddress = USDT_WALLETS[values.usdtNetwork] || "Адрес не найден.";
         network = values.usdtNetwork;
       }
 
