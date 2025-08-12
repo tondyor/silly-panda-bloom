@@ -25,8 +25,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const ADMIN_TELEGRAM_ID = Deno.env.get("ADMIN_TELEGRAM_ID");
-
     const body = await req.json();
     const message = body.message;
 
@@ -38,35 +36,28 @@ serve(async (req) => {
     const text = message.text;
     const user = message.from;
 
-    // Handle /start command from any user
-    if (text === "/start") {
-      if (user) {
-        // Upsert user data with extended fields including optional username
-        const { error } = await supabase
-          .from("telegram_users")
-          .upsert(
-            {
-              telegram_id: user.id,
-              username: user.username || null,
-              first_name: user.first_name,
-              last_name: user.last_name || null,
-              language_code: user.language_code || null,
-              is_premium: false,
-              registered_at: new Date().toISOString(),
-              completed_deals_count: 0,
-              total_volume_vnd: 0,
-              total_volume_usdt: 0,
-            },
-            { onConflict: "telegram_id" }
-          );
+    if (text === "/start" && user) {
+      // Upsert user data with new schema
+      const { error } = await supabase
+        .from("telegram_users")
+        .upsert(
+          {
+            telegram_id: user.id,
+            first_name: user.first_name,
+            last_name: user.last_name || null,
+            language_code: user.language_code || null,
+            is_premium: false,
+            registered_at: new Date().toISOString(),
+            completed_deals_count: 0,
+            total_volume_vnd: 0,
+            total_volume_usdt: 0,
+          },
+          { onConflict: "telegram_id" }
+        );
 
-        if (error) {
-          console.error("Error upserting telegram user:", error);
-          return new Response(
-            JSON.stringify({ error: "Failed to save user data." }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      if (error) {
+        console.error("Error upserting telegram user:", error);
+        // Do not return error to Telegram, just log
       }
 
       // Send welcome message back
