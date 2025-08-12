@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +9,31 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { TelegramConnectionStatus } from "@/components/TelegramConnectionStatus";
+import { useAuthStore } from '@/store/authStore';
+import { useRatesStore } from '@/store/ratesStore';
+import { StatusIndicator } from '@/components/StatusIndicator';
 
 const ExchangePage = () => {
   const { t } = useTranslation();
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
+  
+  const { isLoading, error, isReady, retry } = useAuthStore();
+  const { fetchRate } = useRatesStore();
+
+  useEffect(() => {
+    retry(); // Initial authentication attempt
+    
+    fetchRate('USDT');
+    fetchRate('RUB');
+    const interval = setInterval(() => {
+      fetchRate('USDT');
+      fetchRate('RUB');
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleExchangeSuccess = (
     network: string,
@@ -69,14 +87,21 @@ const ExchangePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
-          <TelegramConnectionStatus />
+          <StatusIndicator 
+            isLoading={isLoading}
+            error={error}
+            isReady={isReady}
+            onRetry={retry}
+          />
           {isFormSubmitted ? (
             <>
               <ExchangeSummary data={submittedFormData} />
               <PostSubmissionInfo depositInfo={depositInfo} formData={submittedFormData} />
             </>
           ) : (
-            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} />
+            <ExchangeForm 
+              onExchangeSuccess={handleExchangeSuccess} 
+            />
           )}
         </CardContent>
       </Card>

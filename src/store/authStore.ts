@@ -28,26 +28,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   authenticate: async () => {
     set({ isLoading: true, error: null });
     try {
-      if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
-        throw new Error('Приложение должно быть открыто в Telegram.');
-      }
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      if (!tg.isExpanded) tg.expand();
-
+      // Просто и тупо ждем initData. Без проверок.
       const initData = await new Promise<string>((resolve, reject) => {
-        if (tg.initData) return resolve(tg.initData);
-        const timeout = setTimeout(() => reject(new Error('Не удалось получить данные от Telegram (timeout).')), 5000);
+        let attempts = 0;
+        const maxAttempts = 100; // 10 секунд
+
         const interval = setInterval(() => {
-          if (tg.initData) {
+          if (window.Telegram?.WebApp?.initData) {
             clearInterval(interval);
-            clearTimeout(timeout);
-            resolve(tg.initData);
+            resolve(window.Telegram.WebApp.initData);
+            return;
+          }
+          
+          attempts++;
+          if (attempts > maxAttempts) {
+            clearInterval(interval);
+            reject(new Error('Не удалось получить данные от Telegram. Пожалуйста, убедитесь, что приложение открыто через бота и попробуйте снова.'));
           }
         }, 100);
       });
 
-      if (!initData) throw new Error('Данные инициализации от Telegram пусты.');
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      if (!tg.isExpanded) tg.expand();
 
       const { data: serverResponse, error: functionError } = await supabase.functions.invoke('auth-validate-and-register', {
         body: { initData },
