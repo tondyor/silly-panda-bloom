@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
@@ -52,15 +51,23 @@ serve(async (req) => {
     }
 
     // 2. Get next order number
-    const { data: nextOrderNumber, error: rpcError } = await supabase.rpc('get_next_order_id');
+    const { data: nextOrderNumberData, error: rpcError } = await supabase.rpc('get_next_order_id');
 
     if (rpcError) {
         console.error('RPC Error:', rpcError);
         throw new Error(`Failed to get next order ID: ${rpcError.message}`);
     }
     
-    if (typeof nextOrderNumber !== 'number') {
-        throw new Error('Invalid response from get_next_order_id function.');
+    // nextOrderNumberData can be an object with key 'get_next_order_id' or a number directly
+    let nextOrderNumber: number;
+    if (typeof nextOrderNumberData === 'number') {
+      nextOrderNumber = nextOrderNumberData;
+    } else if (nextOrderNumberData && typeof nextOrderNumberData === 'object') {
+      // Supabase sometimes returns { get_next_order_id: number }
+      const key = Object.keys(nextOrderNumberData)[0];
+      nextOrderNumber = nextOrderNumberData[key];
+    } else {
+      throw new Error('Invalid response from get_next_order_id function.');
     }
 
     // 3. Generate public order ID

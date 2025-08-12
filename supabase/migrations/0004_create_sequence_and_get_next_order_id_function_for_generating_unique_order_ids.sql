@@ -1,4 +1,4 @@
--- Создаем последовательность для номеров заказов
+-- Создаем последовательность для номеров заказов, начиная с 583
 CREATE SEQUENCE IF NOT EXISTS public.order_public_id_seq
   START WITH 583
   INCREMENT BY 1
