@@ -30,10 +30,7 @@ const CountdownCircle: React.FC<CountdownCircleProps> = ({
         setProgress(newProgress);
         animationFrameId = requestAnimationFrame(animate);
       } else {
-        setProgress(0);
-        // Restart animation
-        startTime = performance.now();
-        requestAnimationFrame(animate);
+        setProgress(0); // Stop the animation at 0
       }
     };
 
