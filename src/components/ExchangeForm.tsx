@@ -207,7 +207,6 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
 
   if (rates.length === 0) {
     console.warn(`No rates fetched for ${currency}-VND, falling back to default rate.`);
-    // fallback rates (example values, adjust as needed)
     return currency === "USDT" ? 24000 : 300;
   }
 
@@ -215,35 +214,22 @@ const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
   return avgRate * (1 + PROFIT_MARGIN);
 };
 
-interface TelegramUser {
-  telegram_id: number; // Используем telegram_id, как в вашей таблице
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-}
-
 export interface ExchangeFormProps {
+  initData: string;
   onExchangeSuccess: (
     network: string,
     address: string,
     orderData: any,
   ) => void;
-  telegramUser: TelegramUser | null;
 }
 
-export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormProps) {
+export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps) {
   const { t } = useTranslation();
   const [calculatedVND, setCalculatedVND] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
-
-  // Добавляем принудительное логирование для отладки
-  useEffect(() => {
-    console.log("ExchangeForm received telegramUser:", telegramUser);
-  }, [telegramUser]);
 
   const {
     data: usdtVndRate,
@@ -319,7 +305,6 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    console.log("Form onSubmit, telegramUser is:", telegramUser); // Логируем перед отправкой
 
     try {
       let depositAddress = "N/A";
@@ -327,37 +312,35 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser }: ExchangeFormPr
         depositAddress = USDT_WALLETS[values.usdtNetwork] || "Адрес не найден.";
       }
 
-      const orderPayload = {
-        orderData: {
-          ...values,
-          calculatedVND,
-          exchangeRate,
-          telegramId: telegramUser ? telegramUser.telegram_id : null,
-          telegramUserFirstName: telegramUser ? telegramUser.first_name : null,
-          depositAddress: depositAddress,
-        },
+      const formDataWithDetails = {
+        ...values,
+        calculatedVND,
+        exchangeRate,
+        depositAddress,
       };
 
-      console.log("Sending order payload to server:", orderPayload); // Логируем полезную нагрузку
+      const payload = {
+        initData,
+        formData: formDataWithDetails,
+      };
 
-      const { data, error } = await supabase.functions.invoke("create-exchange-order", {
-        body: orderPayload,
+      const { data, error } = await supabase.functions.invoke("create-order", {
+        body: payload,
       });
 
       if (error) {
-        setErrorMessage(`Ошибка сервера: ${error.message || error}`);
+        setErrorMessage(`Ошибка сервера: ${error.message || 'Неизвестная ошибка'}`);
         setIsErrorDialogOpen(true);
-        throw new Error(`Server error: ${error.message || error}`);
+        throw new Error(`Server error: ${error.message}`);
       }
 
       if (!data || !("public_id" in data)) {
         setErrorMessage("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
         setIsErrorDialogOpen(true);
-        throw new Error("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
+        throw new Error("Invalid response from server.");
       }
 
       let network = "N/A";
-
       if (values.paymentCurrency === "USDT" && values.usdtNetwork) {
         network = values.usdtNetwork;
       }

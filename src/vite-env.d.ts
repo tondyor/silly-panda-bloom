@@ -4,8 +4,10 @@ interface Window {
   Telegram: {
     WebApp: {
       ready: () => void;
+      expand: () => void;
       initData: string;
       initDataUnsafe?: {
+        query_id?: string;
         user?: {
           id: number;
           first_name: string;

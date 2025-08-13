@@ -9,65 +9,35 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-
-// Этот интерфейс должен соответствовать структуре, используемой в ExchangeForm
-interface TelegramUser {
-  telegram_id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-}
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ExchangePage = () => {
   const { t } = useTranslation();
+  const [view, setView] = useState<'loading' | 'error' | 'form' | 'summary'>('loading');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [initData, setInitData] = useState<string>('');
+  
+  const [submittedOrderData, setSubmittedOrderData] = useState<any>(null);
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
-  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
-  const [submittedFormData, setSubmittedFormData] = useState<any>(null);
-  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
-  const [isTelegramInitComplete, setIsTelegramInitComplete] = useState(false);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
+      tg.expand();
 
-      // Получаем данные пользователя напрямую из Telegram Web App
-      const unsafeUser = tg.initDataUnsafe?.user;
-
-      if (unsafeUser) {
-        // Преобразуем данные пользователя в наш интерфейс
-        const currentUser: TelegramUser = {
-          telegram_id: unsafeUser.id, // Сопоставляем `id` с `telegram_id`
-          first_name: unsafeUser.first_name,
-          last_name: unsafeUser.last_name,
-          username: unsafeUser.username,
-          language_code: unsafeUser.language_code,
-        };
-        setTelegramUser(currentUser);
-        console.log("Пользователь Telegram инициализирован напрямую из WebApp:", currentUser);
-
-        // Регистрируем/обновляем пользователя в базе данных в фоновом режиме
-        supabase.functions.invoke("register-telegram-user", {
-          body: { initData: tg.initData },
-        }).then(({ error }) => {
-          if (error) {
-            console.error("Фоновая регистрация пользователя не удалась:", error.message);
-          } else {
-            console.log("Фоновая регистрация пользователя прошла успешно.");
-          }
-        });
+      if (tg.initData) {
+        setInitData(tg.initData);
+        setView('form');
       } else {
-        console.warn("Данные пользователя Telegram не найдены в initDataUnsafe.");
+        setErrorMessage("Ошибка: приложение должно быть запущено из Telegram.");
+        setView('error');
       }
-      
-      // Отмечаем инициализацию как завершенную, чтобы форма могла отобразиться
-      setIsTelegramInitComplete(true);
     } else {
-      console.warn("Приложение запущено не в среде Telegram Web App. Пользователь Telegram будет null.");
-      setIsTelegramInitComplete(true);
+      console.warn("Telegram Web App script not found. Running in non-Telegram environment.");
+      setErrorMessage("Ошибка: не удалось подключиться к Telegram. Это приложение предназначено для использования только внутри Telegram.");
+      setView('error');
     }
   }, []);
 
@@ -91,23 +61,40 @@ const ExchangePage = () => {
       usdtNetwork: orderData.usdt_network,
     };
 
-    setSubmittedFormData(displayData);
-    setIsFormSubmitted(true);
+    setSubmittedOrderData(displayData);
+    setView('summary');
 
-    toast.success("Ваш запрос на обмен успешно отправлен!", {
-      description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
-      duration: 3000,
-      position: "top-center",
+    toast.success("Заявка отправлена!", {
+      description: `Детали заказа отправлены вам в личном сообщении.`,
+      duration: 5000,
     });
   };
 
-  if (!isTelegramInitComplete) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <Loader2 className="h-12 w-12 animate-spin text-gray-500" />
-      </div>
-    );
-  }
+  const renderContent = () => {
+    switch (view) {
+      case 'loading':
+        return <div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-gray-500" /></div>;
+      case 'error':
+        return (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Ошибка</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        );
+      case 'form':
+        return <ExchangeForm initData={initData} onExchangeSuccess={handleExchangeSuccess} />;
+      case 'summary':
+        return (
+          <>
+            <ExchangeSummary data={submittedOrderData} />
+            <PostSubmissionInfo depositInfo={depositInfo} formData={submittedOrderData} />
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div 
@@ -131,18 +118,11 @@ const ExchangePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
-          {isFormSubmitted ? (
-            <>
-              <ExchangeSummary data={submittedFormData} />
-              <PostSubmissionInfo depositInfo={depositInfo} formData={submittedFormData} />
-            </>
-          ) : (
-            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} telegramUser={telegramUser} />
-          )}
+          {renderContent()}
         </CardContent>
       </Card>
 
-      {!isFormSubmitted && (
+      {view === 'form' && (
         <>
           <WhyChooseUsSection />
           <HowItWorksSection />
