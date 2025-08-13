@@ -1,60 +1,51 @@
 {
-  "headerTitle": "Обмен валют во Вьетнаме",
-  "howItWorks": {
-    "title": "Как это работает?",
-    "step1": "Шаг 1: Заполните форму",
-    "step1Description": "Укажите сумму, валюту и способ получения.",
-    "step2": "Шаг 2: Подтвердите операцию",
-    "step2Description": "Мы свяжемся с вами в Telegram для подтверждения.",
-    "step3": "Шаг 3: Получите деньги",
-    "step3Description": "Получите наличные или перевод на карту."
+  "headerTitle": "Viet Swap",
+  "exchangeForm": {
+    "exchangeCurrencyLabel": "Валюта для обмена",
+    "usdt": "USDT",
+    "rub": "Рубли",
+    "amountLabel": "Сумма {{currency}}",
+    "amountPlaceholder": "Введите сумму в {{currency}}",
+    "youWillReceiveLabel": "Вы получите (VND)",
+    "usdtNetworkLabel": "Сеть USDT",
+    "selectNetworkPlaceholder": "Выберите сеть USDT",
+    "currentRate": "1 {{currency}} ≈ {{rate}} VND",
+    "loadingRateError": "Не удалось загрузить курс",
+    "deliveryMethodLabel": "Способ получения VND",
+    "bankAccount": "На счет",
+    "cash": "Наличными",
+    "bankAccountNumberLabel": "Номер карты или счета VND",
+    "bankAccountNumberPlaceholder": "Введите номер карты или счета",
+    "bankNameLabel": "Название банка VND",
+    "bankNamePlaceholder": "Например, Vietcombank",
+    "deliveryAddressLabel": "Адрес доставки (Дананг/Хойан)",
+    "deliveryAddressDescription": "Укажите как можно больше деталей: название отеля, номер комнаты, точный адрес или ссылку на Google Maps.",
+    "deliveryAddressPlaceholder": "Введите полный адрес доставки",
+    "telegramLabel": "Ваш Telegram (для связи)",
+    "telegramPlaceholder": "@ваш_никнейм",
+    "phoneLabel": "Контактный телефон",
+    "phonePlaceholder": "Введите ваш номер телефона",
+    "exchangeNowButton": "Обменять сейчас",
+    "processingButton": "Обработка...",
+    "loadingRateButton": "Загрузка курса...",
+    "cashDeliveryInfo": "Мы доставляем наличные по Данангу и Хойану в течение 15-30 минут."
   },
   "whyChooseUs": {
     "title": "Почему выбирают нас?",
     "fast": "Быстро",
-    "fastDescription": "Обмен занимает от 5 до 15 минут.",
+    "fastDescription": "Обмен занимает 15-30 минут.",
     "profitable": "Выгодно",
-    "profitableDescription": "Лучшие курсы обмена.",
+    "profitableDescription": "Лучший курс на рынке.",
     "reliable": "Надежно",
     "reliableDescription": "Гарантия безопасности ваших средств."
   },
-  "exchangeForm": {
-    "usdt": "Я отдаю USDT",
-    "rub": "Я отдаю RUB",
-    "amountLabel": "Сумма {{currency}}",
-    "amountPlaceholder": "Введите сумму",
-    "usdtNetworkLabel": "Сеть USDT",
-    "selectNetworkPlaceholder": "Выберите сеть",
-    "deliveryMethodLabel": "Способ получения",
-    "bankAccount": "На счет",
-    "cash": "Наличными",
-    "bankAccountNumberLabel": "Номер счета",
-    "bankAccountNumberPlaceholder": "Введите номер счета",
-    "bankNameLabel": "Название банка",
-    "bankNamePlaceholder": "Введите название банка",
-    "cashDeliveryInfo": "Доставка наличных курьером по вашему адресу.",
-    "deliveryAddressLabel": "Адрес доставки",
-    "deliveryAddressDescription": "Город, улица, дом, квартира",
-    "deliveryAddressPlaceholder": "Введите адрес доставки",
-    "phoneLabel": "Телефон для связи",
-    "phonePlaceholder": "Введите номер телефона",
-    "loadingRateError": "Ошибка загрузки курса",
-    "exchangeCurrencyLabel": "Валюта обмена",
-    "youWillReceiveLabel": "Вы получите (VND)",
-    "processingButton": "Обработка...",
-    "loadingRateButton": "Загрузка курса..."
-  },
-  "notifications": {
-    "copySuccess": {
-      "title": "Адрес скопирован в буфер обмена!"
-    },
-    "copyError": {
-      "title": "Не удалось скопировать адрес.",
-      "description": "Пожалуйста, скопируйте вручную."
-    },
-    "exchangeSuccess": {
-      "title": "Ваш запрос на обмен успешно отправлен!",
-      "description": "Номер вашего заказа: {{orderId}}. Вы обменяли {{fromAmount}} {{paymentCurrency}} на {{calculatedVND}} VND."
-    }
+  "howItWorks": {
+    "title": "Как это работает?",
+    "step1": "Шаг 1: Заполните форму",
+    "step1Description": "Укажите сумму, валюту и способ получения.",
+    "step2": "Шаг 2: Переведите средства",
+    "step2Description": "Отправьте USDT на указанный кошелек.",
+    "step3": "Шаг 3: Получите VND",
+    "step3Description": "Мы доставим наличные или переведем на счет."
   }
 }

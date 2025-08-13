@@ -4,7 +4,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Copy, AlertTriangle, Info } from 'lucide-react';
 import { toast } from "sonner";
-import { useTranslation } from 'react-i18next';
 
 interface PostSubmissionInfoProps {
   depositInfo: { network: string; address: string; } | null;
@@ -12,8 +11,6 @@ interface PostSubmissionInfoProps {
 }
 
 export const PostSubmissionInfo: React.FC<PostSubmissionInfoProps> = ({ depositInfo, formData }) => {
-  const { t } = useTranslation();
-
   if (!formData) return null;
 
   const { paymentCurrency, deliveryMethod, fromAmount } = formData;
@@ -21,15 +18,15 @@ export const PostSubmissionInfo: React.FC<PostSubmissionInfoProps> = ({ depositI
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address)
       .then(() => {
-        toast.success(t('notifications.copySuccess.title'), {
+        toast.success("Адрес скопирован в буфер обмена!", {
           description: address,
           duration: 3000,
         });
       })
       .catch(err => {
         console.error('Failed to copy address: ', err);
-        toast.error(t('notifications.copyError.title'), {
-          description: t('notifications.copyError.description'),
+        toast.error("Не удалось скопировать адрес.", {
+          description: "Пожалуйста, скопируйте вручную.",
           duration: 5000,
         });
       });
@@ -38,14 +35,16 @@ export const PostSubmissionInfo: React.FC<PostSubmissionInfoProps> = ({ depositI
   return (
     <div className="w-full max-w-lg mx-auto space-y-6 mt-6">
       {paymentCurrency === 'USDT' && depositInfo && (
-        <Card>
+        <Card className="w-full bg-white/80 backdrop-blur-sm border-2 border-white/60">
           <CardHeader>
-            <CardTitle>Пополнение</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center text-blue-700">
+              Пополнение
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Важно!</AlertTitle>
+            <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
+              <AlertTriangle className="h-4 w-4 !text-red-800" />
+              <AlertTitle className="font-semibold">Важно!</AlertTitle>
               <AlertDescription>
                 Отправляйте только USDT в сети {depositInfo.network}. Отправка любой другой монеты или в другой сети приведет к потере средств.
               </AlertDescription>
@@ -77,14 +76,16 @@ export const PostSubmissionInfo: React.FC<PostSubmissionInfoProps> = ({ depositI
         </Card>
       )}
 
-      <Card>
+      <Card className="w-full bg-white/80 backdrop-blur-sm border-2 border-white/60">
         <CardHeader>
-          <CardTitle>Информация о получении</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center text-blue-700">
+            Информация о получении
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>
+          <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+            <Info className="h-4 w-4 !text-blue-800" />
+            <AlertTitle className="font-semibold">
               {deliveryMethod === 'bank' ? 'Банковский перевод' : 'Доставка наличными'}
             </AlertTitle>
             <AlertDescription>

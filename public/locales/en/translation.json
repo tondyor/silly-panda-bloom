@@ -1,60 +1,51 @@
 {
-  "headerTitle": "Currency Exchange in Vietnam",
-  "howItWorks": {
-    "title": "How it works?",
-    "step1": "Step 1: Fill the form",
-    "step1Description": "Specify the amount, currency, and method of receipt.",
-    "step2": "Step 2: Confirm the operation",
-    "step2Description": "We will contact you on Telegram to confirm.",
-    "step3": "Step 3: Get the money",
-    "step3Description": "Receive cash or a card transfer."
-  },
-  "whyChooseUs": {
-    "title": "Why choose us?",
-    "fast": "Fast",
-    "fastDescription": "Exchange takes 5 to 15 minutes.",
-    "profitable": "Profitable",
-    "profitableDescription": "Best exchange rates.",
-    "reliable": "Reliable",
-    "reliableDescription": "Security guarantee for your funds."
-  },
+  "headerTitle": "Viet Swap",
   "exchangeForm": {
-    "usdt": "I give USDT",
-    "rub": "I give RUB",
-    "amountLabel": "Amount {{currency}}",
-    "amountPlaceholder": "Enter amount",
+    "exchangeCurrencyLabel": "Currency to exchange",
+    "usdt": "USDT",
+    "rub": "RUB",
+    "amountLabel": "Amount in {{currency}}",
+    "amountPlaceholder": "Enter amount in {{currency}}",
+    "youWillReceiveLabel": "You will receive (VND)",
     "usdtNetworkLabel": "USDT Network",
-    "selectNetworkPlaceholder": "Select network",
-    "deliveryMethodLabel": "Method of receipt",
+    "selectNetworkPlaceholder": "Select USDT network",
+    "currentRate": "1 {{currency}} ≈ {{rate}} VND",
+    "loadingRateError": "Failed to load exchange rate",
+    "deliveryMethodLabel": "VND receiving method",
     "bankAccount": "To account",
     "cash": "Cash",
-    "bankAccountNumberLabel": "Account number",
-    "bankAccountNumberPlaceholder": "Enter account number",
-    "bankNameLabel": "Bank name",
-    "bankNamePlaceholder": "Enter bank name",
-    "cashDeliveryInfo": "Cash delivery by courier to your address.",
-    "deliveryAddressLabel": "Delivery address",
-    "deliveryAddressDescription": "City, street, house, apartment",
-    "deliveryAddressPlaceholder": "Enter delivery address",
+    "bankAccountNumberLabel": "VND card or account number",
+    "bankAccountNumberPlaceholder": "Enter card or account number",
+    "bankNameLabel": "VND Bank Name",
+    "bankNamePlaceholder": "E.g., Vietcombank",
+    "deliveryAddressLabel": "Delivery address (Da Nang/Hoi An)",
+    "deliveryAddressDescription": "Please provide as many details as possible: hotel name, room number, exact address, or a Google Maps link.",
+    "deliveryAddressPlaceholder": "Enter full delivery address",
+    "telegramLabel": "Your Telegram (for contact)",
+    "telegramPlaceholder": "@your_username",
     "phoneLabel": "Contact phone",
-    "phonePlaceholder": "Enter phone number",
-    "loadingRateError": "Rate loading error",
-    "exchangeCurrencyLabel": "Exchange currency",
-    "youWillReceiveLabel": "You will receive (VND)",
+    "phonePlaceholder": "Enter your phone number",
+    "exchangeNowButton": "Exchange Now",
     "processingButton": "Processing...",
-    "loadingRateButton": "Loading rate..."
+    "loadingRateButton": "Loading rate...",
+    "cashDeliveryInfo": "We deliver cash in Da Nang and Hoi An within 15-30 minutes."
   },
-  "notifications": {
-    "copySuccess": {
-      "title": "Address copied to clipboard!"
-    },
-    "copyError": {
-      "title": "Failed to copy address.",
-      "description": "Please copy it manually."
-    },
-    "exchangeSuccess": {
-      "title": "Your exchange request has been successfully submitted!",
-      "description": "Your order number is: {{orderId}}. You have exchanged {{fromAmount}} {{paymentCurrency}} for {{calculatedVND}} VND."
-    }
+  "whyChooseUs": {
+    "title": "Why Choose Us?",
+    "fast": "Fast",
+    "fastDescription": "Exchange takes 15-30 minutes.",
+    "profitable": "Profitable",
+    "profitableDescription": "Best exchange rate on the market.",
+    "reliable": "Reliable",
+    "reliableDescription": "Security of your funds is guaranteed."
+  },
+  "howItWorks": {
+    "title": "How It Works?",
+    "step1": "Step 1: Fill the form",
+    "step1Description": "Specify amount, currency, and receiving method.",
+    "step2": "Step 2: Transfer funds",
+    "step2Description": "Send USDT to the specified wallet.",
+    "step3": "Step 3: Receive VND",
+    "step3Description": "We will deliver cash or transfer to your account."
   }
 }
