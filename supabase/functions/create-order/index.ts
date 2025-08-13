@@ -5,24 +5,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // @ts-ignore
 import { createHmac } from "https://deno.land/std@0.190.0/node/crypto.ts";
 
+// CORS-заголовки для предзапросов и ответов
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Переменные окружения из секретов Supabase
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
-// --- Validation ---
+// --- Безопасность: Валидация данных Telegram WebApp ---
+/**
+ * Проверяет подлинность данных от Telegram с помощью HMAC-SHA256.
+ * @param initData Строка initData из Telegram WebApp.
+ * @returns {boolean} True, если данные подлинные, иначе false.
+ */
 function validateTelegramData(initData: string): boolean {
   if (!TELEGRAM_BOT_TOKEN) {
-    console.error("TELEGRAM_BOT_TOKEN is not set.");
+    console.error("Критическая ошибка безопасности: TELEGRAM_BOT_TOKEN не установлен.");
     return false;
   }
+
   const params = new URLSearchParams(initData);
   const hash = params.get("hash");
   if (!hash) return false;
+
   params.delete("hash");
   const dataCheckArr: string[] = [];
   for (const [key, value] of params.entries()) {
@@ -30,13 +39,20 @@ function validateTelegramData(initData: string): boolean {
   }
   dataCheckArr.sort();
   const dataCheckString = dataCheckArr.join("\n");
+
   const secret = createHmac("sha256", "WebAppData").update(TELEGRAM_BOT_TOKEN).digest();
   const calculatedHash = createHmac("sha256", secret).update(dataCheckString).digest("hex");
+
   return hash === calculatedHash;
 }
 
-// --- Telegram API Helpers ---
-async function sendMessage(chatId: string | number, text: string): Promise<boolean> {
+// --- Вспомогательные функции для Telegram API ---
+/**
+ * Отправляет сообщение в указанный чат Telegram.
+ * @param chatId ID чата для отправки.
+ * @param text Текст сообщения с поддержкой Markdown.
+ */
+async function sendMessage(chatId: string | number, text: string): Promise<void> {
   try {
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
@@ -44,69 +60,75 @@ async function sendMessage(chatId: string | number, text: string): Promise<boole
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
     });
     if (!response.ok) {
-        const errorData = await response.json();
-        console.error(`Telegram API sendMessage error for chatId ${chatId}:`, JSON.stringify(errorData, null, 2));
-        return false;
+      const errorData = await response.json();
+      console.error(`Ошибка Telegram API (sendMessage) для chatId ${chatId}:`, JSON.stringify(errorData, null, 2));
     }
-    return true;
   } catch (e) {
-    console.error(`Failed to send telegram message to ${chatId}:`, e);
-    return false;
+    console.error(`Не удалось отправить сообщение в Telegram для ${chatId}:`, e);
   }
 }
 
-async function answerWebAppQuery(queryId: string, result: any): Promise<boolean> {
-    try {
-        const response = await fetch(`${TELEGRAM_API_URL}/answerWebAppQuery`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ web_app_query_id: queryId, result }),
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error(`Telegram API answerWebAppQuery error for queryId ${queryId}:`, JSON.stringify(errorData, null, 2));
-            return false;
-        }
-        return true;
-    } catch(e) {
-        console.error(`Failed to answer web app query ${queryId}:`, e);
-        return false;
+/**
+ * Отвечает на запрос WebApp, обычно для отправки сообщения от имени пользователя.
+ * @param queryId web_app_query_id из initData.
+ * @param result Объект с результатом запроса.
+ */
+async function answerWebAppQuery(queryId: string, result: any): Promise<void> {
+  try {
+    const response = await fetch(`${TELEGRAM_API_URL}/answerWebAppQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ web_app_query_id: queryId, result }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error(`Ошибка Telegram API (answerWebAppQuery) для queryId ${queryId}:`, JSON.stringify(errorData, null, 2));
     }
+  } catch(e) {
+    console.error(`Не удалось ответить на запрос WebApp ${queryId}:`, e);
+  }
 }
 
-// --- Formatting ---
+// --- Форматирование данных ---
+/**
+ * Форматирует детали заказа в читаемую строку для сообщений в Telegram.
+ * @param order Полный объект заказа.
+ * @param forAdmin Булево значение для переключения между форматами для админа и клиента.
+ * @returns Отформатированная строка.
+ */
 function formatOrderForTelegram(order: any, forAdmin: boolean): string {
   if (forAdmin) {
     const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
     const details = [
-      `😏 Новый заказ!`,
+      `😏 *Новый заказ!*`,
       ``,
-      `#${order.public_id}`,
-      `Клиент: ${clientIdentifier}`,
+      `*Номер заказа:* \`#${order.public_id}\``,
+      `*Клиент:* ${clientIdentifier}`,
       `-----------------------------------`,
-      `Вы получите: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `Отправить (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `*Отдает:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+      `*Получает (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `*Курс:* ${order.exchange_rate.toLocaleString('ru-RU')}`,
       `-----------------------------------`,
-      `Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
+      `*Способ получения:* ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
     ];
 
     if (order.payment_currency === 'USDT') {
-      details.push(`Сеть USDT: ${order.usdt_network}`);
+      details.push(`*Сеть USDT:* ${order.usdt_network}`);
     }
 
     if (order.delivery_method === 'bank') {
-      details.push(`Банк: ${order.vnd_bank_name}`);
-      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
+      details.push(`*Банк:* ${order.vnd_bank_name}`);
+      details.push(`*Номер счета:* \`${order.vnd_bank_account_number}\``);
     } else {
-      details.push(`Адрес доставки: ${order.delivery_address}`);
+      details.push(`*Адрес доставки:* ${order.delivery_address}`);
     }
 
     if (order.contact_phone) {
-      details.push(`Телефон для связи: ${order.contact_phone}`);
+      details.push(`*Телефон для связи:* ${order.contact_phone}`);
     }
     
     details.push(`-----------------------------------`);
-    details.push(`Статус: ${order.status}`);
+    details.push(`*Статус:* ${order.status}`);
 
     return details.join('\n');
   } else {
@@ -115,10 +137,10 @@ function formatOrderForTelegram(order: any, forAdmin: boolean): string {
     
     const details = [
       title,
-      `Номер заказа: #${order.public_id}`,
+      `*Номер заказа:* \`#${order.public_id}\``,
       `-----------------------------------`,
-      `Вы отправляете: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `К получению (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `*Вы отправляете:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+      `*К получению (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
     ];
 
     if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
@@ -132,37 +154,59 @@ function formatOrderForTelegram(order: any, forAdmin: boolean): string {
 
     details.push(`-----------------------------------`);
     details.push(`*Статус:* Новая заявка (Не оплачен)`);
+    details.push(``);
+    details.push(`Мы скоро свяжемся с вами для подтверждения.`);
 
     return details.join('\n');
   }
 }
 
+// --- Основная логика сервера ---
 serve(async (req) => {
+  // Обработка CORS-предзапроса
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // 1. Извлечение данных из тела запроса
     const { initData, formData } = await req.json();
+    if (!initData || !formData) {
+      return new Response(JSON.stringify({ error: "Отсутствуют initData или formData" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (!initData || !validateTelegramData(initData)) {
-      return new Response(JSON.stringify({ error: "Invalid or missing initData" }), {
+    // 2. Безопасность: Валидация входящего запроса от Telegram
+    if (!validateTelegramData(initData)) {
+      return new Response(JSON.stringify({ error: "Ошибка аутентификации: неверные initData" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // 3. Парсинг данных пользователя и query_id из initData
     const params = new URLSearchParams(initData);
     const user = JSON.parse(params.get("user")!);
     const queryId = params.get("query_id");
 
+    if (!user || !user.id) {
+        return new Response(JSON.stringify({ error: "Не удалось извлечь данные пользователя из initData" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
+
+    // 4. Создание клиента Supabase с сервисным ключом
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    const insertData = {
+    // 5. Подготовка и сохранение заказа в базу данных
+    const publicId = `ORD-${Date.now()}`;
+    const orderToInsert = {
       payment_currency: formData.paymentCurrency,
       from_amount: formData.fromAmount,
       calculated_vnd: formData.calculatedVND,
@@ -180,21 +224,27 @@ serve(async (req) => {
 
     const { data: insertedOrder, error: insertError } = await supabase
       .from("orders")
-      .insert(insertData)
+      .insert(orderToInsert)
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error("Ошибка вставки в Supabase:", insertError);
+      throw new Error(`Ошибка базы данных: ${insertError.message}`);
+    }
 
+    // 6. Подготовка данных для уведомлений
     const fullOrderDetailsForNotification = {
         ...insertedOrder,
         telegram_user_first_name: user.first_name,
         telegram_username: user.username,
-        deposit_address: formData.depositAddress,
+        deposit_address: formData.depositAddress, // Из формы на фронтенде
     };
-
+    
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
 
+    // 7. Отправка двойных уведомлений
+    // 7a. Через answerWebAppQuery (если доступен queryId)
     if (queryId) {
       await answerWebAppQuery(queryId, {
         type: 'article',
@@ -204,21 +254,24 @@ serve(async (req) => {
       });
     }
 
+    // 7b. Всегда через sendMessage в личный чат пользователя
     await sendMessage(user.id, clientMessageText);
 
+    // 7c. (Опционально) Уведомление администратора
     if (ADMIN_TELEGRAM_CHAT_ID) {
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
       await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
     }
 
+    // 8. Возврат успешного ответа фронтенду
     return new Response(JSON.stringify(insertedOrder), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
-    console.error("Error in create-order:", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+    console.error("Ошибка в функции create-order:", error);
+    return new Response(JSON.stringify({ error: error.message || "Внутренняя ошибка сервера" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
