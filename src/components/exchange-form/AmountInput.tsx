@@ -30,11 +30,11 @@ export const AmountInput: React.FC<AmountInputProps> = ({ control, name, currenc
               inputMode="decimal"
               placeholder={t("exchangeForm.amountPlaceholder", { currency })}
               {...field}
-              value={String(field.value ?? "")}
+              value={field.value === undefined ? "" : String(field.value)}
               onChange={(e) => {
                 const val = e.target.value;
-                const numericValue = val.replace(/[^0-9.]/g, "");
-                field.onChange(numericValue === "" ? undefined : numericValue);
+                const numericValue = val.replace(/[^0-9]/g, "");
+                field.onChange(numericValue === "" ? undefined : Number(numericValue));
               }}
               className={inputClass}
             />
