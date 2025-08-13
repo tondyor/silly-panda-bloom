@@ -319,10 +319,9 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
         depositAddress,
       };
 
-      // Payload соответствует ТЗ: { initData, form: { ... } }
       const payload = {
         initData,
-        form: formDetails,
+        formData: formDetails,
       };
 
       const { data, error } = await supabase.functions.invoke("create-order", {

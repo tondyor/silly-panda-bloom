@@ -194,9 +194,9 @@ serve(async (req) => {
 
   try {
     // 1. Извлечение данных из тела запроса
-    const { initData, form } = await req.json();
-    if (!initData || !form) {
-      return new Response(JSON.stringify({ error: "Отсутствуют initData или form" }), {
+    const { initData, formData } = await req.json();
+    if (!initData || !formData) {
+      return new Response(JSON.stringify({ error: "Отсутствуют initData или formData" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -233,16 +233,16 @@ serve(async (req) => {
     // 5. Подготовка и сохранение заказа в базу данных
     const publicId = `ORD-${Date.now()}`;
     const orderToInsert = {
-      payment_currency: form.paymentCurrency,
-      from_amount: form.fromAmount,
-      calculated_vnd: form.calculatedVND,
-      exchange_rate: form.exchangeRate,
-      delivery_method: form.deliveryMethod,
-      usdt_network: form.usdtNetwork ?? null,
-      vnd_bank_name: form.vndBankName ?? null,
-      vnd_bank_account_number: form.vndBankAccountNumber ?? null,
-      delivery_address: form.deliveryAddress ?? null,
-      contact_phone: form.contactPhone ?? null,
+      payment_currency: formData.paymentCurrency,
+      from_amount: formData.fromAmount,
+      calculated_vnd: formData.calculatedVND,
+      exchange_rate: formData.exchangeRate,
+      delivery_method: formData.deliveryMethod,
+      usdt_network: formData.usdtNetwork ?? null,
+      vnd_bank_name: formData.vndBankName ?? null,
+      vnd_bank_account_number: formData.vndBankAccountNumber ?? null,
+      delivery_address: formData.deliveryAddress ?? null,
+      contact_phone: formData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
       telegram_id: user.id,
@@ -264,7 +264,7 @@ serve(async (req) => {
         ...insertedOrder,
         telegram_user_first_name: user.first_name,
         telegram_username: user.username,
-        deposit_address: form.depositAddress,
+        deposit_address: formData.depositAddress, // Из формы на фронтенде
     };
     
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
