@@ -1,11 +1,15 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { verifyInitData } from "../_shared/telegram-auth.ts";
+/// <reference types="https://deno.land/x/deno/cli/types/v8.d.ts" />
+
+import { serve } from "std/http/server.ts";
+import { createClient } from "@supabase/supabase-js";
+import { verifyInitData } from "shared/telegram-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+declare const Deno: any;
 
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${Deno.env.get("TELEGRAM_BOT_TOKEN")}`;
 
@@ -23,7 +27,7 @@ async function sendTelegramApiRequest(method: string, body: Record<string, any>)
   }
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

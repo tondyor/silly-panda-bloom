@@ -9,108 +9,140 @@ import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-// Этот интерфейс должен соответствовать структуре, используемой в ExchangeForm
 interface TelegramUser {
-  telegram_id: number;
+  id: number;
   first_name: string;
   last_name?: string;
   username?: string;
   language_code?: string;
 }
 
+const BlockerScreen = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
+      <Card className="bg-gray-800 border-red-500 border-2 max-w-md text-center">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-red-400 flex items-center justify-center gap-2">
+            <AlertTriangle /> {t("blocker.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p>{t("blocker.description")}</p>
+          <Button
+            onClick={() => {
+              // Здесь можно указать реальное имя вашего бота
+              window.open("https://t.me/your_bot_username", "_blank");
+            }}
+            className="bg-blue-500 hover:bg-blue-600"
+          >
+            {t("blocker.button")}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const ExchangePage = () => {
   const { t } = useTranslation();
-  const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [submittedFormData, setSubmittedFormData] = useState<any>(null);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
-  const [isTelegramInitComplete, setIsTelegramInitComplete] = useState(false);
+  const [isTelegramReady, setIsTelegramReady] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [initData, setInitData] = useState<string>("");
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
 
-      // Получаем данные пользователя напрямую из Telegram Web App
-      const unsafeUser = tg.initDataUnsafe?.user;
-
-      if (unsafeUser) {
-        // Преобразуем данные пользователя в наш интерфейс
-        const currentUser: TelegramUser = {
-          telegram_id: unsafeUser.id, // Сопоставляем `id` с `telegram_id`
-          first_name: unsafeUser.first_name,
-          last_name: unsafeUser.last_name,
-          username: unsafeUser.username,
-          language_code: unsafeUser.language_code,
-        };
-        setTelegramUser(currentUser);
-        console.log("Пользователь Telegram инициализирован напрямую из WebApp:", currentUser);
-
-        // Регистрируем/обновляем пользователя в базе данных в фоновом режиме
-        supabase.functions.invoke("register-telegram-user", {
-          body: { initData: tg.initData },
-        }).then(({ error }) => {
-          if (error) {
-            console.error("Фоновая регистрация пользователя не удалась:", error.message);
-          } else {
-            console.log("Фоновая регистрация пользователя прошла успешно.");
-          }
-        });
-      } else {
-        console.warn("Данные пользователя Telegram не найдены в initDataUnsafe.");
-      }
-      
-      // Отмечаем инициализацию как завершенную, чтобы форма могла отобразиться
-      setIsTelegramInitComplete(true);
-    } else {
-      console.warn("Приложение запущено не в среде Telegram Web App. Пользователь Telegram будет null.");
-      setIsTelegramInitComplete(true);
+    if (!tg || Object.keys(tg).length === 0) {
+      console.error("Telegram Web App environment not found. Blocking access.");
+      setIsBlocked(true);
+      return;
     }
+
+    tg.ready();
+    tg.expand();
+
+    const unsafeUser = tg.initDataUnsafe?.user;
+
+    if (unsafeUser) {
+      setTelegramUser(unsafeUser);
+      setInitData(tg.initData);
+      console.log("Telegram user initialized:", unsafeUser);
+
+      // Запрос права на отправку сообщений
+      tg.requestWriteAccess((isAllowed) => {
+        console.log(`Permission to write to PM: ${isAllowed}`);
+        // Верифицируем сессию на бэкенде
+        fetch("https://lvrusgtopkuuuxgdzacf.supabase.co/functions/v1/verify-telegram-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData: tg.initData, allowsWriteToPm: isAllowed }),
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (!data.ok) throw new Error(data.error || "Session verification failed");
+            console.log("Session verified successfully.");
+          })
+          .catch(err => console.error("Failed to verify session:", err));
+      });
+    } else {
+      console.error("User data not found in initDataUnsafe. Blocking access.");
+      setIsBlocked(true);
+      return;
+    }
+
+    setIsTelegramReady(true);
   }, []);
 
-  const handleExchangeSuccess = (
-    network: string,
-    address: string,
-    orderData: any,
-  ) => {
-    setDepositInfo({ network, address });
-
+  const handleExchangeSuccess = (orderData: any) => {
     const displayData = {
-      orderId: orderData.public_id,
-      paymentCurrency: orderData.payment_currency,
-      fromAmount: orderData.from_amount,
-      calculatedVND: orderData.calculated_vnd,
-      deliveryMethod: orderData.delivery_method,
-      vndBankName: orderData.vnd_bank_name,
-      vndBankAccountNumber: orderData.vnd_bank_account_number,
-      deliveryAddress: orderData.delivery_address,
-      contactPhone: orderData.contact_phone,
-      usdtNetwork: orderData.usdt_network,
+      orderId: orderData.order_id,
+      status: orderData.status,
+      ...orderData.original_data, // Предполагаем, что бэк вернет исходные данные формы
     };
 
     setSubmittedFormData(displayData);
     setIsFormSubmitted(true);
 
+    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     toast.success("Ваш запрос на обмен успешно отправлен!", {
-      description: `Номер вашего заказа: ${displayData.orderId}. Вы обменяли ${displayData.fromAmount} ${displayData.paymentCurrency} на ${displayData.calculatedVND.toLocaleString('vi-VN')} VND.`,
-      duration: 3000,
+      description: `Номер вашего заказа: ${displayData.orderId}.`,
+      duration: 5000,
       position: "top-center",
     });
+
+    // Если боту нужно разрешение на отправку, а его нет
+    if (orderData.notification_status?.need_start) {
+      toast.warning("Нажмите 'Start' в чате с ботом, чтобы получать уведомления.", {
+        duration: 10000,
+        action: {
+          label: "Открыть чат",
+          onClick: () => window.open("https://t.me/your_bot_username?start=1", "_blank"),
+        },
+      });
+    }
   };
 
-  if (!isTelegramInitComplete) {
+  if (isBlocked) {
+    return <BlockerScreen />;
+  }
+
+  if (!isTelegramReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <Loader2 className="h-12 w-12 animate-spin text-gray-500" />
       </div>
     );
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-2 sm:p-4 lg:p-6"
       style={{
         backgroundImage: "url('/vietnam-background.png')",
@@ -134,10 +166,20 @@ const ExchangePage = () => {
           {isFormSubmitted ? (
             <>
               <ExchangeSummary data={submittedFormData} />
-              <PostSubmissionInfo depositInfo={depositInfo} formData={submittedFormData} />
+              <PostSubmissionInfo
+                depositInfo={{
+                  network: submittedFormData.usdtNetwork,
+                  address: "N/A", // Адрес теперь приходит от бэка или известен заранее
+                }}
+                formData={submittedFormData}
+              />
             </>
           ) : (
-            <ExchangeForm onExchangeSuccess={handleExchangeSuccess} telegramUser={telegramUser} />
+            <ExchangeForm
+              onExchangeSuccess={handleExchangeSuccess}
+              telegramUser={telegramUser}
+              initData={initData}
+            />
           )}
         </CardContent>
       </Card>

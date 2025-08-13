@@ -1,13 +1,22 @@
 {
   "compilerOptions": {
-    // This tells TypeScript to include the Deno-specific APIs and globals like `Deno`.
-    "lib": ["deno.ns", "dom"],
-    // These are standard best practices for modern TypeScript.
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
     "strict": true,
-    "esModuleInterop": true,
-    // This is important: it tells the compiler not to generate any output files.
-    "noEmit": true
+    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"],
+    "types": ["@types/node"],
+    "baseUrl": ".",
+    "paths": {
+      "std/*": ["https://deno.land/std@0.190.0/*"],
+      "@supabase/supabase-js": ["https://esm.sh/@supabase/supabase-js@2.45.0"],
+      "shared/*": ["./functions/_shared/*"]
+    }
   },
-  // This ensures the settings are applied to all your function files.
-  "include": ["functions/**/*.ts"]
+  "include": ["functions/**/*"],
+  "exclude": ["node_modules"]
 }
