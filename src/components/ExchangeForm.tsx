@@ -322,7 +322,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
       // Payload соответствует ТЗ: { initData, form: { ... } }
       const payload = {
         initData,
-        formData: formDetails,
+        form: formDetails,
       };
 
       const { data, error } = await supabase.functions.invoke("create-order", {
