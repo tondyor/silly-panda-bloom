@@ -324,7 +324,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
         formData: formDetails,
       };
 
-      const { data, error } = await supabase.functions.invoke("create-order", {
+      const { data, error } = await supabase.functions.invoke("create-order", { // <-- ИЗМЕНЕНО ЗДЕСЬ
         body: payload,
       });
 
