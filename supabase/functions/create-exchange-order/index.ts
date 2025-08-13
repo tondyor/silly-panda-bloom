@@ -37,7 +37,6 @@ async function sendTelegramMessage(chatId: string | number, text: string): Promi
 
     if (!response.ok) {
       const errorData = await response.json();
-      // Улучшенное логирование ошибки от Telegram API
       console.error(`Telegram API error for chatId ${chatId}. Status: ${response.status}. Full error:`, JSON.stringify(errorData, null, 2));
       return false;
     }
@@ -50,76 +49,90 @@ async function sendTelegramMessage(chatId: string | number, text: string): Promi
   }
 }
 
-function formatOrderForTelegram(order: any, forAdmin: boolean): string {
-  if (forAdmin) {
-    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id}` : 'Клиент';
-    const details = [
-      `😏 Новый заказ!`,
-      ``,
-      `#${order.public_id}`,
-      `Клиент: ${clientIdentifier}`,
-      `-----------------------------------`,
-      `Вы получите: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `Отправить (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-      `-----------------------------------`,
-      `Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
-    ];
+function formatOrderForClient(order: any): string {
+  const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
+  const title = `*🎉${firstName}, ваша заявка успешно создана!*`;
+  
+  const details = [
+    title,
+    ``,
+    `📋 *Номер заявки:* #${order.public_id}`,
+    `💰 *Сумма к отправке:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+    `💵 *К получению:* ${order.calculated_vnd.toLocaleString('vi-VN')} VND`,
+    `📊 *Курс обмена:* 1 ${order.payment_currency} = ${Math.round(order.exchange_rate).toLocaleString('vi-VN')} VND`,
+  ];
 
-    if (order.payment_currency === 'USDT') {
-      details.push(`Сеть USDT: ${order.usdt_network}`);
-    }
-
-    if (order.delivery_method === 'bank') {
-      details.push(`Банк: ${order.vnd_bank_name}`);
-      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
-    } else {
-      details.push(`Адрес доставки: ${order.delivery_address}`);
-    }
-
-    if (order.contact_phone) {
-      details.push(`Телефон для связи: ${order.contact_phone}`);
-    }
-    
-    details.push(`-----------------------------------`);
-    details.push(`Статус: ${order.status}`);
-
-    return details.join('\n');
-  } else {
-    const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
-    const title = `*🥰${firstName} Вы оформили новую заявку!*`;
-    
-    const details = [
-      title,
-      `#${order.public_id}`,
-      `-----------------------------------`,
-      `Вы отправляете: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `К получению (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-    ];
-
-    if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
-      details.push(``);
-      details.push(`Кошелек для пополнения:`);
-      details.push(`\`${order.deposit_address}\``);
-      details.push(`Сеть USDT: ${order.usdt_network}`);
-      details.push(``);
-      details.push(`Внимание отправляйте средства только на указанный адрес в сети ${order.usdt_network}. В противном случае ваши средства могут быть навсегда утеряны.`);
-    }
-
-    details.push(`-----------------------------------`);
-    details.push(`Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`);
-
-    if (order.delivery_method === 'bank') {
-      details.push(`Банк: ${order.vnd_bank_name}`);
-      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
-    } else if (order.delivery_method === 'cash') {
-        details.push(`Адрес доставки: ${order.delivery_address}`);
-    }
-    
-    details.push(`-----------------------------------`);
-    details.push(`Статус: Новая заявка (Не оплачен)`);
-
-    return details.join('\n');
+  // Добавляем информацию о кошельке для USDT
+  if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
+    details.push(``);
+    details.push(`💳 *Кошелек для пополнения:*`);
+    details.push(`\`${order.deposit_address}\``);
+    details.push(`🌐 *Сеть USDT:* ${order.usdt_network}`);
+    details.push(``);
+    details.push(`⚠️ *Важно!* Отправляйте средства только на указанный адрес в сети ${order.usdt_network}. В противном случае ваши средства могут быть навсегда утеряны.`);
   }
+
+  details.push(``, `📋 *Детали получения:*`);
+  details.push(`🚚 *Способ получения:* ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`);
+
+  if (order.delivery_method === 'bank') {
+    details.push(`🏦 *Банк:* ${order.vnd_bank_name}`);
+    details.push(`💳 *Номер счета:* ${order.vnd_bank_account_number}`);
+  } else if (order.delivery_method === 'cash') {
+    details.push(`📍 *Адрес доставки:* ${order.delivery_address}`);
+  }
+
+  if (order.contact_phone) {
+    details.push(`📞 *Телефон для связи:* ${order.contact_phone}`);
+  }
+  
+  details.push(``, `📈 *Статус:* Новая заявка (ожидает оплаты)`);
+  details.push(``, `Мы свяжемся с вами в ближайшее время для подтверждения деталей!`);
+
+  return details.join('\n');
+}
+
+function formatOrderForAdmin(order: any): string {
+  const clientIdentifier = order.telegram_id ? `@id${order.telegram_id}` : 'Анонимный клиент';
+  const clientName = order.telegram_user_first_name ? ` (${order.telegram_user_first_name})` : '';
+  
+  const details = [
+    `🔔 *НОВЫЙ ЗАКАЗ*`,
+    ``,
+    `📋 *ID заявки:* #${order.public_id}`,
+    `👤 *Клиент:* ${clientIdentifier}${clientName}`,
+    ``,
+    `💰 *Детали обмена:*`,
+    `• Отправляет: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+    `• Получает: ${order.calculated_vnd.toLocaleString('vi-VN')} VND`,
+    `• Курс: 1 ${order.payment_currency} = ${Math.round(order.exchange_rate).toLocaleString('vi-VN')} VND`,
+  ];
+
+  if (order.payment_currency === 'USDT') {
+    details.push(`• Сеть USDT: ${order.usdt_network}`);
+    if (order.deposit_address && order.deposit_address !== 'N/A') {
+      details.push(`• Кошелек: \`${order.deposit_address}\``);
+    }
+  }
+
+  details.push(``, `📋 *Детали доставки:*`);
+  details.push(`• Способ: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Доставка наличными'}`);
+
+  if (order.delivery_method === 'bank') {
+    details.push(`• Банк: ${order.vnd_bank_name}`);
+    details.push(`• Счет: ${order.vnd_bank_account_number}`);
+  } else {
+    details.push(`• Адрес: ${order.delivery_address}`);
+  }
+
+  if (order.contact_phone) {
+    details.push(`• Телефон: ${order.contact_phone}`);
+  }
+  
+  details.push(``, `📅 *Создан:* ${new Date(order.created_at).toLocaleString('ru-RU')}`);
+  details.push(`📈 *Статус:* ${order.status}`);
+
+  return details.join('\n');
 }
 
 serve(async (req) => {
@@ -138,8 +151,10 @@ serve(async (req) => {
     
     console.log("Received orderData with telegramId:", orderData.telegramId);
 
+    // Генерируем уникальный публичный ID для заказа
     const publicId = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
+    // Подготавливаем данные для вставки в базу
     const insertData = {
       payment_currency: orderData.paymentCurrency,
       from_amount: orderData.fromAmount,
@@ -157,6 +172,7 @@ serve(async (req) => {
       telegram_id: orderData.telegramId ?? null,
     };
 
+    // Создаем заказ в базе данных
     const { data: insertedOrder, error: insertError } = await supabase
       .from("orders")
       .insert(insertData)
@@ -171,43 +187,75 @@ serve(async (req) => {
       );
     }
 
-    console.log("Inserted order with telegram_id:", insertedOrder.telegram_id);
+    console.log("Order created successfully:", insertedOrder.public_id);
 
-    const fullOrderDetailsForNotification = {
-        ...insertedOrder,
-        telegram_user_first_name: orderData.telegramUserFirstName,
-        deposit_address: orderData.depositAddress,
+    // Подготавливаем полную информацию о заказе для уведомлений
+    const fullOrderDetails = {
+      ...insertedOrder,
+      telegram_user_first_name: orderData.telegramUserFirstName,
+      deposit_address: orderData.depositAddress,
     };
 
-    // --- НОВАЯ ЛОГИКА ОТПРАВКИ ---
+    // Отправляем уведомления
+    const notificationResults = {
+      clientNotified: false,
+      adminNotified: false,
+      clientError: null as string | null,
+      adminError: null as string | null,
+    };
 
-    // 1. Сначала отправляем сообщение КЛИЕНТУ и определяем статус
-    let clientNotificationStatus = "❌ Уведомление клиенту не отправлено (ID не получен).";
+    // 1. Уведомление клиенту
     if (insertedOrder.telegram_id) {
-      console.log("Attempting to send client message to:", insertedOrder.telegram_id);
-      const clientMessage = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-      const wasClientNotified = await sendTelegramMessage(insertedOrder.telegram_id, clientMessage);
-
-      if (wasClientNotified) {
-        clientNotificationStatus = `✅ Уведомление клиенту (ID: ${insertedOrder.telegram_id}) отправлено.`;
-      } else {
-        clientNotificationStatus = `❌ Ошибка отправки уведомления клиенту (ID: ${insertedOrder.telegram_id}).`;
+      console.log("Sending notification to client:", insertedOrder.telegram_id);
+      const clientMessage = formatOrderForClient(fullOrderDetails);
+      const clientSuccess = await sendTelegramMessage(insertedOrder.telegram_id, clientMessage);
+      
+      notificationResults.clientNotified = clientSuccess;
+      if (!clientSuccess) {
+        notificationResults.clientError = `Не удалось отправить уведомление клиенту (ID: ${insertedOrder.telegram_id})`;
       }
+    } else {
+      notificationResults.clientError = "Telegram ID клиента не указан";
     }
 
-    // 2. Затем отправляем сообщение АДМИНИСТРАТОРУ со статусом
+    // 2. Уведомление администратору
     if (ADMIN_TELEGRAM_CHAT_ID) {
-      let adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
-      adminMessage += `\n\n---\n*Статус уведомления:*\n${clientNotificationStatus}`;
-      await sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
+      console.log("Sending notification to admin:", ADMIN_TELEGRAM_CHAT_ID);
+      
+      let adminMessage = formatOrderForAdmin(fullOrderDetails);
+      
+      // Добавляем информацию о статусе уведомления клиента
+      adminMessage += `\n\n📊 *Статус уведомлений:*\n`;
+      
+      if (notificationResults.clientNotified) {
+        adminMessage += `✅ Клиент уведомлен (ID: ${insertedOrder.telegram_id})`;
+      } else {
+        adminMessage += `❌ ${notificationResults.clientError}`;
+      }
+      
+      const adminSuccess = await sendTelegramMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
+      
+      notificationResults.adminNotified = adminSuccess;
+      if (!adminSuccess) {
+        notificationResults.adminError = "Не удалось отправить уведомление администратору";
+      }
     } else {
       console.warn("ADMIN_TELEGRAM_CHAT_ID is not set. Cannot send admin notification.");
+      notificationResults.adminError = "ID администратора не настроен";
     }
 
+    // Логируем результаты уведомлений
+    console.log("Notification results:", notificationResults);
+
+    // Возвращаем успешный ответ с данными заказа
     return new Response(
-      JSON.stringify(insertedOrder),
+      JSON.stringify({
+        ...insertedOrder,
+        notificationStatus: notificationResults
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
