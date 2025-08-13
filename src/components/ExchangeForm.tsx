@@ -312,16 +312,17 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
         depositAddress = USDT_WALLETS[values.usdtNetwork] || "Адрес не найден.";
       }
 
-      const formDataWithDetails = {
+      const formDetails = {
         ...values,
         calculatedVND,
         exchangeRate,
         depositAddress,
       };
 
+      // Payload соответствует ТЗ: { initData, form: { ... } }
       const payload = {
         initData,
-        formData: formDataWithDetails,
+        formData: formDetails,
       };
 
       const { data, error } = await supabase.functions.invoke("create-order", {

@@ -27,7 +27,8 @@ const ExchangePage = () => {
       tg.ready();
       tg.expand();
 
-      if (tg.initData) {
+      // Строгая проверка initData
+      if (tg.initData && tg.initData.length > 0) {
         setInitData(tg.initData);
         setView('form');
       } else {
@@ -35,6 +36,7 @@ const ExchangePage = () => {
         setView('error');
       }
     } else {
+      // Для отладки в браузере или если скрипт не загрузился
       console.warn("Telegram Web App script not found. Running in non-Telegram environment.");
       setErrorMessage("Ошибка: не удалось подключиться к Telegram. Это приложение предназначено для использования только внутри Telegram.");
       setView('error');
@@ -83,6 +85,7 @@ const ExchangePage = () => {
           </Alert>
         );
       case 'form':
+        // Передаем initData как обязательный проп
         return <ExchangeForm initData={initData} onExchangeSuccess={handleExchangeSuccess} />;
       case 'summary':
         return (

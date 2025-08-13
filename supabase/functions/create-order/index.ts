@@ -2,8 +2,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-// @ts-ignore
-import { createHmac } from "https://deno.land/std@0.190.0/node/crypto.ts";
 
 // CORS-заголовки для предзапросов и ответов
 const corsHeaders = {
@@ -12,7 +10,9 @@ const corsHeaders = {
 };
 
 // Переменные окружения из секретов Supabase
+// @ts-ignore
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
+// @ts-ignore
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
@@ -20,9 +20,9 @@ const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 /**
  * Проверяет подлинность данных от Telegram с помощью HMAC-SHA256.
  * @param initData Строка initData из Telegram WebApp.
- * @returns {boolean} True, если данные подлинные, иначе false.
+ * @returns {Promise<boolean>} True, если данные подлинные, иначе false.
  */
-function validateTelegramData(initData: string): boolean {
+async function validateTelegramData(initData: string): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
     console.error("Критическая ошибка безопасности: TELEGRAM_BOT_TOKEN не установлен.");
     return false;
@@ -40,11 +40,35 @@ function validateTelegramData(initData: string): boolean {
   dataCheckArr.sort();
   const dataCheckString = dataCheckArr.join("\n");
 
-  const secret = createHmac("sha256", "WebAppData").update(TELEGRAM_BOT_TOKEN).digest();
-  const calculatedHash = createHmac("sha256", secret).update(dataCheckString).digest("hex");
+  const encoder = new TextEncoder();
+
+  // 1. Создаем секретный ключ из токена бота
+  const secretKey = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode("WebAppData"),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const secret = await crypto.subtle.sign("HMAC", secretKey, encoder.encode(TELEGRAM_BOT_TOKEN));
+
+  // 2. Используем полученный секрет для подписи строки данных
+  const finalKey = await crypto.subtle.importKey(
+    "raw",
+    secret,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signatureBuffer = await crypto.subtle.sign("HMAC", finalKey, encoder.encode(dataCheckString));
+  
+  // 3. Конвертируем подпись в hex-строку для сравнения
+  const hashArray = Array.from(new Uint8Array(signatureBuffer));
+  const calculatedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
   return hash === calculatedHash;
 }
+
 
 // --- Вспомогательные функции для Telegram API ---
 /**
@@ -179,7 +203,7 @@ serve(async (req) => {
     }
 
     // 2. Безопасность: Валидация входящего запроса от Telegram
-    if (!validateTelegramData(initData)) {
+    if (!await validateTelegramData(initData)) {
       return new Response(JSON.stringify({ error: "Ошибка аутентификации: неверные initData" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -200,7 +224,9 @@ serve(async (req) => {
 
     // 4. Создание клиента Supabase с сервисным ключом
     const supabase = createClient(
+      // @ts-ignore
       Deno.env.get("SUPABASE_URL")!,
+      // @ts-ignore
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
