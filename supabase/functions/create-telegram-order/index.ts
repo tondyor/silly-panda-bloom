@@ -1,8 +1,6 @@
-/// <reference types="https://deno.land/x/deno/cli/types/v8.d.ts" />
-
-import { serve } from "std/http/server.ts";
-import { createClient } from "@supabase/supabase-js";
-import { verifyInitData } from "shared/telegram-auth.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { verifyInitData } from "../_shared/telegram-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +59,8 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const { data: nextOrderId } = await supabase.rpc('get_next_order_id');
+
     const orderPayload = {
       user_id: userId,
       payment_currency: order.paymentCurrency,
@@ -74,7 +74,7 @@ serve(async (req: Request) => {
       delivery_address: order.deliveryAddress ?? null,
       contact_phone: order.contactPhone ?? null,
       status: "Новая заявка",
-      public_id: `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      public_id: String(nextOrderId),
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
@@ -116,7 +116,7 @@ serve(async (req: Request) => {
       sendMessageStatus.need_start = true;
     }
 
-    const adminMessage = `Новый заказ #${orderId} от пользователя ${userId}.\nСумма: ${order.fromAmount} ${order.paymentCurrency}.`;
+    const adminMessage = `Новый заказ #${orderId} от пользователя ${userData.first_name} (@${userData.username}, ID: ${userId}).\nСумма: ${order.fromAmount} ${order.paymentCurrency}.`;
     await sendTelegramApiRequest('sendMessage', {
       chat_id: adminChatId,
       text: adminMessage,
@@ -127,6 +127,7 @@ serve(async (req: Request) => {
       order_id: orderId,
       status: insertedOrder.status,
       notification_status: sendMessageStatus,
+      original_data: order,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

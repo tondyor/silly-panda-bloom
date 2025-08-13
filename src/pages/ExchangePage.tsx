@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ExchangeForm } from "@/components/ExchangeForm";
+import { ExchangeForm, ExchangeFormValues } from "@/components/ExchangeForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
@@ -20,6 +20,11 @@ interface TelegramUser {
   language_code?: string;
 }
 
+type SubmittedOrderData = ExchangeFormValues & {
+  orderId: string;
+  status: string;
+};
+
 const BlockerScreen = () => {
   const { t } = useTranslation();
   return (
@@ -34,7 +39,7 @@ const BlockerScreen = () => {
           <p>{t("blocker.description")}</p>
           <Button
             onClick={() => {
-              // Здесь можно указать реальное имя вашего бота
+              // TODO: Replace with your actual bot username
               window.open("https://t.me/your_bot_username", "_blank");
             }}
             className="bg-blue-500 hover:bg-blue-600"
@@ -48,9 +53,9 @@ const BlockerScreen = () => {
 };
 
 const ExchangePage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
-  const [submittedFormData, setSubmittedFormData] = useState<any>(null);
+  const [submittedFormData, setSubmittedFormData] = useState<SubmittedOrderData | null>(null);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
   const [isTelegramReady, setIsTelegramReady] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -59,8 +64,8 @@ const ExchangePage = () => {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
 
-    if (!tg || Object.keys(tg).length === 0) {
-      console.error("Telegram Web App environment not found. Blocking access.");
+    if (!tg || !tg.initData) {
+      console.error("Telegram Web App environment not found or initData is missing. Blocking access.");
       setIsBlocked(true);
       return;
     }
@@ -73,12 +78,13 @@ const ExchangePage = () => {
     if (unsafeUser) {
       setTelegramUser(unsafeUser);
       setInitData(tg.initData);
+      if (unsafeUser.language_code) {
+        i18n.changeLanguage(unsafeUser.language_code);
+      }
       console.log("Telegram user initialized:", unsafeUser);
 
-      // Запрос права на отправку сообщений
       tg.requestWriteAccess((isAllowed) => {
         console.log(`Permission to write to PM: ${isAllowed}`);
-        // Верифицируем сессию на бэкенде
         fetch("https://lvrusgtopkuuuxgdzacf.supabase.co/functions/v1/verify-telegram-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -98,31 +104,31 @@ const ExchangePage = () => {
     }
 
     setIsTelegramReady(true);
-  }, []);
+  }, [i18n]);
 
   const handleExchangeSuccess = (orderData: any) => {
-    const displayData = {
+    const displayData: SubmittedOrderData = {
       orderId: orderData.order_id,
       status: orderData.status,
-      ...orderData.original_data, // Предполагаем, что бэк вернет исходные данные формы
+      ...orderData.original_data,
     };
 
     setSubmittedFormData(displayData);
     setIsFormSubmitted(true);
 
     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-    toast.success("Ваш запрос на обмен успешно отправлен!", {
-      description: `Номер вашего заказа: ${displayData.orderId}.`,
+    toast.success(t("toast.orderCreatedSuccessTitle"), {
+      description: t("toast.orderCreatedSuccessDescription", { orderId: displayData.orderId }),
       duration: 5000,
       position: "top-center",
     });
 
-    // Если боту нужно разрешение на отправку, а его нет
     if (orderData.notification_status?.need_start) {
-      toast.warning("Нажмите 'Start' в чате с ботом, чтобы получать уведомления.", {
+      toast.warning(t("toast.startBotWarningTitle"), {
         duration: 10000,
         action: {
-          label: "Открыть чат",
+          label: t("toast.startBotAction"),
+          // TODO: Replace with your actual bot username
           onClick: () => window.open("https://t.me/your_bot_username?start=1", "_blank"),
         },
       });
@@ -163,13 +169,13 @@ const ExchangePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
-          {isFormSubmitted ? (
+          {isFormSubmitted && submittedFormData ? (
             <>
               <ExchangeSummary data={submittedFormData} />
               <PostSubmissionInfo
                 depositInfo={{
-                  network: submittedFormData.usdtNetwork,
-                  address: "N/A", // Адрес теперь приходит от бэка или известен заранее
+                  network: submittedFormData.usdtNetwork || "N/A",
+                  address: "N/A", // This should come from backend if dynamic
                 }}
                 formData={submittedFormData}
               />

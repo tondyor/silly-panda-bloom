@@ -3,20 +3,17 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
+    "esModuleInterop": true,
     "strict": true,
-    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"],
-    "types": ["@types/node"],
-    "baseUrl": ".",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "lib": ["esnext", "deno.ns"],
     "paths": {
       "std/*": ["https://deno.land/std@0.190.0/*"],
       "@supabase/supabase-js": ["https://esm.sh/@supabase/supabase-js@2.45.0"],
       "shared/*": ["./functions/_shared/*"]
     }
   },
-  "include": ["functions/**/*"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules"]
 }

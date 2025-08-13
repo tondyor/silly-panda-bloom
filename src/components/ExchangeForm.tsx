@@ -20,7 +20,7 @@ const PROFIT_MARGIN = -0.02;
 
 const commonFields = {
   paymentCurrency: z.enum(["USDT", "RUB"]),
-  fromAmount: z.number({ invalid_type_error: "Сумма должна быть числом." }).optional(),
+  fromAmount: z.coerce.number({ invalid_type_error: "Сумма должна быть числом." }).positive("Сумма должна быть положительной."),
   usdtNetwork: z.enum(["BEP20", "TRC20", "ERC20", "TON", "SPL"]).optional(),
   contactPhone: z
     .string()
@@ -55,10 +55,6 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
       .max(200, "Адрес доставки слишком длинный."),
   }),
 ]).superRefine((data, ctx) => {
-  if (data.fromAmount === undefined || data.fromAmount === null || isNaN(data.fromAmount)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Пожалуйста, введите сумму.", path: ["fromAmount"] });
-    return;
-  }
   if (data.paymentCurrency === "USDT") {
     if (!data.usdtNetwork) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Пожалуйста, выберите сеть USDT.", path: ["usdtNetwork"] });
@@ -82,40 +78,20 @@ const formSchema = z.discriminatedUnion("deliveryMethod", [
   }
 });
 
-function average(arr: number[]): number {
-  if (arr.length === 0) return 0;
-  return arr.reduce((a, b) => a + b, 0) / arr.length;
-}
-
-async function fetchUsdtVndRates(): Promise<number[]> {
-  const results: number[] = [];
-  try {
-    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd");
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.tether?.vnd) results.push(data.tether.vnd);
-    }
-  } catch (e) { console.error(e); }
-  return results;
-}
-
-async function fetchRubVndRates(): Promise<number[]> {
-  const results: number[] = [];
-  try {
-    const res = await fetch("https://api.exchangerate.host/convert?from=RUB&to=VND");
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.result) results.push(data.result);
-    }
-  } catch (e) { console.error(e); }
-  return results;
-}
+export type ExchangeFormValues = z.infer<typeof formSchema>;
 
 const fetchExchangeRate = async (currency: "USDT" | "RUB"): Promise<number> => {
-  const rates = currency === "USDT" ? await fetchUsdtVndRates() : await fetchRubVndRates();
-  if (rates.length === 0) return currency === "USDT" ? 24000 : 300;
-  const avgRate = average(rates);
-  return avgRate * (1 + PROFIT_MARGIN);
+  try {
+    const response = await fetch(`https://lvrusgtopkuuuxgdzacf.supabase.co/functions/v1/get-exchange-rate?currency=${currency}`);
+    if (!response.ok) throw new Error('Failed to fetch rate');
+    const data = await response.json();
+    const rate = data.rate * (1 + PROFIT_MARGIN);
+    return rate;
+  } catch (error) {
+    console.error("Failed to fetch exchange rate:", error);
+    // Fallback rates
+    return currency === "USDT" ? 24000 : 300;
+  }
 };
 
 interface TelegramUser {
@@ -136,26 +112,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, initData }: Exch
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const {
-    data: usdtVndRate,
-    isLoading: isLoadingRate,
-    isError: isErrorRate,
-    dataUpdatedAt: usdtDataUpdatedAt,
-  } = useQuery<number>({
-    queryKey: ["usdt-vnd-rate"],
-    queryFn: () => fetchExchangeRate("USDT"),
-    refetchInterval: 30000,
-    staleTime: 30000,
-  });
-
-  const { data: rubVndRate, dataUpdatedAt: rubDataUpdatedAt } = useQuery<number>({
-    queryKey: ["rub-vnd-rate"],
-    queryFn: () => fetchExchangeRate("RUB"),
-    refetchInterval: 30000,
-    staleTime: 30000,
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<ExchangeFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       paymentCurrency: "USDT",
@@ -166,28 +123,40 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, initData }: Exch
   });
 
   const fromAmount = form.watch("fromAmount");
-  const deliveryMethod = form.watch("deliveryMethod");
   const paymentCurrency = form.watch("paymentCurrency");
+  const deliveryMethod = form.watch("deliveryMethod");
+
+  const {
+    data: currentRate,
+    isLoading: isLoadingRate,
+    isError: isErrorRate,
+    dataUpdatedAt,
+  } = useQuery<number>({
+    queryKey: ["exchange-rate", paymentCurrency],
+    queryFn: () => fetchExchangeRate(paymentCurrency),
+    refetchInterval: 30000,
+    staleTime: 30000,
+  });
 
   useEffect(() => {
-    const preciseRate = paymentCurrency === "USDT" ? usdtVndRate ?? 0 : rubVndRate ?? 0;
-    setExchangeRate(preciseRate);
-    const displayRate = Math.round(preciseRate);
+    const rate = currentRate ?? 0;
+    setExchangeRate(rate);
+    const displayRate = Math.round(rate);
     if (typeof fromAmount === "number" && fromAmount > 0) {
       setCalculatedVND(fromAmount * displayRate);
     } else {
       setCalculatedVND(0);
     }
-  }, [fromAmount, paymentCurrency, usdtVndRate, rubVndRate]);
+  }, [fromAmount, currentRate]);
 
   const handleCurrencyChange = (value: "USDT" | "RUB") => {
     form.setValue("paymentCurrency", value);
     if (value === "RUB") form.setValue("deliveryMethod", "cash");
   };
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: ExchangeFormValues) {
     if (!initData) {
-      setErrorMessage("Ошибка: initData отсутствует. Невозможно создать заказ.");
+      setErrorMessage(t("error.initDataMissing"));
       return;
     }
     setIsSubmitting(true);
@@ -209,10 +178,10 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, initData }: Exch
       const result = await res.json();
 
       if (!res.ok || !result.ok) {
-        throw new Error(result.error || "Не удалось создать заказ.");
+        throw new Error(result.error || t("error.orderCreation"));
       }
       
-      onExchangeSuccess({ ...result, original_data: values });
+      onExchangeSuccess(result);
       form.reset();
       setCalculatedVND(0);
 
@@ -225,8 +194,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, initData }: Exch
     }
   }
 
-  const isRateUnavailable = (paymentCurrency === "USDT" && (isLoadingRate || isErrorRate || !usdtVndRate)) ||
-                            (paymentCurrency === "RUB" && !rubVndRate);
+  const isRateUnavailable = isLoadingRate || isErrorRate || !currentRate;
 
   return (
     <Form {...form}>
@@ -234,7 +202,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, initData }: Exch
         {errorMessage && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Ошибка</AlertTitle>
+            <AlertTitle>{t("error.title")}</AlertTitle>
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
@@ -243,11 +211,11 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, initData }: Exch
           <Label>{t("exchangeForm.exchangeCurrencyLabel")} <span className="text-red-500">*</span></Label>
           <CurrencyTabs value={paymentCurrency} onChange={handleCurrencyChange} />
           <div className="flex h-8 items-center justify-center gap-2 text-sm text-gray-600">
-            {isLoadingRate && paymentCurrency === 'USDT' ? <Skeleton className="h-4 w-48" /> :
+            {isLoadingRate ? <Skeleton className="h-4 w-48" /> :
              !isRateUnavailable && (
               <>
                 <span>1 {paymentCurrency} / {Math.round(exchangeRate).toLocaleString("vi-VN")} VND</span>
-                <CountdownCircle key={paymentCurrency === 'USDT' ? usdtDataUpdatedAt : rubDataUpdatedAt} duration={30} />
+                <CountdownCircle key={dataUpdatedAt} duration={30} />
               </>
             )}
           </div>
@@ -259,7 +227,7 @@ export function ExchangeForm({ onExchangeSuccess, telegramUser, initData }: Exch
           <Label>{t("exchangeForm.youWillReceiveLabel")}</Label>
           <input
             type="text"
-            value={isRateUnavailable ? "Расчет..." : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+            value={isRateUnavailable ? t("exchangeForm.calculating") : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
             readOnly
             className="h-12 p-3 text-base w-full bg-gray-100 font-bold text-green-700 text-lg rounded-md"
           />
