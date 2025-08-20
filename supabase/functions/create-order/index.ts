@@ -381,7 +381,7 @@ serve(async (req) => {
       const messageId = clientMessageResponse.result.message_id;
       // Сохраняем message_id и chat_id для возможности обновления сообщения
       const { error: saveMessageError } = await supabase
-        .from('telegram_messages')
+        .from('order_messages') // ИЗМЕНЕНО: Используем новое имя таблицы
         .insert({
           chat_id: user.id,
           message_id: messageId,
