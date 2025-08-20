@@ -27,7 +27,7 @@ export const LanguageSwitcher = () => {
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
-          className="h-auto px-2 py-1 text-sm font-bold text-white hover:bg-white/20 hover:text-white focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-white/50"
+          className="h-auto px-2 py-0 text-sm font-bold text-white hover:bg-white/20 hover:text-white focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-white/50"
         >
           {currentLanguageCode.toUpperCase()}
         </Button>
