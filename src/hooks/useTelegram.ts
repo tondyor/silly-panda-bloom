@@ -23,28 +23,43 @@ export const useTelegram = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
+    let attempts = 0;
+    const maxAttempts = 10;
+    const interval = 100; // ms
 
-    if (tg) {
-      tg.ready();
-      tg.expand();
+    const intervalId = setInterval(() => {
+      const tg = window.Telegram?.WebApp;
+      
+      if (tg) {
+        clearInterval(intervalId);
+        tg.ready();
+        tg.expand();
 
-      if (tg.initData && tg.initData.length > 0) {
-        setData({
-          initData: tg.initData,
-          initDataUnsafe: tg.initDataUnsafe || {},
-          user: tg.initDataUnsafe?.user,
-        });
+        if (tg.initData && tg.initData.length > 0) {
+          setData({
+            initData: tg.initData,
+            initDataUnsafe: tg.initDataUnsafe || {},
+            user: tg.initDataUnsafe?.user,
+          });
+        } else {
+          setError("Ошибка: данные инициализации Telegram (initData) отсутствуют или пусты. Приложение должно быть запущено из Telegram.");
+        }
+        setIsLoading(false);
       } else {
-        setError("Ошибка: данные инициализации Telegram (initData) отсутствуют или пусты. Приложение должно быть запущено из Telegram.");
+        attempts++;
+        if (attempts >= maxAttempts) {
+          clearInterval(intervalId);
+          console.warn("Telegram Web App script not found after multiple attempts. Running in non-Telegram environment.");
+          setError("Ошибка: не удалось подключиться к Telegram. Это приложение предназначено для использования только внутри Telegram.");
+          setIsLoading(false);
+        }
       }
-    } else {
-      // Этот случай для разработки в браузере
-      console.warn("Telegram Web App script not found. Running in non-Telegram environment.");
-      setError("Ошибка: не удалось подключиться к Telegram. Это приложение предназначено для использования только внутри Telegram.");
-    }
+    }, interval);
 
-    setIsLoading(false);
+    // Cleanup function to clear the interval if the component unmounts
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   return { data, error, isLoading };
