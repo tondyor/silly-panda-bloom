@@ -21,7 +21,7 @@ export const DeliveryMethodTabs: React.FC<DeliveryMethodTabsProps> = ({
   control,
 }) => {
   const { t } = useTranslation();
-  const inputClass = "h-12 p-3 text-base w-full min-w-[70%]";
+  const inputClass = "h-12 p-3 text-base w-full min-w-[70%] bg-white";
 
   return (
     <div className="space-y-1">
@@ -29,7 +29,7 @@ export const DeliveryMethodTabs: React.FC<DeliveryMethodTabsProps> = ({
         {t("exchangeForm.deliveryMethodLabel")} <span className="text-red-500">*</span>
       </FormLabel>
       <Tabs value={value} onValueChange={onChange} className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-gray-200 p-1">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-white border border-gray-200 p-1">
           <TabsTrigger
             value="bank"
             disabled={paymentCurrency === "RUB"}

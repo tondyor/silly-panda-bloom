@@ -14,7 +14,7 @@ export const CurrencyTabs: React.FC<CurrencyTabsProps> = ({ value, onChange }) =
 
   return (
     <Tabs value={value} onValueChange={onChange} className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-gray-200 p-1">
+      <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-white border border-gray-200 p-1">
         <TabsTrigger
           value="USDT"
           className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-sm font-medium text-gray-700 transition-all"

@@ -12,7 +12,7 @@ interface UsdtNetworkSelectProps {
 
 export const UsdtNetworkSelect: React.FC<UsdtNetworkSelectProps> = ({ control, name }) => {
   const { t } = useTranslation();
-  const inputClass = "h-12 p-3 text-base w-full min-w-[70%]";
+  const inputClass = "h-12 p-3 text-base w-full min-w-[70%] bg-white";
 
   return (
     <FormField
