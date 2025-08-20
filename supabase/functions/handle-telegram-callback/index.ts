@@ -20,19 +20,27 @@ const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
  * @param text Новый текст сообщения.
  * @param reply_markup Опциональная разметка для кнопок.
  */
-async function editMessageText(chatId: string | number, messageId: number, text: string, reply_markup?: any): Promise<void> {
+async function editMessageText(chatId: string | number, messageId: number, text: string, reply_markup?: any): Promise<any> {
   try {
+    console.log(`Attempting to edit message ${messageId} in chat ${chatId}.`);
+    console.log("New text payload:", text);
+    console.log("New reply_markup payload:", JSON.stringify(reply_markup, null, 2));
+
     const response = await fetch(`${TELEGRAM_API_URL}/editMessageText`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: 'Markdown', reply_markup }),
     });
+    const responseData = await response.json();
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`Ошибка Telegram API (editMessageText) для chatId ${chatId}, messageId ${messageId}:`, JSON.stringify(errorData, null, 2));
+      console.error(`Ошибка Telegram API (editMessageText) для chatId ${chatId}, messageId ${messageId}:`, JSON.stringify(responseData, null, 2));
+    } else {
+      console.log(`Successfully edited message ${messageId}. Response:`, JSON.stringify(responseData, null, 2));
     }
+    return responseData;
   } catch (e) {
     console.error(`Не удалось отредактировать сообщение в Telegram для ${chatId}, ${messageId}:`, e);
+    return null;
   }
 }
 
@@ -118,6 +126,8 @@ function getTranslation(lang: string, key: string, params?: Record<string, strin
  * @returns Отформатированная строка.
  */
 function formatClientOrderMessage(order: any, lang: string): string {
+  const locale = lang === 'vi' ? 'vi-VN' : 'ru-RU'; // Используем 'ru-RU' для русского и английского, 'vi-VN' для вьетнамского
+
   const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
   const title = getTranslation(lang, 'orderAcceptedTitle', { firstName });
   
@@ -125,8 +135,8 @@ function formatClientOrderMessage(order: any, lang: string): string {
     title,
     `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
     `-----------------------------------`,
-    `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-    `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+    `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
+    `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
   ];
 
   if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
@@ -172,12 +182,12 @@ serve(async (req) => {
     const callbackQueryId = callbackQuery.id;
 
     console.log(`Callback received: data=${data}, chatId=${chatId}, messageId=${messageId}`);
+    await answerCallbackQuery(callbackQueryId); // Dismiss loading state immediately
 
     // Parse callback data
     const parts = data.split('_');
     if (parts.length !== 3 || parts[0] !== 'lang') {
       console.error("Invalid callback data format:", data);
-      await answerCallbackQuery(callbackQueryId); // Dismiss loading
       return new Response(JSON.stringify({ error: "Invalid callback data" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -203,7 +213,6 @@ serve(async (req) => {
 
     if (orderError || !order) {
       console.error("Database Error: Failed to fetch order.", orderError);
-      await answerCallbackQuery(callbackQueryId); // Dismiss loading
       return new Response(JSON.stringify({ error: "Order not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -246,8 +255,12 @@ serve(async (req) => {
       ]
     };
 
-    await editMessageText(chatId, messageId, updatedMessageText, inlineKeyboard);
-    await answerCallbackQuery(callbackQueryId); // Dismiss loading state
+    const editResponse = await editMessageText(chatId, messageId, updatedMessageText, inlineKeyboard);
+    
+    if (!editResponse || !editResponse.ok) {
+      console.error(`Failed to edit message ${messageId}. Full response:`, JSON.stringify(editResponse, null, 2));
+      // No need to throw, as answerCallbackQuery was already called.
+    }
 
     console.log(`Message ${messageId} in chat ${chatId} updated to ${newLang}.`);
 
@@ -258,7 +271,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("--- CRITICAL ERROR in handle-telegram-callback function ---", error);
-    await answerCallbackQuery(callbackQueryId); // Ensure callback is answered even on error
+    // Ensure answerCallbackQuery is called even if an unexpected error occurs
+    if (callbackQuery && callbackQuery.id) {
+      await answerCallbackQuery(callbackQuery.id);
+    }
     return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

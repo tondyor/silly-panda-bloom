@@ -91,9 +91,7 @@ async function sendMessage(chatId: string | number, text: string, reply_markup?:
       console.error(`Ошибка Telegram API (sendMessage) для chatId ${chatId}:`, JSON.stringify(errorData, null, 2));
       return null;
     }
-    const responseData = await response.json();
-    console.log(`Successfully sent message to chat ID: ${chatId}. Response:`, JSON.stringify(responseData, null, 2));
-    return responseData;
+    return await response.json();
   } catch (e) {
     console.error(`Не удалось отправить сообщение в Telegram для ${chatId}:`, e);
     return null;
@@ -193,6 +191,8 @@ function getTranslation(lang: string, key: string, params?: Record<string, strin
  * @returns Отформатированная строка.
  */
 function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): string {
+  const locale = lang === 'vi' ? 'vi-VN' : 'ru-RU'; // Используем 'ru-RU' для русского и английского, 'vi-VN' для вьетнамского
+
   if (forAdmin) {
     const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
     const details = [
@@ -201,9 +201,9 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
       `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
       `${getTranslation(lang, 'client')} ${clientIdentifier}`,
       `-----------------------------------`,
-      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-      `${getTranslation(lang, 'exchangeRate')} ${order.exchange_rate.toLocaleString('ru-RU')}`,
+      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
+      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
+      `${getTranslation(lang, 'exchangeRate')} ${order.exchange_rate.toLocaleString(locale)}`,
       `-----------------------------------`,
       `${getTranslation(lang, 'deliveryMethod')} ${order.delivery_method === 'bank' ? getTranslation(lang, 'bankTransfer') : getTranslation(lang, 'cash')}`,
     ];
@@ -235,8 +235,8 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
       title,
       `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
       `-----------------------------------`,
-      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
+      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
     ];
 
     if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
@@ -384,7 +384,7 @@ serve(async (req) => {
       const messageId = clientMessageResponse.result.message_id;
       // Сохраняем message_id и chat_id для возможности обновления сообщения
       const { error: saveMessageError } = await supabase
-        .from('order_messages') // ИЗМЕНЕНО: Используем новое имя таблицы
+        .from('order_messages')
         .insert({
           chat_id: user.id,
           message_id: messageId,
@@ -400,17 +400,18 @@ serve(async (req) => {
     }
 
     // 8b. (Опционально) Уведомление администратора
-    if (ADMIN_TELEGRAM_CHAT_ID) {
+    console.log(`Step 8b: Checking ADMIN_TELEGRAM_CHAT_ID: ${ADMIN_TELEGRAM_CHAT_ID}`);
+    if (ADMIN_TELEGRAM_CHAT_ID && ADMIN_TELEGRAM_CHAT_ID.trim() !== '') {
       console.log(`Attempting to send admin notification to chat ID: ${ADMIN_TELEGRAM_CHAT_ID}`);
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true, 'ru'); // Admin message always in Russian
       const adminMessageResponse = await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
       if (adminMessageResponse && adminMessageResponse.ok) {
-        console.log(`Step 8b: Sent notification to admin chat.`);
+        console.log(`Step 8b: Sent notification to admin chat. Response:`, JSON.stringify(adminMessageResponse, null, 2));
       } else {
-        console.error(`Step 8b: Failed to send notification to admin chat. Response:`, adminMessageResponse);
+        console.error(`Step 8b: Failed to send notification to admin chat. Response:`, JSON.stringify(adminMessageResponse, null, 2));
       }
     } else {
-      console.warn("ADMIN_TELEGRAM_CHAT_ID is not set. Admin notification skipped.");
+      console.warn("ADMIN_TELEGRAM_CHAT_ID is not set or is empty. Admin notification skipped.");
     }
 
     // 9. Возврат успешного ответа фронтенду
