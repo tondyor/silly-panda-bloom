@@ -97,7 +97,7 @@ const ExchangePage = () => {
           <div className="absolute top-1/2 right-2 -translate-y-1/2 z-20">
             <LanguageSwitcher />
           </div>
-          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-left text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
             {t('headerTitle')}
           </CardTitle>
         </CardHeader>
