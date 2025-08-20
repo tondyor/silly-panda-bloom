@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
 import { ExchangeSummary } from "@/components/ExchangeSummary";
@@ -13,6 +13,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTelegram } from "@/hooks/useTelegram";
 import { UserProfile } from "@/components/UserProfile";
+import { supabase } from "@/integrations/supabase/client";
 
 const ExchangePage = () => {
   const { t } = useTranslation();
@@ -21,6 +22,28 @@ const ExchangePage = () => {
   const [isSummaryView, setIsSummaryView] = useState(false);
   const [submittedOrderData, setSubmittedOrderData] = useState<any>(null);
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
+
+  // Effect to upsert user profile on load
+  useEffect(() => {
+    if (telegramData?.initData) {
+      const upsertProfile = async () => {
+        try {
+          const { error } = await supabase.functions.invoke("upsert-telegram-profile", {
+            body: { initData: telegramData.initData },
+          });
+          if (error) {
+            console.error("Failed to upsert Telegram profile:", error.message);
+            // Non-blocking error, so we don't show a toast to the user
+          } else {
+            console.log("Telegram profile upserted successfully.");
+          }
+        } catch (e) {
+          console.error("Error invoking upsert-telegram-profile function:", e);
+        }
+      };
+      upsertProfile();
+    }
+  }, [telegramData]);
 
   const handleExchangeSuccess = (
     network: string,
@@ -78,7 +101,7 @@ const ExchangePage = () => {
       return <ExchangeForm initData={telegramData.initData} onExchangeSuccess={handleExchangeSuccess} />;
     }
 
-    return null; // Это состояние не должно достигаться, если loading/error обработаны
+    return null; // This state should not be reached if loading/error are handled
   };
 
   return (
@@ -110,7 +133,7 @@ const ExchangePage = () => {
         </CardContent>
       </Card>
 
-      {/* Показываем эти секции только когда видна форма */}
+      {/* Show these sections only when the form is visible */}
       {!isSummaryView && telegramData && (
         <>
           <HowItWorksSection />
