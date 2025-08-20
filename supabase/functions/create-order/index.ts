@@ -192,23 +192,30 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("--- Invoking create-order function ---");
+
   try {
     // 1. Извлечение данных из тела запроса
     const { initData, formData } = await req.json();
     if (!initData || !formData) {
+      console.error("Validation Error: Missing initData or formData in request body.");
       return new Response(JSON.stringify({ error: "Отсутствуют initData или formData" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("Step 1: Request body parsed successfully.");
 
     // 2. Безопасность: Валидация входящего запроса от Telegram
-    if (!await validateTelegramData(initData)) {
+    const isTelegramDataValid = await validateTelegramData(initData);
+    if (!isTelegramDataValid) {
+      console.error("Authentication Error: Invalid initData received.");
       return new Response(JSON.stringify({ error: "Ошибка аутентификации: неверные initData" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("Step 2: Telegram data validated successfully.");
 
     // 3. Парсинг данных пользователя и query_id из initData
     const params = new URLSearchParams(initData);
@@ -216,11 +223,13 @@ serve(async (req) => {
     const queryId = params.get("query_id");
 
     if (!user || !user.id) {
+        console.error("Data Error: Could not extract user data from initData.");
         return new Response(JSON.stringify({ error: "Не удалось извлечь данные пользователя из initData" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
+    console.log(`Step 3: User data parsed. User ID: ${user.id}, Username: ${user.username || 'N/A'}`);
 
     // 4. Создание клиента Supabase с сервисным ключом
     const supabase = createClient(
@@ -229,8 +238,27 @@ serve(async (req) => {
       // @ts-ignore
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    console.log("Step 4: Supabase client created.");
 
-    // 5. Подготовка и сохранение заказа в базу данных
+    // 5. Upsert профиля пользователя Telegram
+    const { error: upsertProfileError } = await supabase
+      .from('telegram_profiles')
+      .upsert({
+        telegram_id: user.id,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
+        username: user.username || null,
+        language_code: user.language_code || null,
+      }, { onConflict: 'telegram_id' });
+
+    if (upsertProfileError) {
+      console.error("Database Warning: Failed to upsert Telegram profile.", upsertProfileError);
+      // Не прерываем выполнение, но логируем ошибку
+    } else {
+      console.log(`Step 5: Telegram profile for user ${user.id} upserted successfully.`);
+    }
+
+    // 6. Подготовка и сохранение заказа в базу данных
     const publicId = `ORD-${Date.now()}`;
     const orderToInsert = {
       payment_currency: formData.paymentCurrency,
@@ -255,11 +283,12 @@ serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error("Ошибка вставки в Supabase:", insertError);
+      console.error("Database Error: Failed to insert order.", insertError);
       throw new Error(`Ошибка базы данных: ${insertError.message}`);
     }
+    console.log(`Step 6: Order #${publicId} created successfully in database.`);
 
-    // 6. Подготовка данных для уведомлений
+    // 7. Подготовка данных для уведомлений
     const fullOrderDetailsForNotification = {
         ...insertedOrder,
         telegram_user_first_name: user.first_name,
@@ -268,9 +297,10 @@ serve(async (req) => {
     };
     
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
+    console.log("Step 7: Notification data prepared.");
 
-    // 7. Отправка двойных уведомлений
-    // 7a. Через answerWebAppQuery (если доступен queryId)
+    // 8. Отправка двойных уведомлений
+    // 8a. Через answerWebAppQuery (если доступен queryId)
     if (queryId) {
       await answerWebAppQuery(queryId, {
         type: 'article',
@@ -278,25 +308,29 @@ serve(async (req) => {
         title: 'Заявка успешно создана!',
         input_message_content: { message_text: clientMessageText, parse_mode: 'Markdown' },
       });
+      console.log(`Step 8a: Sent answerWebAppQuery for queryId ${queryId}.`);
     }
 
-    // 7b. Всегда через sendMessage в личный чат пользователя
+    // 8b. Всегда через sendMessage в личный чат пользователя
     await sendMessage(user.id, clientMessageText);
+    console.log(`Step 8b: Sent direct message to user ${user.id}.`);
 
-    // 7c. (Опционально) Уведомление администратора
+    // 8c. (Опционально) Уведомление администратора
     if (ADMIN_TELEGRAM_CHAT_ID) {
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
       await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
+      console.log(`Step 8c: Sent notification to admin chat.`);
     }
 
-    // 8. Возврат успешного ответа фронтенду
+    // 9. Возврат успешного ответа фронтенду
+    console.log("--- create-order function finished successfully ---");
     return new Response(JSON.stringify(insertedOrder), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
-    console.error("Ошибка в функции create-order:", error);
+    console.error("--- CRITICAL ERROR in create-order function ---", error);
     return new Response(JSON.stringify({ error: error.message || "Внутренняя ошибка сервера" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

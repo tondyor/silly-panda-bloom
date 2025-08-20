@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,37 +11,15 @@ import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTelegram } from "@/hooks/useTelegram";
 
 const ExchangePage = () => {
   const { t } = useTranslation();
-  const [view, setView] = useState<'loading' | 'error' | 'form' | 'summary'>('loading');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [initData, setInitData] = useState<string>('');
+  const { data: telegramData, error: telegramError, isLoading: isTelegramLoading } = useTelegram();
   
+  const [isSummaryView, setIsSummaryView] = useState(false);
   const [submittedOrderData, setSubmittedOrderData] = useState<any>(null);
   const [depositInfo, setDepositInfo] = useState<{ network: string; address: string; } | null>(null);
-
-  useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-
-      // Строгая проверка initData
-      if (tg.initData && tg.initData.length > 0) {
-        setInitData(tg.initData);
-        setView('form');
-      } else {
-        setErrorMessage("Ошибка: приложение должно быть запущено из Telegram.");
-        setView('error');
-      }
-    } else {
-      // Для отладки в браузере или если скрипт не загрузился
-      console.warn("Telegram Web App script not found. Running in non-Telegram environment.");
-      setErrorMessage("Ошибка: не удалось подключиться к Telegram. Это приложение предназначено для использования только внутри Telegram.");
-      setView('error');
-    }
-  }, []);
 
   const handleExchangeSuccess = (
     network: string,
@@ -64,7 +42,7 @@ const ExchangePage = () => {
     };
 
     setSubmittedOrderData(displayData);
-    setView('summary');
+    setIsSummaryView(true);
 
     toast.success("Заявка отправлена!", {
       description: `Детали заказа отправлены вам в личном сообщении.`,
@@ -73,30 +51,33 @@ const ExchangePage = () => {
   };
 
   const renderContent = () => {
-    switch (view) {
-      case 'loading':
-        return <div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-gray-500" /></div>;
-      case 'error':
-        return (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Ошибка</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        );
-      case 'form':
-        // Передаем initData как обязательный проп
-        return <ExchangeForm initData={initData} onExchangeSuccess={handleExchangeSuccess} />;
-      case 'summary':
+    if (isTelegramLoading) {
+      return <div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-gray-500" /></div>;
+    }
+
+    if (telegramError) {
+      return (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Ошибка</AlertTitle>
+          <AlertDescription>{telegramError}</AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (telegramData) {
+      if (isSummaryView) {
         return (
           <>
             <ExchangeSummary data={submittedOrderData} />
             <PostSubmissionInfo depositInfo={depositInfo} formData={submittedOrderData} />
           </>
         );
-      default:
-        return null;
+      }
+      return <ExchangeForm initData={telegramData.initData} onExchangeSuccess={handleExchangeSuccess} />;
     }
+
+    return null; // Это состояние не должно достигаться, если loading/error обработаны
   };
 
   return (
@@ -125,7 +106,8 @@ const ExchangePage = () => {
         </CardContent>
       </Card>
 
-      {view === 'form' && (
+      {/* Показываем эти секции только когда видна форма */}
+      {!isSummaryView && telegramData && (
         <>
           <WhyChooseUsSection />
           <HowItWorksSection />
