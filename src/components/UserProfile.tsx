@@ -11,9 +11,9 @@ export const UserProfile = () => {
     return (
       <div className="flex items-center space-x-3">
         <Skeleton className="h-14 w-14 rounded-full" />
-        <div className="space-y-1">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-28" />
           <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-3 w-20" />
         </div>
       </div>
     );
@@ -34,9 +34,9 @@ export const UserProfile = () => {
         <AvatarFallback>{getInitials(user.first_name, user.last_name)}</AvatarFallback>
       </Avatar>
       <div className="text-left">
-        <p className="text-sm font-semibold leading-tight text-white">{fullName}</p>
+        <p className="text-lg font-semibold leading-tight text-white">{fullName}</p>
         {user.username && (
-          <p className="text-xs leading-tight text-white/80">@{user.username}</p>
+          <p className="text-sm leading-tight text-white/80">@{user.username}</p>
         )}
       </div>
     </div>
