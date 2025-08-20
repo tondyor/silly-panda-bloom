@@ -58,6 +58,8 @@ async function answerCallbackQuery(callbackQueryId: string): Promise<void> {
     if (!response.ok) {
       const errorData = await response.json();
       console.error(`Ошибка Telegram API (answerCallbackQuery) для callbackQueryId ${callbackQueryId}:`, JSON.stringify(errorData, null, 2));
+    } else {
+      console.log(`Successfully answered callback query ${callbackQueryId}.`);
     }
   } catch (e) {
     console.error(`Не удалось ответить на callback-запрос ${callbackQueryId}:`, e);
@@ -152,6 +154,7 @@ function formatClientOrderMessage(order: any, lang: string): string {
   details.push(`${getTranslation(lang, 'status')} ${getTranslation(lang, 'newApplication')}`);
   details.push(``);
   details.push(getTranslation(lang, 'contactSoon'));
+  details.push(`_Updated: ${new Date().toLocaleTimeString()}_`); // ВРЕМЕННОЕ ИЗМЕНЕНИЕ ДЛЯ ТЕСТИРОВАНИЯ
 
   return details.join('\n');
 }
@@ -183,6 +186,7 @@ serve(async (req) => {
 
     console.log(`Callback received: data=${data}, chatId=${chatId}, messageId=${messageId}`);
     await answerCallbackQuery(callbackQueryId); // Dismiss loading state immediately
+    console.log(`Answered callback query ${callbackQueryId}.`);
 
     // Parse callback data
     const parts = data.split('_');
@@ -196,6 +200,7 @@ serve(async (req) => {
 
     const newLang = parts[1]; // 'ru', 'en', 'vi'
     const orderPublicId = parts[2]; // 'ORD-12345'
+    console.log(`Parsed callback data: newLang=${newLang}, orderPublicId=${orderPublicId}`);
 
     const supabase = createClient(
       // @ts-ignore
@@ -218,6 +223,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("Fetched order details:", JSON.stringify(order, null, 2));
+
 
     // Fetch user profile for first_name and username
     const { data: userProfile, error: profileError } = await supabase
@@ -225,6 +232,12 @@ serve(async (req) => {
       .select('first_name, username')
       .eq('telegram_id', order.telegram_id)
       .single();
+
+    if (profileError) {
+      console.warn("Database Warning: Failed to fetch user profile for order. Using callback user data.", profileError);
+    }
+    console.log("Fetched user profile:", JSON.stringify(userProfile, null, 2));
+
 
     const fullOrderDetailsForNotification = {
       ...order,
@@ -254,6 +267,12 @@ serve(async (req) => {
         ]
       ]
     };
+
+    console.log("Attempting to edit message with:");
+    console.log(`  chat_id: ${chatId}`);
+    console.log(`  message_id: ${messageId}`);
+    console.log(`  text: ${updatedMessageText}`);
+    console.log(`  reply_markup: ${JSON.stringify(inlineKeyboard, null, 2)}`);
 
     const editResponse = await editMessageText(chatId, messageId, updatedMessageText, inlineKeyboard);
     

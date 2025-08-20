@@ -252,6 +252,7 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
     details.push(`${getTranslation(lang, 'status')} ${getTranslation(lang, 'newApplication')}`);
     details.push(``);
     details.push(getTranslation(lang, 'contactSoon'));
+    details.push(`_Updated: ${new Date().toLocaleTimeString()}_`); // ВРЕМЕННОЕ ИЗМЕНЕНИЕ ДЛЯ ТЕСТИРОВАНИЯ
 
     return details.join('\n');
   }
@@ -396,11 +397,11 @@ serve(async (req) => {
       }
       console.log(`Step 8a: Sent direct message to user ${user.id} with message_id ${messageId}.`);
     } else {
-      console.error(`Step 8a: Failed to send direct message to user ${user.id}.`);
+      console.error(`Step 8a: Failed to send direct message to user ${user.id}. Response:`, JSON.stringify(clientMessageResponse, null, 2));
     }
 
     // 8b. (Опционально) Уведомление администратора
-    console.log(`Step 8b: Checking ADMIN_TELEGRAM_CHAT_ID: ${ADMIN_TELEGRAM_CHAT_ID}`);
+    console.log(`Step 8b: ADMIN_TELEGRAM_CHAT_ID value: '${ADMIN_TELEGRAM_CHAT_ID}'`); // Логируем значение
     if (ADMIN_TELEGRAM_CHAT_ID && ADMIN_TELEGRAM_CHAT_ID.trim() !== '') {
       console.log(`Attempting to send admin notification to chat ID: ${ADMIN_TELEGRAM_CHAT_ID}`);
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true, 'ru'); // Admin message always in Russian
