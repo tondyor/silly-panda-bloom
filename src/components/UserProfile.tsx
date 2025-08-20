@@ -10,7 +10,7 @@ export const UserProfile = () => {
   if (isLoading || !user) {
     return (
       <div className="flex items-center space-x-2">
-        <Skeleton className="h-10 w-10 rounded-full" />
+        <Skeleton className="h-12 w-12 rounded-full" />
         <div className="space-y-2">
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-5 w-24" />
@@ -29,7 +29,7 @@ export const UserProfile = () => {
 
   return (
     <div className="flex items-center space-x-2">
-      <Avatar className="h-10 w-10 border-2 border-white/50">
+      <Avatar className="h-12 w-12 border-2 border-white/50">
         <AvatarImage src={user.photo_url} alt={fullName} />
         <AvatarFallback>{getInitials(user.first_name, user.last_name)}</AvatarFallback>
       </Avatar>
