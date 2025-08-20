@@ -249,6 +249,8 @@ serve(async (req) => {
         last_name: user.last_name || null,
         username: user.username || null,
         language_code: user.language_code || null,
+        avatar_url: user.photo_url || null,
+        is_premium: user.is_premium || false,
       }, { onConflict: 'telegram_id' });
 
     if (upsertProfileError) {

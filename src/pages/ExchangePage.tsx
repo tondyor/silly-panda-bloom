@@ -12,6 +12,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTelegram } from "@/hooks/useTelegram";
+import { UserProfile } from "@/components/UserProfile";
 
 const ExchangePage = () => {
   const { t } = useTranslation();
@@ -93,13 +94,14 @@ const ExchangePage = () => {
       <div className="absolute inset-0 bg-black/30 z-0"></div>
 
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="relative bg-gradient-to-r from-red-600 to-orange-500 text-white p-4">
-          <div className="absolute top-1/2 right-2 -translate-y-1/2 z-20">
-            <LanguageSwitcher />
-          </div>
-          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-left text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] w-fit">
+        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white p-4 space-x-4">
+          <CardTitle className="text-2xl sm:text-3xl font-extrabold text-left text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
             {t('headerTitle')}
           </CardTitle>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <UserProfile />
+            <LanguageSwitcher />
+          </div>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {renderContent()}
