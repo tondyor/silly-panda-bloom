@@ -91,7 +91,10 @@ const ExchangePage = () => {
         backgroundAttachment: 'fixed',
       }}
     >
-      <div className="absolute inset-0 bg-black/30 z-0"></div>
+      <div 
+        className="absolute inset-0 z-0"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%)' }}
+      ></div>
 
       <h1 className="w-full max-w-lg text-4xl sm:text-6xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)] mb-4 text-center z-10 relative">
         {t('headerTitle')}
