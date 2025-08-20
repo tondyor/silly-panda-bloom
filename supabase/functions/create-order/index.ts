@@ -75,90 +75,180 @@ async function validateTelegramData(initData: string): Promise<boolean> {
  * Отправляет сообщение в указанный чат Telegram.
  * @param chatId ID чата для отправки.
  * @param text Текст сообщения с поддержкой Markdown.
+ * @param reply_markup Опциональная разметка для кнопок.
+ * @returns {Promise<any>} Ответ от Telegram API, содержащий message_id.
  */
-async function sendMessage(chatId: string | number, text: string): Promise<void> {
+async function sendMessage(chatId: string | number, text: string, reply_markup?: any): Promise<any> {
   try {
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', reply_markup }),
     });
     if (!response.ok) {
       const errorData = await response.json();
       console.error(`Ошибка Telegram API (sendMessage) для chatId ${chatId}:`, JSON.stringify(errorData, null, 2));
+      return null;
     }
+    return await response.json();
   } catch (e) {
     console.error(`Не удалось отправить сообщение в Telegram для ${chatId}:`, e);
+    return null;
   }
 }
 
-// --- Форматирование данных ---
+// --- Серверные переводы ---
+const translations: Record<string, Record<string, string>> = {
+  ru: {
+    orderAcceptedTitle: "🥰{{firstName}}, ваша заявка принята!",
+    orderNumber: "Номер заказа:",
+    youSend: "Вы отправляете:",
+    toReceive: "К получению (VND):",
+    depositWallet: "Кошелек для пополнения:",
+    usdtNetwork: "Сеть USDT:",
+    attention: "Внимание!",
+    sendOnlyUsdtWarning: "Отправляйте средства только на указанный адрес в сети {{network}}. В противном случае ваши средства могут быть навсегда утеряны.",
+    status: "Статус:",
+    newApplication: "Новая заявка (Не оплачен)",
+    contactSoon: "Мы скоро свяжемся с вами для подтверждения.",
+    adminNewOrder: "😏 *Новый заказ!*",
+    client: "Клиент:",
+    exchangeRate: "Курс:",
+    deliveryMethod: "Способ получения:",
+    bankTransfer: "Банковский перевод",
+    cash: "Наличные",
+    bank: "Банк:",
+    accountNumber: "Номер счета:",
+    deliveryAddress: "Адрес доставки:",
+    contactPhone: "Телефон для связи:",
+  },
+  en: {
+    orderAcceptedTitle: "🥰{{firstName}}, your application has been accepted!",
+    orderNumber: "Order number:",
+    youSend: "You send:",
+    toReceive: "To receive (VND):",
+    depositWallet: "Deposit wallet:",
+    usdtNetwork: "USDT Network:",
+    attention: "Attention!",
+    sendOnlyUsdtWarning: "Send funds only to the specified address on the {{network}} network. Otherwise, your funds may be lost forever.",
+    status: "Status:",
+    newApplication: "New application (Unpaid)",
+    contactSoon: "We will contact you soon for confirmation.",
+    adminNewOrder: "😏 *New order!*",
+    client: "Client:",
+    exchangeRate: "Exchange rate:",
+    deliveryMethod: "Delivery method:",
+    bankTransfer: "Bank transfer",
+    cash: "Cash",
+    bank: "Bank:",
+    accountNumber: "Account number:",
+    deliveryAddress: "Delivery address:",
+    contactPhone: "Contact phone:",
+  },
+  vi: {
+    orderAcceptedTitle: "🥰{{firstName}}, đơn hàng của bạn đã được chấp nhận!",
+    orderNumber: "Mã đơn hàng:",
+    youSend: "Bạn gửi:",
+    toReceive: "Nhận (VND):",
+    depositWallet: "Ví nạp tiền:",
+    usdtNetwork: "Mạng USDT:",
+    attention: "Chú ý!",
+    sendOnlyUsdtWarning: "Chỉ gửi tiền USDT đến địa chỉ được chỉ định trên mạng {{network}}. Nếu không, tiền của bạn có thể bị mất vĩnh viễn.",
+    status: "Trạng thái:",
+    newApplication: "Đơn hàng mới (Chưa thanh toán)",
+    contactSoon: "Chúng tôi sẽ liên hệ với bạn sớm để xác nhận.",
+    adminNewOrder: "😏 *Đơn hàng mới!*",
+    client: "Khách hàng:",
+    exchangeRate: "Tỷ giá:",
+    deliveryMethod: "Phương thức nhận:",
+    bankTransfer: "Chuyển khoản ngân hàng",
+    cash: "Tiền mặt",
+    bank: "Ngân hàng:",
+    accountNumber: "Số tài khoản:",
+    deliveryAddress: "Địa chỉ giao hàng:",
+    contactPhone: "Số điện thoại liên hệ:",
+  },
+};
+
+function getTranslation(lang: string, key: string, params?: Record<string, string>): string {
+  const selectedLang = translations[lang] || translations['en']; // Fallback to English
+  let text = selectedLang[key] || translations['en'][key] || key; // Fallback to English key or key itself
+  
+  if (params) {
+    for (const pKey in params) {
+      text = text.replace(new RegExp(`{{${pKey}}}`, 'g'), params[pKey]);
+    }
+  }
+  return text;
+}
+
 /**
  * Форматирует детали заказа в читаемую строку для сообщений в Telegram.
  * @param order Полный объект заказа.
  * @param forAdmin Булево значение для переключения между форматами для админа и клиента.
+ * @param lang Язык для форматирования сообщения.
  * @returns Отформатированная строка.
  */
-function formatOrderForTelegram(order: any, forAdmin: boolean): string {
+function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): string {
   if (forAdmin) {
     const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
     const details = [
-      `😏 *Новый заказ!*`,
+      getTranslation(lang, 'adminNewOrder'),
       ``,
-      `*Номер заказа:* \`#${order.public_id}\``,
-      `*Клиент:* ${clientIdentifier}`,
+      `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
+      `${getTranslation(lang, 'client')} ${clientIdentifier}`,
       `-----------------------------------`,
-      `*Отдает:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `*Получает (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-      `*Курс:* ${order.exchange_rate.toLocaleString('ru-RU')}`,
+      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `${getTranslation(lang, 'exchangeRate')} ${order.exchange_rate.toLocaleString('ru-RU')}`,
       `-----------------------------------`,
-      `*Способ получения:* ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
+      `${getTranslation(lang, 'deliveryMethod')} ${order.delivery_method === 'bank' ? getTranslation(lang, 'bankTransfer') : getTranslation(lang, 'cash')}`,
     ];
 
     if (order.payment_currency === 'USDT') {
-      details.push(`*Сеть USDT:* ${order.usdt_network}`);
+      details.push(`${getTranslation(lang, 'usdtNetwork')} ${order.usdt_network}`);
     }
 
     if (order.delivery_method === 'bank') {
-      details.push(`*Банк:* ${order.vnd_bank_name}`);
-      details.push(`*Номер счета:* \`${order.vnd_bank_account_number}\``);
+      details.push(`${getTranslation(lang, 'bank')} ${order.vnd_bank_name}`);
+      details.push(`${getTranslation(lang, 'accountNumber')} \`${order.vnd_bank_account_number}\``);
     } else {
-      details.push(`*Адрес доставки:* ${order.delivery_address}`);
+      details.push(`${getTranslation(lang, 'deliveryAddress')} ${order.delivery_address}`);
     }
 
     if (order.contact_phone) {
-      details.push(`*Телефон для связи:* ${order.contact_phone}`);
+      details.push(`${getTranslation(lang, 'contactPhone')} ${order.contact_phone}`);
     }
     
     details.push(`-----------------------------------`);
-    details.push(`*Статус:* ${order.status}`);
+    details.push(`${getTranslation(lang, 'status')} ${order.status}`);
 
     return details.join('\n');
   } else {
     const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
-    const title = `*🥰${firstName}, ваша заявка принята!*`;
+    const title = getTranslation(lang, 'orderAcceptedTitle', { firstName });
     
     const details = [
       title,
-      `*Номер заказа:* \`#${order.public_id}\``,
+      `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
       `-----------------------------------`,
-      `*Вы отправляете:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `*К получению (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`,
     ];
 
     if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
       details.push(``);
-      details.push(`*Кошелек для пополнения:*`);
+      details.push(`${getTranslation(lang, 'depositWallet')}`);
       details.push(`\`${order.deposit_address}\``);
-      details.push(`*Сеть USDT:* ${order.usdt_network}`);
+      details.push(`${getTranslation(lang, 'usdtNetwork')} ${order.usdt_network}`);
       details.push(``);
-      details.push(`*Внимание!* Отправляйте средства только на указанный адрес в сети ${order.usdt_network}. В противном случае ваши средства могут быть навсегда утеряны.`);
+      details.push(`*${getTranslation(lang, 'attention')}* ${getTranslation(lang, 'sendOnlyUsdtWarning', { network: order.usdt_network })}`);
     }
 
     details.push(`-----------------------------------`);
-    details.push(`*Статус:* Новая заявка (Не оплачен)`);
+    details.push(`${getTranslation(lang, 'status')} ${getTranslation(lang, 'newApplication')}`);
     details.push(``);
-    details.push(`Мы скоро свяжемся с вами для подтверждения.`);
+    details.push(getTranslation(lang, 'contactSoon'));
 
     return details.join('\n');
   }
@@ -199,7 +289,6 @@ serve(async (req) => {
     // 3. Парсинг данных пользователя из initData
     const params = new URLSearchParams(initData);
     const user = JSON.parse(params.get("user")!);
-    // queryId больше не нужен, так как answerWebAppQuery удален
 
     if (!user || !user.id) {
         console.error("Data Error: Could not extract user data from initData.");
@@ -219,7 +308,22 @@ serve(async (req) => {
     );
     console.log("Step 4: Supabase client created.");
 
-    // 5. Подготовка и сохранение заказа в базу данных
+    // 5. Получение языка пользователя из telegram_profiles
+    const { data: userProfile, error: profileError } = await supabase
+      .from('telegram_profiles')
+      .select('language_code')
+      .eq('telegram_id', user.id)
+      .single();
+
+    let userLang = 'en'; // Default to English
+    if (userProfile && userProfile.language_code && ['ru', 'en', 'vi'].includes(userProfile.language_code)) {
+      userLang = userProfile.language_code;
+    } else if (user.language_code && ['ru', 'en', 'vi'].includes(user.language_code)) {
+      userLang = user.language_code;
+    }
+    console.log(`Step 5: User language determined as ${userLang}.`);
+
+    // 6. Подготовка и сохранение заказа в базу данных
     const publicId = `ORD-${Date.now()}`;
     const orderToInsert = {
       payment_currency: formData.paymentCurrency,
@@ -234,7 +338,7 @@ serve(async (req) => {
       contact_phone: formData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
-      telegram_id: user.id, // Используем telegram_id для связи с пользователем
+      telegram_id: user.id,
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
@@ -247,32 +351,59 @@ serve(async (req) => {
       console.error("Database Error: Failed to insert order.", insertError);
       throw new Error(`Ошибка базы данных: ${insertError.message}`);
     }
-    console.log(`Step 5: Order #${publicId} created successfully in database.`);
+    console.log(`Step 6: Order #${publicId} created successfully in database.`);
 
-    // 6. Подготовка данных для уведомлений
+    // 7. Подготовка данных для уведомлений
     const fullOrderDetailsForNotification = {
         ...insertedOrder,
         telegram_user_first_name: user.first_name,
         telegram_username: user.username,
-        deposit_address: formData.depositAddress, // Из формы на фронтенде
+        deposit_address: formData.depositAddress,
     };
     
-    const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-    console.log("Step 6: Notification data prepared.");
+    const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false, userLang);
+    console.log("Step 7: Notification data prepared.");
 
-    // 7. Отправка уведомлений в Telegram
-    // 7a. Отправка прямого сообщения в личный чат пользователя
-    await sendMessage(user.id, clientMessageText);
-    console.log(`Step 7a: Sent direct message to user ${user.id}.`);
+    // 8. Отправка уведомлений в Telegram
+    // 8a. Отправка прямого сообщения в личный чат пользователя с кнопками языка
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          { text: 'RU', callback_data: `lang_ru_${insertedOrder.public_id}` },
+          { text: 'EN', callback_data: `lang_en_${insertedOrder.public_id}` },
+          { text: 'VIET', callback_data: `lang_vi_${insertedOrder.public_id}` },
+        ]
+      ]
+    };
 
-    // 7b. (Опционально) Уведомление администратора
-    if (ADMIN_TELEGRAM_CHAT_ID) {
-      const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
-      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
-      console.log(`Step 7b: Sent notification to admin chat.`);
+    const clientMessageResponse = await sendMessage(user.id, clientMessageText, inlineKeyboard);
+    if (clientMessageResponse && clientMessageResponse.ok) {
+      const messageId = clientMessageResponse.result.message_id;
+      // Сохраняем message_id и chat_id для возможности обновления сообщения
+      const { error: saveMessageError } = await supabase
+        .from('telegram_messages')
+        .insert({
+          chat_id: user.id,
+          message_id: messageId,
+          order_id: insertedOrder.id,
+          telegram_id: user.id,
+        });
+      if (saveMessageError) {
+        console.error("Database Error: Failed to save telegram message ID.", saveMessageError);
+      }
+      console.log(`Step 8a: Sent direct message to user ${user.id} with message_id ${messageId}.`);
+    } else {
+      console.error(`Step 8a: Failed to send direct message to user ${user.id}.`);
     }
 
-    // 8. Возврат успешного ответа фронтенду
+    // 8b. (Опционально) Уведомление администратора
+    if (ADMIN_TELEGRAM_CHAT_ID) {
+      const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true, 'ru'); // Admin message always in Russian
+      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
+      console.log(`Step 8b: Sent notification to admin chat.`);
+    }
+
+    // 9. Возврат успешного ответа фронтенду
     console.log("--- create-order function finished successfully ---");
     return new Response(JSON.stringify(insertedOrder), {
       status: 200,
