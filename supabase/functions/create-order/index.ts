@@ -122,7 +122,7 @@ async function answerWebAppQuery(queryId: string, result: any): Promise<void> {
  */
 function formatOrderForTelegram(order: any, forAdmin: boolean): string {
   if (forAdmin) {
-    const clientIdentifier = order.user_id ? `ID: ${order.user_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
+    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
     const details = [
       `😏 *Новый заказ!*`,
       ``,
@@ -241,7 +241,6 @@ serve(async (req) => {
     console.log("Step 4: Supabase client created.");
 
     // 5. Подготовка и сохранение заказа в базу данных
-    // Логика upsert профиля пользователя удалена, так как она теперь в отдельной функции.
     const publicId = `ORD-${Date.now()}`;
     const orderToInsert = {
       payment_currency: formData.paymentCurrency,
@@ -256,7 +255,7 @@ serve(async (req) => {
       contact_phone: formData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
-      user_id: user.id, // ИСПРАВЛЕНО: используется правильное имя столбца 'user_id'
+      telegram_id: user.id, // ИСПРАВЛЕНО: используется новое имя столбца 'telegram_id'
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
