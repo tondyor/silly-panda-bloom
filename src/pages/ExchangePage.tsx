@@ -97,10 +97,10 @@ const ExchangePage = () => {
         <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
           <UserProfile />
           <div className="flex flex-col items-end">
-            <LanguageSwitcher />
             <CardTitle className="text-2xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
               {t('headerTitle')}
             </CardTitle>
+            <LanguageSwitcher />
           </div>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
