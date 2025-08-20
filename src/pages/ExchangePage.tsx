@@ -93,7 +93,7 @@ const ExchangePage = () => {
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
 
-      <h1 className="w-full max-w-lg text-6xl sm:text-8xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] mb-4 text-center z-10 relative">
+      <h1 className="w-full max-w-lg text-2xl sm:text-4xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] mb-4 text-center z-10 relative">
         {t('headerTitle')}
       </h1>
 
