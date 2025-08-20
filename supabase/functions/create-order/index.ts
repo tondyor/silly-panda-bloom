@@ -92,27 +92,6 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
   }
 }
 
-/**
- * Отвечает на запрос WebApp, обычно для отправки сообщения от имени пользователя.
- * @param queryId web_app_query_id из initData.
- * @param result Объект с результатом запроса.
- */
-async function answerWebAppQuery(queryId: string, result: any): Promise<void> {
-  try {
-    const response = await fetch(`${TELEGRAM_API_URL}/answerWebAppQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ web_app_query_id: queryId, result }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`Ошибка Telegram API (answerWebAppQuery) для queryId ${queryId}:`, JSON.stringify(errorData, null, 2));
-    }
-  } catch(e) {
-    console.error(`Не удалось ответить на запрос WebApp ${queryId}:`, e);
-  }
-}
-
 // --- Форматирование данных ---
 /**
  * Форматирует детали заказа в читаемую строку для сообщений в Telegram.
@@ -217,10 +196,10 @@ serve(async (req) => {
     }
     console.log("Step 2: Telegram data validated successfully.");
 
-    // 3. Парсинг данных пользователя и query_id из initData
+    // 3. Парсинг данных пользователя из initData
     const params = new URLSearchParams(initData);
     const user = JSON.parse(params.get("user")!);
-    const queryId = params.get("query_id");
+    // queryId больше не нужен, так как answerWebAppQuery удален
 
     if (!user || !user.id) {
         console.error("Data Error: Could not extract user data from initData.");
@@ -255,7 +234,7 @@ serve(async (req) => {
       contact_phone: formData.contactPhone ?? null,
       public_id: publicId,
       status: "Новая заявка",
-      telegram_id: user.id, // ИСПРАВЛЕНО: используется новое имя столбца 'telegram_id'
+      telegram_id: user.id, // Используем telegram_id для связи с пользователем
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
@@ -281,27 +260,16 @@ serve(async (req) => {
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
     console.log("Step 6: Notification data prepared.");
 
-    // 7. Отправка двойных уведомлений
-    // 7a. Через answerWebAppQuery (если доступен queryId)
-    if (queryId) {
-      await answerWebAppQuery(queryId, {
-        type: 'article',
-        id: crypto.randomUUID(),
-        title: 'Заявка успешно создана!',
-        input_message_content: { message_text: clientMessageText, parse_mode: 'Markdown' },
-      });
-      console.log(`Step 7a: Sent answerWebAppQuery for queryId ${queryId}.`);
-    }
-
-    // 7b. Всегда через sendMessage в личный чат пользователя
+    // 7. Отправка уведомлений в Telegram
+    // 7a. Отправка прямого сообщения в личный чат пользователя
     await sendMessage(user.id, clientMessageText);
-    console.log(`Step 7b: Sent direct message to user ${user.id}.`);
+    console.log(`Step 7a: Sent direct message to user ${user.id}.`);
 
-    // 7c. (Опционально) Уведомление администратора
+    // 7b. (Опционально) Уведомление администратора
     if (ADMIN_TELEGRAM_CHAT_ID) {
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
       await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
-      console.log(`Step 7c: Sent notification to admin chat.`);
+      console.log(`Step 7b: Sent notification to admin chat.`);
     }
 
     // 8. Возврат успешного ответа фронтенду
