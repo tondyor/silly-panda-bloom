@@ -80,6 +80,7 @@ async function validateTelegramData(initData: string): Promise<boolean> {
  */
 async function sendMessage(chatId: string | number, text: string, reply_markup?: any): Promise<any> {
   try {
+    console.log(`Attempting to send message to chat ID: ${chatId}`);
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,7 +91,9 @@ async function sendMessage(chatId: string | number, text: string, reply_markup?:
       console.error(`Ошибка Telegram API (sendMessage) для chatId ${chatId}:`, JSON.stringify(errorData, null, 2));
       return null;
     }
-    return await response.json();
+    const responseData = await response.json();
+    console.log(`Successfully sent message to chat ID: ${chatId}. Response:`, JSON.stringify(responseData, null, 2));
+    return responseData;
   } catch (e) {
     console.error(`Не удалось отправить сообщение в Telegram для ${chatId}:`, e);
     return null;
@@ -398,9 +401,16 @@ serve(async (req) => {
 
     // 8b. (Опционально) Уведомление администратора
     if (ADMIN_TELEGRAM_CHAT_ID) {
+      console.log(`Attempting to send admin notification to chat ID: ${ADMIN_TELEGRAM_CHAT_ID}`);
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true, 'ru'); // Admin message always in Russian
-      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
-      console.log(`Step 8b: Sent notification to admin chat.`);
+      const adminMessageResponse = await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
+      if (adminMessageResponse && adminMessageResponse.ok) {
+        console.log(`Step 8b: Sent notification to admin chat.`);
+      } else {
+        console.error(`Step 8b: Failed to send notification to admin chat. Response:`, adminMessageResponse);
+      }
+    } else {
+      console.warn("ADMIN_TELEGRAM_CHAT_ID is not set. Admin notification skipped.");
     }
 
     // 9. Возврат успешного ответа фронтенду
