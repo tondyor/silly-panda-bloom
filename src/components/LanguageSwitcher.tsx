@@ -1,11 +1,16 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Button } from './ui/button';
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const languages = [
-  { code: 'ru', name: 'RU' },
-  { code: 'en', name: 'ENG' },
-  { code: 'vi', name: 'VIET' },
+  { code: "ru", name: "Русский" },
+  { code: "en", name: "English" },
+  { code: "vi", name: "Tiếng Việt" },
 ];
 
 export const LanguageSwitcher = () => {
@@ -15,23 +20,29 @@ export const LanguageSwitcher = () => {
     i18n.changeLanguage(lng);
   };
 
+  const currentLanguageCode = i18n.language.split('-')[0]; // Handles cases like 'en-US'
+
   return (
-    <div className="flex flex-col">
-      {languages.map((lang) => (
-        <Button
-          key={lang.code}
-          variant="ghost"
-          size="sm"
-          onClick={() => changeLanguage(lang.code)}
-          className={`p-1 h-auto text-xs font-bold text-white transition-opacity rounded-md ${
-            i18n.language.startsWith(lang.code)
-              ? 'opacity-100'
-              : 'opacity-70 hover:opacity-100'
-          }`}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="ghost" 
+          className="text-white font-bold hover:bg-white/20 hover:text-white focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-white/50"
         >
-          {lang.name}
+          {currentLanguageCode.toUpperCase()}
         </Button>
-      ))}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-white/90 backdrop-blur-sm border-gray-300">
+        {languages.map((lang) => (
+          <DropdownMenuItem
+            key={lang.code}
+            onSelect={() => changeLanguage(lang.code)}
+            className="cursor-pointer focus:bg-gray-200"
+          >
+            {lang.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
