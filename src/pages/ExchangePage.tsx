@@ -113,8 +113,8 @@ const ExchangePage = () => {
       {/* Показываем эти секции только когда видна форма */}
       {!isSummaryView && telegramData && (
         <>
-          <WhyChooseUsSection />
           <HowItWorksSection />
+          <WhyChooseUsSection />
         </>
       )}
 
