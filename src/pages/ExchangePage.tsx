@@ -93,7 +93,7 @@ const ExchangePage = () => {
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
 
-      <h1 className="w-full max-w-lg text-4xl sm:text-6xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] mb-4 text-center z-10 relative">
+      <h1 className="w-full max-w-lg text-4xl sm:text-6xl font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] mb-4 text-center z-10 relative">
         {t('headerTitle')}
       </h1>
 
@@ -104,7 +104,7 @@ const ExchangePage = () => {
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {renderContent()}
-        </CardContent>
+        </Content>
       </Card>
 
       {/* Показываем эти секции только когда видна форма */}
