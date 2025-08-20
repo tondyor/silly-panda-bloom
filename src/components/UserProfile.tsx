@@ -11,7 +11,7 @@ export const UserProfile = () => {
     return (
       <div className="flex items-center space-x-2">
         <Skeleton className="h-12 w-12 rounded-full" />
-        <div className="space-y-2">
+        <div className="h-12 flex flex-col justify-center space-y-2">
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-5 w-24" />
         </div>
@@ -33,10 +33,10 @@ export const UserProfile = () => {
         <AvatarImage src={user.photo_url} alt={fullName} />
         <AvatarFallback>{getInitials(user.first_name, user.last_name)}</AvatarFallback>
       </Avatar>
-      <div className="text-left">
-        <p className="text-base font-bold leading-tight text-white">{fullName}</p>
+      <div className="h-12 flex flex-col justify-center text-left">
+        <p className="text-lg font-bold leading-tight text-white">{fullName}</p>
         {user.username && (
-          <p className="text-base font-bold leading-tight text-white/80">@{user.username}</p>
+          <p className="text-lg font-bold leading-tight text-white/80">@{user.username}</p>
         )}
       </div>
     </div>
