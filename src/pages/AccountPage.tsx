@@ -33,8 +33,8 @@ const AccountPage = () => {
         <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
           <UserProfile />
           <Link to="/">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white h-10 w-10 rounded-full">
-              <ArrowRightLeft className="h-6 w-6" />
+            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white h-12 w-12 rounded-lg p-0">
+              <ArrowRightLeft className="h-7 w-7" />
             </Button>
           </Link>
         </CardHeader>
