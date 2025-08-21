@@ -9,11 +9,11 @@ export const UserProfile = () => {
 
   if (isLoading || !user) {
     return (
-      <div className="flex items-center space-x-2">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <div className="h-12 flex flex-col justify-center space-y-2">
+      <div className="flex items-center space-x-3">
+        <Skeleton className="h-14 w-14 rounded-full" />
+        <div className="space-y-2">
           <Skeleton className="h-5 w-28" />
-          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-4 w-24" />
         </div>
       </div>
     );
@@ -28,15 +28,15 @@ export const UserProfile = () => {
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
 
   return (
-    <div className="flex items-center space-x-2">
-      <Avatar className="h-12 w-12 border-2 border-white/50">
+    <div className="flex items-center space-x-3">
+      <Avatar className="h-14 w-14 border-2 border-white/50">
         <AvatarImage src={user.photo_url} alt={fullName} />
         <AvatarFallback>{getInitials(user.first_name, user.last_name)}</AvatarFallback>
       </Avatar>
-      <div className="h-12 flex flex-col justify-center text-left">
-        <p className="text-lg font-bold leading-tight text-white">{fullName}</p>
+      <div className="text-left">
+        <p className="text-lg font-semibold leading-tight text-white">{fullName}</p>
         {user.username && (
-          <p className="text-lg font-bold leading-tight text-white/80">@{user.username}</p>
+          <p className="text-sm leading-tight text-white/80">@{user.username}</p>
         )}
       </div>
     </div>

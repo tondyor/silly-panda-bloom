@@ -373,7 +373,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
             </Alert>
           )}
 
-          <div className="space-y-1 -mt-2">
+          <div className="space-y-1">
             <Label>
               {t("exchangeForm.exchangeCurrencyLabel")} <span className="text-red-500">*</span>
             </Label>

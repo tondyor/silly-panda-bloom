@@ -9,7 +9,7 @@ i18n
   .use(initReactI18next)
   .init({
     supportedLngs: ["ru", "en", "vi"],
-    fallbackLng: "en", // Изменено на 'en'
+    fallbackLng: "ru",
     detection: {
       order: ["querystring", "cookie", "localStorage", "sessionStorage", "navigator", "htmlTag"],
       caches: ["cookie"],

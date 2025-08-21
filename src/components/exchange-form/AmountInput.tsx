@@ -13,7 +13,7 @@ interface AmountInputProps {
 
 export const AmountInput: React.FC<AmountInputProps> = ({ control, name, currency }) => {
   const { t } = useTranslation();
-  const inputClass = "h-12 p-3 text-base w-full min-w-[70%] text-lg bg-white";
+  const inputClass = "h-12 p-3 text-base w-full min-w-[70%] text-lg";
 
   return (
     <FormField
