@@ -30,7 +30,7 @@ const ExchangePage = () => {
     setDepositInfo({ network, address });
 
     const displayData = {
-      orderId: orderData.public_id,
+      order_id: orderData.order_id, // Correctly pass the order_id
       paymentCurrency: orderData.payment_currency,
       fromAmount: orderData.from_amount,
       calculatedVND: orderData.calculated_vnd,

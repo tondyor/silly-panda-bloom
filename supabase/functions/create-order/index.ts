@@ -241,9 +241,8 @@ serve(async (req) => {
     console.log("Step 4: Supabase client created.");
 
     // 5. Подготовка и сохранение заказа в базу данных
-    const orderId = `ORD-${Date.now()}`; // Генерируем строковый order_id
+    // ID заказа (order_id) теперь генерируется базой данных автоматически
     const orderToInsert = {
-      order_id: orderId, // Используем сгенерированный строковый ID
       payment_currency: formData.paymentCurrency,
       from_amount: formData.fromAmount,
       calculated_vnd: formData.calculatedVND,
@@ -268,7 +267,8 @@ serve(async (req) => {
       console.error("Database Error: Failed to insert order.", insertError);
       throw new Error(`Ошибка базы данных: ${insertError.message}`);
     }
-    console.log(`Step 5: Order #${orderId} created successfully in database.`); // Изменено на orderId
+    // insertedOrder теперь содержит сгенерированный базой данных order_id
+    console.log(`Step 5: Order #${insertedOrder.order_id} created successfully in database.`);
 
     // 6. Подготовка данных для уведомлений
     const fullOrderDetailsForNotification = {
