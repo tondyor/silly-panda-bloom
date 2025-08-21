@@ -362,7 +362,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
           {isErrorRate && paymentCurrency === "USDT" && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
