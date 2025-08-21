@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 import CountdownCircle from "./CountdownCircle";
 import { CurrencyTabs, AmountInput, UsdtNetworkSelect, DeliveryMethodTabs, ContactInputs } from "./exchange-form";
@@ -254,6 +255,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "onChange",
     defaultValues: {
       paymentCurrency: "USDT",
       deliveryMethod: "bank",
@@ -358,6 +360,9 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
 
   const isUsdtRateUnavailable = paymentCurrency === "USDT" && (isLoadingRate || isErrorRate || !usdtVndRate);
   const isRubRateUnavailable = paymentCurrency === "RUB" && !rubVndRate;
+  const isRateUnavailable = isUsdtRateUnavailable || isRubRateUnavailable;
+
+  const isButtonActive = form.formState.isValid && !isSubmitting && !isRateUnavailable;
 
   return (
     <>
@@ -437,8 +442,11 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
 
           <Button
             type="submit"
-            className="w-full h-14 text-lg font-medium rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400"
-            disabled={isSubmitting || (isUsdtRateUnavailable && paymentCurrency === "USDT") || (isRubRateUnavailable && paymentCurrency === "RUB")}
+            className={cn(
+              "w-full h-14 text-lg font-medium rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400",
+              isButtonActive && "animated-border-button"
+            )}
+            disabled={!isButtonActive}
           >
             {isSubmitting ? (
               <>

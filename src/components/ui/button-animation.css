@@ -1,0 +1,44 @@
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animated-border-button {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.animated-border-button::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background-image: conic-gradient(
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    transparent,
+    white,
+    transparent,
+    transparent,
+    transparent
+  );
+  background-size: 50% 50%;
+  background-repeat: no-repeat;
+  animation: rotate 5s linear infinite;
+}
