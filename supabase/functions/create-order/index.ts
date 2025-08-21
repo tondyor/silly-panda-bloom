@@ -220,7 +220,7 @@ serve(async (req) => {
     // 3. Парсинг данных пользователя и query_id из initData
     const params = new URLSearchParams(initData);
     const user = JSON.parse(params.get("user")!);
-    const queryId = params.get("query_id");
+    const queryId = params.get("query_id"); // Сохраняем queryId, но не используем answerWebAppQuery
 
     if (!user || !user.id) {
         console.error("Data Error: Could not extract user data from initData.");
@@ -281,21 +281,10 @@ serve(async (req) => {
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
     console.log("Step 6: Notification data prepared.");
 
-    // 7. Отправка двойных уведомлений
-    // 7a. Через answerWebAppQuery (если доступен queryId)
-    if (queryId) {
-      await answerWebAppQuery(queryId, {
-        type: 'article',
-        id: crypto.randomUUID(),
-        title: 'Заявка успешно создана!',
-        input_message_content: { message_text: clientMessageText, parse_mode: 'Markdown' },
-      });
-      console.log(`Step 7a: Sent answerWebAppQuery for queryId ${queryId}.`);
-    }
-
-    // 7b. Всегда через sendMessage в личный чат пользователя
+    // 7. Отправка уведомлений
+    // Отправляем только прямое сообщение в личный чат пользователя
     await sendMessage(user.id, clientMessageText);
-    console.log(`Step 7b: Sent direct message to user ${user.id}.`);
+    console.log(`Step 7: Sent direct message to user ${user.id}.`);
 
     // 7c. (Опционально) Уведомление администратора
     if (ADMIN_TELEGRAM_CHAT_ID) {
