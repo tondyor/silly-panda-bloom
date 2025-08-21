@@ -86,7 +86,7 @@ const ExchangePage = () => {
         style={{ background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%)' }}
       ></div>
 
-      <div className="w-full max-w-lg flex justify-center items-center gap-x-4 mb-4 z-10 relative">
+      <div className="w-full max-w-lg flex justify-center items-baseline gap-x-2 mb-4 z-10 relative">
         <h1 className="text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)]">
           {t('headerTitle')}
         </h1>
