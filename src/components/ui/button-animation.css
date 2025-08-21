@@ -7,38 +7,52 @@
   }
 }
 
+/* The main container for the animation */
 .animated-border-button {
   position: relative;
   overflow: hidden;
-  z-index: 1;
+  isolation: isolate; /* Creates a new stacking context */
+  
+  /* We override the background here because the animation needs to show through.
+     The visual background will be handled by the ::after pseudo-element. */
+  background: transparent !important;
+  border: 1px solid #15803d; /* A subtle border for when the glow isn't visible */
 }
 
+/* The rotating gradient that creates the "firefly" effect */
 .animated-border-button::before {
   content: '';
   position: absolute;
-  z-index: -1;
-  top: -100%;
-  left: -100%;
-  width: 300%;
-  height: 300%;
+  z-index: -2; /* Behind the ::after background */
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  
   background-image: conic-gradient(
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    white,
-    transparent,
-    transparent,
-    transparent
+    from 180deg,
+    transparent 0%,
+    transparent 70%,
+    #ffffff 95%, /* A bright white head for the comet */
+    transparent 100%
   );
-  background-size: 50% 50%;
-  background-repeat: no-repeat;
-  animation: rotate 5s linear infinite;
+  
+  animation: rotate 4s linear infinite;
+}
+
+/* The actual visual background of the button */
+.animated-border-button::after {
+  content: '';
+  position: absolute;
+  z-index: -1; /* On top of the animation, but behind the text */
+  inset: 0;
+  background-color: #16a34a; /* Tailwind's green-600 */
+  border-radius: inherit; /* Inherit border-radius from the button */
+  transition: background-color 0.3s ease;
+}
+
+/* Handle the hover state */
+.animated-border-button:hover::after {
+    background-color: #15803d; /* Tailwind's green-700 */
 }

@@ -443,8 +443,10 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
           <Button
             type="submit"
             className={cn(
-              "w-full h-14 text-lg font-medium rounded-xl bg-green-600 text-white shadow-lg hover:bg-green-700 transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400",
-              isButtonActive && "animated-border-button"
+              "w-full h-14 text-lg font-medium rounded-xl text-white shadow-lg transition-all duration-300 ease-in-out disabled:opacity-60 disabled:bg-gray-400",
+              isButtonActive
+                ? "animated-border-button"
+                : "bg-green-600 hover:bg-green-700"
             )}
             disabled={!isButtonActive}
           >
