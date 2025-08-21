@@ -69,23 +69,6 @@ async function validateTelegramData(initData: string): Promise<boolean> {
   return hash === calculatedHash;
 }
 
-// --- НОВАЯ УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЭКРАНИРОВАНИЯ ---
-/**
- * Экранирует специальные символы для Telegram MarkdownV2.
- * @param text Входная строка.
- * @returns Экранированная строка, безопасная для отправки.
- */
-function escapeMarkdownV2(text: string | number): string {
-  const str = String(text);
-  // Список символов для экранирования в MarkdownV2
-  const charsToEscape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-  let escapedText = str;
-  for (const char of charsToEscape) {
-    escapedText = escapedText.replace(new RegExp(`\\${char}`, 'g'), `\\${char}`);
-  }
-  return escapedText;
-}
-
 
 // --- Вспомогательные функции для Telegram API ---
 /**
@@ -101,7 +84,7 @@ async function sendMessage(chatId: string | number, text: string, reply_markup?:
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'MarkdownV2', reply_markup }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', reply_markup }),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -118,18 +101,18 @@ async function sendMessage(chatId: string | number, text: string, reply_markup?:
 // --- Серверные переводы ---
 const translations: Record<string, Record<string, string>> = {
   ru: {
-    orderAcceptedTitle: "🥰{{firstName}}, ваша заявка принята\\!",
+    orderAcceptedTitle: "🥰{{firstName}}, ваша заявка принята!",
     orderNumber: "Номер заказа:",
     youSend: "Вы отправляете:",
     toReceive: "К получению (VND):",
     depositWallet: "Кошелек для пополнения:",
     usdtNetwork: "Сеть USDT:",
-    attention: "Внимание\\!",
-    sendOnlyUsdtWarning: "Отправляйте средства только на указанный адрес в сети {{network}}\\! В противном случае ваши средства могут быть навсегда утеряны\\.",
+    attention: "Внимание!",
+    sendOnlyUsdtWarning: "Отправляйте средства только на указанный адрес в сети {{network}}. В противном случае ваши средства могут быть навсегда утеряны.",
     status: "Статус:",
     newApplication: "Новая заявка (Не оплачен)",
-    contactSoon: "Мы скоро свяжемся с вами для подтверждения\\.",
-    adminNewOrder: "😏 *Новый заказ\\!*",
+    contactSoon: "Мы скоро свяжемся с вами для подтверждения.",
+    adminNewOrder: "😏 *Новый заказ!*",
     client: "Клиент:",
     exchangeRate: "Курс:",
     deliveryMethod: "Способ получения:",
@@ -141,18 +124,18 @@ const translations: Record<string, Record<string, string>> = {
     contactPhone: "Телефон для связи:",
   },
   en: {
-    orderAcceptedTitle: "🥰{{firstName}}, your application has been accepted\\!",
+    orderAcceptedTitle: "🥰{{firstName}}, your application has been accepted!",
     orderNumber: "Order number:",
     youSend: "You send:",
     toReceive: "To receive (VND):",
     depositWallet: "Deposit wallet:",
     usdtNetwork: "USDT Network:",
-    attention: "Attention\\!",
-    sendOnlyUsdtWarning: "Send funds only to the specified address on the {{network}} network\\. Otherwise, your funds may be lost forever\\.",
+    attention: "Attention!",
+    sendOnlyUsdtWarning: "Send funds only to the specified address on the {{network}} network. Otherwise, your funds may be lost forever.",
     status: "Status:",
     newApplication: "New application (Unpaid)",
-    contactSoon: "We will contact you soon for confirmation\\.",
-    adminNewOrder: "😏 *New order\\!*",
+    contactSoon: "We will contact you soon for confirmation.",
+    adminNewOrder: "😏 *New order!*",
     client: "Client:",
     exchangeRate: "Exchange rate:",
     deliveryMethod: "Delivery method:",
@@ -164,18 +147,18 @@ const translations: Record<string, Record<string, string>> = {
     contactPhone: "Contact phone:",
   },
   vi: {
-    orderAcceptedTitle: "🥰{{firstName}}, đơn hàng của bạn đã được chấp nhận\\!",
+    orderAcceptedTitle: "🥰{{firstName}}, đơn hàng của bạn đã được chấp nhận!",
     orderNumber: "Mã đơn hàng:",
     youSend: "Bạn gửi:",
     toReceive: "Nhận (VND):",
     depositWallet: "Ví nạp tiền:",
     usdtNetwork: "Mạng USDT:",
-    attention: "Chú ý\\!",
-    sendOnlyUsdtWarning: "Chỉ gửi tiền USDT đến địa chỉ được chỉ định trên mạng {{network}}\\! Nếu không, tiền của bạn có thể bị mất vĩnh viễn\\.",
+    attention: "Chú ý!",
+    sendOnlyUsdtWarning: "Chỉ gửi tiền USDT đến địa chỉ được chỉ định trên mạng {{network}}. Nếu không, tiền của bạn có thể bị mất vĩnh viễn.",
     status: "Trạng thái:",
     newApplication: "Đơn hàng mới (Chưa thanh toán)",
-    contactSoon: "Chúng tôi sẽ liên hệ với bạn sớm để xác nhận\\.",
-    adminNewOrder: "😏 *Đơn hàng mới\\!*",
+    contactSoon: "Chúng tôi sẽ liên hệ với bạn sớm để xác nhận.",
+    adminNewOrder: "😏 *Đơn hàng mới!*",
     client: "Khách hàng:",
     exchangeRate: "Tỷ giá:",
     deliveryMethod: "Phương thức nhận:",
@@ -211,18 +194,11 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
   const locale = lang === 'vi' ? 'vi-VN' : 'ru-RU'; // Используем 'ru-RU' для русского и английского, 'vi-VN' для вьетнамского
 
   if (forAdmin) {
-    const clientUsername = escapeMarkdownV2(order.telegram_username || 'N/A');
-    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${clientUsername})` : 'Клиент';
-    const publicId = escapeMarkdownV2(order.public_id);
-    const bankName = escapeMarkdownV2(order.vnd_bank_name || '');
-    const bankAccountNumber = escapeMarkdownV2(order.vnd_bank_account_number || '');
-    const deliveryAddress = escapeMarkdownV2(order.delivery_address || '');
-    const contactPhone = escapeMarkdownV2(order.contact_phone || '');
-
+    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
     const details = [
       getTranslation(lang, 'adminNewOrder'),
       ``,
-      `${getTranslation(lang, 'orderNumber')} \`#${publicId}\``,
+      `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
       `${getTranslation(lang, 'client')} ${clientIdentifier}`,
       `-----------------------------------`,
       `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
@@ -237,30 +213,27 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
     }
 
     if (order.delivery_method === 'bank') {
-      details.push(`${getTranslation(lang, 'bank')} ${bankName}`);
-      details.push(`${getTranslation(lang, 'accountNumber')} \`${bankAccountNumber}\``);
+      details.push(`${getTranslation(lang, 'bank')} ${order.vnd_bank_name}`);
+      details.push(`${getTranslation(lang, 'accountNumber')} \`${order.vnd_bank_account_number}\``);
     } else {
-      details.push(`${getTranslation(lang, 'deliveryAddress')} ${deliveryAddress}`);
+      details.push(`${getTranslation(lang, 'deliveryAddress')} ${order.delivery_address}`);
     }
 
     if (order.contact_phone) {
-      details.push(`${getTranslation(lang, 'contactPhone')} ${contactPhone}`);
+      details.push(`${getTranslation(lang, 'contactPhone')} ${order.contact_phone}`);
     }
     
     details.push(`-----------------------------------`);
-    details.push(`${getTranslation(lang, 'status')} ${escapeMarkdownV2(order.status)}`);
+    details.push(`${getTranslation(lang, 'status')} ${order.status}`);
 
     return details.join('\n');
   } else {
-    const escapedFirstName = escapeMarkdownV2(order.telegram_user_first_name || '');
-    const firstNameForTitle = escapedFirstName ? ` ${escapedFirstName}` : '';
-    const title = getTranslation(lang, 'orderAcceptedTitle', { firstName: firstNameForTitle });
-    const publicId = escapeMarkdownV2(order.public_id);
-    const depositAddress = escapeMarkdownV2(order.deposit_address || '');
+    const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
+    const title = getTranslation(lang, 'orderAcceptedTitle', { firstName });
     
     const details = [
       title,
-      `${getTranslation(lang, 'orderNumber')} \`#${publicId}\``,
+      `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
       `-----------------------------------`,
       `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
       `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
@@ -269,7 +242,7 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
     if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
       details.push(``);
       details.push(`${getTranslation(lang, 'depositWallet')}`);
-      details.push(`\`${depositAddress}\``);
+      details.push(`\`${order.deposit_address}\``);
       details.push(`${getTranslation(lang, 'usdtNetwork')} ${order.usdt_network}`);
       details.push(``);
       details.push(`*${getTranslation(lang, 'attention')}* ${getTranslation(lang, 'sendOnlyUsdtWarning', { network: order.usdt_network })}`);
@@ -279,6 +252,7 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
     details.push(`${getTranslation(lang, 'status')} ${getTranslation(lang, 'newApplication')}`);
     details.push(``);
     details.push(getTranslation(lang, 'contactSoon'));
+    details.push(`_Updated: ${new Date().toLocaleTimeString()}_`); // ВРЕМЕННОЕ ИЗМЕНЕНИЕ ДЛЯ ТЕСТИРОВАНИЯ
 
     return details.join('\n');
   }
