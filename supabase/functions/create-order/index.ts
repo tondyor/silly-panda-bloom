@@ -69,6 +69,23 @@ async function validateTelegramData(initData: string): Promise<boolean> {
   return hash === calculatedHash;
 }
 
+// --- НОВАЯ УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЭКРАНИРОВАНИЯ ---
+/**
+ * Экранирует специальные символы для Telegram MarkdownV2.
+ * @param text Входная строка.
+ * @returns Экранированная строка, безопасная для отправки.
+ */
+function escapeMarkdownV2(text: string | number): string {
+  const str = String(text);
+  // Список символов для экранирования в MarkdownV2
+  const charsToEscape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+  let escapedText = str;
+  for (const char of charsToEscape) {
+    escapedText = escapedText.replace(new RegExp(`\\${char}`, 'g'), `\\${char}`);
+  }
+  return escapedText;
+}
+
 
 // --- Вспомогательные функции для Telegram API ---
 /**
@@ -84,7 +101,7 @@ async function sendMessage(chatId: string | number, text: string, reply_markup?:
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', reply_markup }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'MarkdownV2', reply_markup }),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -194,65 +211,74 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
   const locale = lang === 'vi' ? 'vi-VN' : 'ru-RU'; // Используем 'ru-RU' для русского и английского, 'vi-VN' для вьетнамского
 
   if (forAdmin) {
-    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
+    const clientUsername = escapeMarkdownV2(order.telegram_username || 'N/A');
+    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${clientUsername})` : escapeMarkdownV2(getTranslation(lang, 'client'));
+    const publicId = escapeMarkdownV2(order.public_id);
+    const bankName = escapeMarkdownV2(order.vnd_bank_name || '');
+    const bankAccountNumber = escapeMarkdownV2(order.vnd_bank_account_number || '');
+    const deliveryAddress = escapeMarkdownV2(order.delivery_address || '');
+    const contactPhone = escapeMarkdownV2(order.contact_phone || '');
+
     const details = [
-      getTranslation(lang, 'adminNewOrder'),
+      escapeMarkdownV2(getTranslation(lang, 'adminNewOrder')),
       ``,
-      `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
-      `${getTranslation(lang, 'client')} ${clientIdentifier}`,
-      `-----------------------------------`,
-      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
-      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
-      `${getTranslation(lang, 'exchangeRate')} ${order.exchange_rate.toLocaleString(locale)}`,
-      `-----------------------------------`,
-      `${getTranslation(lang, 'deliveryMethod')} ${order.delivery_method === 'bank' ? getTranslation(lang, 'bankTransfer') : getTranslation(lang, 'cash')}`,
+      `${escapeMarkdownV2(getTranslation(lang, 'orderNumber'))} \`#${publicId}\``,
+      `${escapeMarkdownV2(getTranslation(lang, 'client'))} ${clientIdentifier}`,
+      escapeMarkdownV2(`-----------------------------------`),
+      `${escapeMarkdownV2(getTranslation(lang, 'youSend'))} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
+      `${escapeMarkdownV2(getTranslation(lang, 'toReceive'))} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
+      `${escapeMarkdownV2(getTranslation(lang, 'exchangeRate'))} ${order.exchange_rate.toLocaleString(locale)}`,
+      escapeMarkdownV2(`-----------------------------------`),
+      `${escapeMarkdownV2(getTranslation(lang, 'deliveryMethod'))} ${order.delivery_method === 'bank' ? escapeMarkdownV2(getTranslation(lang, 'bankTransfer')) : escapeMarkdownV2(getTranslation(lang, 'cash'))}`,
     ];
 
     if (order.payment_currency === 'USDT') {
-      details.push(`${getTranslation(lang, 'usdtNetwork')} ${order.usdt_network}`);
+      details.push(`${escapeMarkdownV2(getTranslation(lang, 'usdtNetwork'))} ${order.usdt_network}`);
     }
 
     if (order.delivery_method === 'bank') {
-      details.push(`${getTranslation(lang, 'bank')} ${order.vnd_bank_name}`);
-      details.push(`${getTranslation(lang, 'accountNumber')} \`${order.vnd_bank_account_number}\``);
+      details.push(`${escapeMarkdownV2(getTranslation(lang, 'bank'))} ${bankName}`);
+      details.push(`${escapeMarkdownV2(getTranslation(lang, 'accountNumber'))} \`${bankAccountNumber}\``);
     } else {
-      details.push(`${getTranslation(lang, 'deliveryAddress')} ${order.delivery_address}`);
+      details.push(`${escapeMarkdownV2(getTranslation(lang, 'deliveryAddress'))} ${deliveryAddress}`);
     }
 
     if (order.contact_phone) {
-      details.push(`${getTranslation(lang, 'contactPhone')} ${order.contact_phone}`);
+      details.push(`${escapeMarkdownV2(getTranslation(lang, 'contactPhone'))} ${contactPhone}`);
     }
     
-    details.push(`-----------------------------------`);
-    details.push(`${getTranslation(lang, 'status')} ${order.status}`);
+    details.push(escapeMarkdownV2(`-----------------------------------`));
+    details.push(`${escapeMarkdownV2(getTranslation(lang, 'status'))} ${escapeMarkdownV2(order.status)}`);
 
     return details.join('\n');
   } else {
-    const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
-    const title = getTranslation(lang, 'orderAcceptedTitle', { firstName });
+    const escapedFirstName = escapeMarkdownV2(order.telegram_user_first_name || '');
+    const firstNameForTitle = escapedFirstName ? ` ${escapedFirstName}` : '';
+    const title = getTranslation(lang, 'orderAcceptedTitle', { firstName: firstNameForTitle }); // Title is already escaped via firstNameForTitle
+    const publicId = escapeMarkdownV2(order.public_id);
+    const depositAddress = escapeMarkdownV2(order.deposit_address || '');
     
     const details = [
       title,
-      `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
-      `-----------------------------------`,
-      `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
-      `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
+      `${escapeMarkdownV2(getTranslation(lang, 'orderNumber'))} \`#${publicId}\``,
+      escapeMarkdownV2(`-----------------------------------`),
+      `${escapeMarkdownV2(getTranslation(lang, 'youSend'))} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
+      `${escapeMarkdownV2(getTranslation(lang, 'toReceive'))} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
     ];
 
     if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
       details.push(``);
-      details.push(`${getTranslation(lang, 'depositWallet')}`);
-      details.push(`\`${order.deposit_address}\``);
-      details.push(`${getTranslation(lang, 'usdtNetwork')} ${order.usdt_network}`);
+      details.push(escapeMarkdownV2(getTranslation(lang, 'depositWallet')));
+      details.push(`\`${depositAddress}\``);
+      details.push(`${escapeMarkdownV2(getTranslation(lang, 'usdtNetwork'))} ${order.usdt_network}`);
       details.push(``);
-      details.push(`*${getTranslation(lang, 'attention')}* ${getTranslation(lang, 'sendOnlyUsdtWarning', { network: order.usdt_network })}`);
+      details.push(`*${escapeMarkdownV2(getTranslation(lang, 'attention'))}* ${escapeMarkdownV2(getTranslation(lang, 'sendOnlyUsdtWarning', { network: order.usdt_network }))}`);
     }
 
-    details.push(`-----------------------------------`);
-    details.push(`${getTranslation(lang, 'status')} ${getTranslation(lang, 'newApplication')}`);
+    details.push(escapeMarkdownV2(`-----------------------------------`));
+    details.push(`${escapeMarkdownV2(getTranslation(lang, 'status'))} ${escapeMarkdownV2(getTranslation(lang, 'newApplication'))}`);
     details.push(``);
-    details.push(getTranslation(lang, 'contactSoon'));
-    details.push(`_Updated: ${new Date().toLocaleTimeString()}_`); // ВРЕМЕННОЕ ИЗМЕНЕНИЕ ДЛЯ ТЕСТИРОВАНИЯ
+    details.push(escapeMarkdownV2(getTranslation(lang, 'contactSoon')));
 
     return details.join('\n');
   }

@@ -12,6 +12,23 @@ const corsHeaders = {
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
+// --- НОВАЯ УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЭКРАНИРОВАНИЯ ---
+/**
+ * Экранирует специальные символы для Telegram MarkdownV2.
+ * @param text Входная строка.
+ * @returns Экранированная строка, безопасная для отправки.
+ */
+function escapeMarkdownV2(text: string | number): string {
+  const str = String(text);
+  // Список символов для экранирования в MarkdownV2
+  const charsToEscape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+  let escapedText = str;
+  for (const char of charsToEscape) {
+    escapedText = escapedText.replace(new RegExp(`\\${char}`, 'g'), `\\${char}`);
+  }
+  return escapedText;
+}
+
 // --- Вспомогательные функции для Telegram API ---
 /**
  * Редактирует существующее сообщение в Telegram.
@@ -29,7 +46,7 @@ async function editMessageText(chatId: string | number, messageId: number, text:
     const response = await fetch(`${TELEGRAM_API_URL}/editMessageText`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: 'Markdown', reply_markup }),
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: 'MarkdownV2', reply_markup }),
     });
     const responseData = await response.json();
     if (!response.ok) {
@@ -130,31 +147,33 @@ function getTranslation(lang: string, key: string, params?: Record<string, strin
 function formatClientOrderMessage(order: any, lang: string): string {
   const locale = lang === 'vi' ? 'vi-VN' : 'ru-RU'; // Используем 'ru-RU' для русского и английского, 'vi-VN' для вьетнамского
 
-  const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
-  const title = getTranslation(lang, 'orderAcceptedTitle', { firstName });
+  const escapedFirstName = escapeMarkdownV2(order.telegram_user_first_name || '');
+  const firstNameForTitle = escapedFirstName ? ` ${escapedFirstName}` : '';
+  const title = getTranslation(lang, 'orderAcceptedTitle', { firstName: firstNameForTitle }); // Title is already escaped via firstNameForTitle
+  const publicId = escapeMarkdownV2(order.public_id);
+  const depositAddress = escapeMarkdownV2(order.deposit_address || '');
   
   const details = [
     title,
-    `${getTranslation(lang, 'orderNumber')} \`#${order.public_id}\``,
-    `-----------------------------------`,
-    `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
-    `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
+    `${escapeMarkdownV2(getTranslation(lang, 'orderNumber'))} \`#${publicId}\``,
+    escapeMarkdownV2(`-----------------------------------`),
+    `${escapeMarkdownV2(getTranslation(lang, 'youSend'))} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
+    `${escapeMarkdownV2(getTranslation(lang, 'toReceive'))} ${order.calculated_vnd.toLocaleString('vi-VN')}`, // VND всегда в вьетнамском формате
   ];
 
   if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
     details.push(``);
-    details.push(`${getTranslation(lang, 'depositWallet')}`);
-    details.push(`\`${order.deposit_address}\``);
-    details.push(`${getTranslation(lang, 'usdtNetwork')} ${order.usdt_network}`);
+    details.push(escapeMarkdownV2(getTranslation(lang, 'depositWallet')));
+    details.push(`\`${depositAddress}\``);
+    details.push(`${escapeMarkdownV2(getTranslation(lang, 'usdtNetwork'))} ${order.usdt_network}`);
     details.push(``);
-    details.push(`*${getTranslation(lang, 'attention')}* ${getTranslation(lang, 'sendOnlyUsdtWarning', { network: order.usdt_network })}`);
+    details.push(`*${escapeMarkdownV2(getTranslation(lang, 'attention'))}* ${escapeMarkdownV2(getTranslation(lang, 'sendOnlyUsdtWarning', { network: order.usdt_network }))}`);
   }
 
-  details.push(`-----------------------------------`);
-  details.push(`${getTranslation(lang, 'status')} ${getTranslation(lang, 'newApplication')}`);
+  details.push(escapeMarkdownV2(`-----------------------------------`));
+  details.push(`${escapeMarkdownV2(getTranslation(lang, 'status'))} ${escapeMarkdownV2(getTranslation(lang, 'newApplication'))}`);
   details.push(``);
-  details.push(getTranslation(lang, 'contactSoon'));
-  details.push(`_Updated: ${new Date().toLocaleTimeString()}_`); // ВРЕМЕННОЕ ИЗМЕНЕНИЕ ДЛЯ ТЕСТИРОВАНИЯ
+  details.push(escapeMarkdownV2(getTranslation(lang, 'contactSoon')));
 
   return details.join('\n');
 }
@@ -165,10 +184,10 @@ serve(async (req) => {
   }
 
   console.log("--- Invoking handle-telegram-callback function ---");
-
+  let callbackQuery;
   try {
     const body = await req.json();
-    const callbackQuery = body.callback_query;
+    callbackQuery = body.callback_query;
 
     if (!callbackQuery) {
       console.error("Validation Error: Missing callback_query in request body.");
