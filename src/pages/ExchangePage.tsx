@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
 import { ExchangeSummary } from "@/components/ExchangeSummary";
 import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
@@ -63,10 +62,7 @@ const ExchangePage = () => {
     if (telegramData) {
       if (isSummaryView) {
         return (
-          <>
-            <ExchangeSummary data={submittedOrderData} />
-            <PostSubmissionInfo depositInfo={depositInfo} formData={submittedOrderData} />
-          </>
+          <ExchangeSummary data={submittedOrderData} depositInfo={depositInfo} />
         );
       }
       return <ExchangeForm initData={telegramData.initData} onExchangeSuccess={handleExchangeSuccess} />;
