@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Copy, AlertTriangle, Info } from 'lucide-react';
+import { Copy, AlertTriangle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { showSuccess } from "@/utils/toast";
@@ -41,9 +41,6 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data, depositI
   return (
     <Card className="w-full bg-white/80 backdrop-blur-sm">
       <CardHeader className="text-center pb-2 pt-4">
-        <div className="flex justify-center items-center mb-2">
-          <CheckCircle2 className="h-12 w-12 text-green-500" />
-        </div>
         <CardTitle className="text-xl font-bold text-gray-800">
           Заявка #{order_id} успешно создана!
         </CardTitle>
