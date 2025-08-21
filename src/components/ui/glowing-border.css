@@ -1,0 +1,73 @@
+@keyframes glowing-border-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.glowing-border {
+  position: relative;
+  color: white;
+  background: transparent; /* Контейнер должен быть прозрачным */
+  border: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Слой с вращающимся градиентом */
+.glowing-border::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: -2; /* Находится за маской фона */
+  
+  /* Конический градиент, создающий эффект свечения */
+  background: conic-gradient(
+    transparent,
+    transparent,
+    transparent,
+    #34d399, /* Ярко-изумрудный */
+    #a7f3d0, /* Очень светлый зеленый/белый */
+    #34d399,
+    transparent,
+    transparent
+  );
+  
+  animation: glowing-border-spin 4s linear infinite;
+}
+
+/* Слой с фоном кнопки, который маскирует градиент */
+.glowing-border::after {
+  content: "";
+  position: absolute;
+  inset: 3px; /* Толщина светящейся границы */
+  z-index: -1; /* Находится поверх градиента, но за текстом */
+  background: #16a34a; /* Основной фон кнопки */
+  border-radius: calc(0.75rem - 3px); /* Скругление = скругление кнопки - толщина границы */
+  transition: background 0.2s ease-in-out;
+}
+
+.glowing-border:hover::after {
+    background: #15803d; /* Затемнение фона при наведении */
+}
+
+/* Обработка отключенного состояния */
+.glowing-border:disabled,
+.glowing-border[data-disabled] {
+  background: #9ca3af !important; /* Сплошной серый фон */
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Скрываем псевдоэлементы, когда кнопка отключена, чтобы убрать анимацию */
+.glowing-border:disabled::before,
+.glowing-border[data-disabled]::before,
+.glowing-border:disabled::after,
+.glowing-border[data-disabled]::after {
+  display: none;
+}
