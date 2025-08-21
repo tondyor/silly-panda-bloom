@@ -13,10 +13,14 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTelegram } from "@/hooks/useTelegram";
 import { UserProfile } from "@/components/UserProfile";
+import { useTelegramProfileSync } from "@/hooks/useTelegramProfileSync"; // Импорт нового хука
 
 const ExchangePage = () => {
   const { t } = useTranslation();
   const { data: telegramData, error: telegramError, isLoading: isTelegramLoading } = useTelegram();
+  
+  // Вызов нового хука здесь
+  useTelegramProfileSync();
   
   const [isSummaryView, setIsSummaryView] = useState(false);
   const [submittedOrderData, setSubmittedOrderData] = useState<any>(null);
