@@ -17,13 +17,13 @@ export const CurrencyTabs: React.FC<CurrencyTabsProps> = ({ value, onChange }) =
       <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-white border border-gray-200 p-1">
         <TabsTrigger
           value="USDT"
-          className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-lg font-medium text-gray-700 transition-all"
+          className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-xl font-medium text-gray-700 transition-all"
         >
           {t("exchangeForm.usdt")}
         </TabsTrigger>
         <TabsTrigger
           value="RUB"
-          className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-lg font-medium text-gray-700 transition-all"
+          className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md py-2 text-xl font-medium text-gray-700 transition-all"
         >
           {t("exchangeForm.rub")}
         </TabsTrigger>
