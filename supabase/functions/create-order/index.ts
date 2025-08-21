@@ -256,15 +256,21 @@ serve(async (req) => {
     } else if (user.language_code && ['ru', 'en', 'vi'].includes(user.language_code)) {
       userLang = user.language_code;
     }
-    const publicId = `ORD-${Date.now()}`;
+    
+    // public_id теперь генерируется базой данных. Мы его не передаем.
     const orderToInsert = {
       payment_currency: formData.paymentCurrency, from_amount: formData.fromAmount, calculated_vnd: formData.calculatedVND, exchange_rate: formData.exchangeRate,
       delivery_method: formData.deliveryMethod, usdt_network: formData.usdtNetwork ?? null, vnd_bank_name: formData.vndBankName ?? null,
       vnd_bank_account_number: formData.vndBankAccountNumber ?? null, delivery_address: formData.deliveryAddress ?? null, contact_phone: formData.contactPhone ?? null,
-      public_id: publicId, status: "Новая заявка", telegram_id: user.id,
+      status: "Новая заявка", telegram_id: user.id,
     };
+
+    // Вставляем заказ и сразу получаем его обратно с помощью .select().single()
+    // чтобы получить сгенерированный базой данных public_id
     const { data: insertedOrder, error: insertError } = await supabase.from("orders").insert(orderToInsert).select().single();
+
     if (insertError) throw new Error(`Ошибка базы данных: ${insertError.message}`);
+    
     const fullOrderDetailsForNotification = { ...insertedOrder, telegram_user_first_name: user.first_name, telegram_username: user.username, deposit_address: formData.depositAddress };
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false, userLang);
     const inlineKeyboard = { inline_keyboard: [[{ text: 'RU', callback_data: `lang_ru_${insertedOrder.public_id}` }, { text: 'EN', callback_data: `lang_en_${insertedOrder.public_id}` }, { text: 'VIET', callback_data: `lang_vi_${insertedOrder.public_id}` }]] };
