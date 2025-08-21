@@ -95,7 +95,7 @@ const ExchangePage = () => {
 
       {/* Moved title and language switcher outside the Card */}
       <div className="relative w-full max-w-lg flex justify-between items-center p-4 z-20">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
           {t('headerTitle')}
         </h1>
         <LanguageSwitcher />
