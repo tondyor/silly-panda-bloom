@@ -7,7 +7,6 @@ import { PostSubmissionInfo } from "@/components/PostSubmissionInfo";
 import { ExchangeSummary } from "@/components/ExchangeSummary";
 import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
-import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -44,11 +43,6 @@ const ExchangePage = () => {
 
     setSubmittedOrderData(displayData);
     setIsSummaryView(true);
-
-    toast.success("Заявка отправлена!", {
-      description: `Детали заказа отправлены вам в личном сообщении.`,
-      duration: 5000,
-    });
   };
 
   const renderContent = () => {

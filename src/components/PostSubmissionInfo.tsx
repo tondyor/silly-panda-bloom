@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Copy, AlertTriangle, Info } from 'lucide-react';
-import { toast } from "sonner";
 
 interface PostSubmissionInfoProps {
   depositInfo: { network: string; address: string; } | null;
@@ -18,17 +17,10 @@ export const PostSubmissionInfo: React.FC<PostSubmissionInfoProps> = ({ depositI
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address)
       .then(() => {
-        toast.success("Адрес скопирован в буфер обмена!", {
-          description: address,
-          duration: 3000,
-        });
+        console.log("Address copied to clipboard:", address);
       })
       .catch(err => {
         console.error('Failed to copy address: ', err);
-        toast.error("Не удалось скопировать адрес.", {
-          description: "Пожалуйста, скопируйте вручную.",
-          duration: 5000,
-        });
       });
   };
 
