@@ -59,7 +59,7 @@
   inset: 5px;
   
   /* Основной цвет фона кнопки */
-  background: #16a34a;
+  background: #16a3a4;
   
   /* Скругление чуть меньше, чем у родителя */
   border-radius: calc(0.75rem - 5px);
