@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ExchangeForm } from "@/components/ExchangeForm";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -7,10 +8,11 @@ import { ExchangeSummary } from "@/components/ExchangeSummary";
 import { WhyChooseUsSection } from "@/components/WhyChooseUsSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, History } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTelegram } from "@/hooks/useTelegram";
 import { UserProfile } from "@/components/UserProfile";
+import { Button } from "@/components/ui/button";
 
 const ExchangePage = () => {
   const { t } = useTranslation();
@@ -94,8 +96,13 @@ const ExchangePage = () => {
       </div>
 
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="flex flex-row items-center bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
+        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
           <UserProfile />
+          <Link to="/account">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white h-10 w-10 rounded-full">
+              <History className="h-6 w-6" />
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {renderContent()}
