@@ -6,8 +6,7 @@
 
 .glowing-border {
   position: relative;
-  /* Фон теперь задается через ::after, контейнер прозрачный */
-  background: transparent; 
+  background: #111;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -21,7 +20,7 @@
   height: 3.5rem; /* 56px */
   font-size: 1.125rem; /* 18px */
   font-weight: 500;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, background 0.2s ease;
 }
 
 .glowing-border::before {
@@ -31,12 +30,11 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  /* Новый бело-желтый градиент */
   background: conic-gradient(
     from 0deg,
-    white,
-    #facc15, /* Яркий желтый */
-    white
+    #00e5ff,
+    #ff00e5,
+    #00e5ff
   );
   animation: rotate 6s linear infinite;
   z-index: -2;
@@ -47,11 +45,9 @@
   content: "";
   position: absolute;
   inset: 2px; /* Толщина границы */
-  /* Зеленый фон кнопки */
-  background: #16a34a; 
+  background: #111;
   border-radius: 8px; /* 10px - 2px */
   z-index: -1;
-  transition: background 0.3s ease;
 }
 
 .glowing-border:hover:not(:disabled)::before {
@@ -59,17 +55,12 @@
   filter: blur(2px);
 }
 
-/* Затемняем фон при наведении */
-.glowing-border:hover:not(:disabled)::after {
-  background: #15803d;
-}
-
 /* Состояние Disabled */
 .glowing-border:disabled,
 .glowing-border[data-disabled] {
-  background: #4b5563; /* Темно-серый */
+  background: #374151; /* Темно-серый */
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .glowing-border:disabled::before,
