@@ -10,57 +10,55 @@
 .animated-border-button {
   position: relative;
   overflow: hidden;
-  /* The background is now handled by the ::after pseudo-element */
-  background-color: transparent;
-  /* A fallback border for when the animation isn't active */
-  border: 1px solid transparent;
-  z-index: 1; /* Create a new stacking context */
+  /* Основной фон кнопки */
+  background-color: #16a34a; /* Tailwind green-600 */
+  /* Постоянная зеленая граница */
+  border: 1px solid #15803d; /* Tailwind green-700 */
+  border-radius: 0.75rem; /* rounded-xl */
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  z-index: 1; /* Убедимся, что кнопка поверх всего */
+  color: white; /* Цвет текста кнопки */
 }
 
-/* This is the rotating gradient that creates the "firefly" */
+.animated-border-button:hover {
+  background-color: #15803d; /* Tailwind green-700 при наведении */
+}
+
+/* Псевдоэлемент для белого "светлячка" */
 .animated-border-button::before {
   content: '';
   position: absolute;
-  z-index: -2;
-  left: -50%;
-  top: -50%;
-  width: 200%;
-  height: 200%;
-  background-repeat: no-repeat;
-  /* A sharp, thin sliver of white to act as the firefly */
-  background-image: conic-gradient(
-    from 180deg,
+  /* Располагаем его так, чтобы он был чуть больше кнопки,
+     чтобы его "граница" совпадала с границей кнопки */
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border-radius: inherit; /* Наследуем скругление углов */
+  
+  /* Создаем 5px белую границу, которая будет анимироваться */
+  border: 5px solid transparent;
+  border-image: conic-gradient(
     transparent 0%,
-    transparent 98%,
-    white 99%,
+    transparent 90%, /* Большая часть прозрачна */
+    white 95%,       /* Белый сегмент */
     transparent 100%
-  );
-  animation: rotate 4s linear infinite;
+  ) 1; /* '1' означает, что весь градиент используется для границы */
+  
+  animation: rotate 5s linear infinite; /* Анимация вращения */
+  filter: drop-shadow(0 0 5px rgba(255,255,255,0.8)); /* Мягкое свечение */
+  z-index: 2; /* Поверх основной границы кнопки */
 }
 
-/* This is the inner mask that creates the button's color and the 5px track for the firefly */
-.animated-border-button::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  /* Inset by 5px to create the border track */
-  inset: 5px;
-  /* The button's actual background color */
-  background: #16a34a; /* green-600 */
-  /* The border-radius must be smaller than the parent's to look correct */
-  border-radius: 0.5rem; /* rounded-lg, slightly smaller than rounded-xl */
-  transition: background 0.3s ease;
-}
-
-.animated-border-button:hover::after {
-    background: #15803d; /* green-700 */
-}
-
-/* Ensure the disabled state looks correct */
+/* Стили для отключенной кнопки */
 .animated-border-button:disabled {
-    background-color: #9ca3af; /* gray-400 */
+  background-color: #9ca3af; /* Серый фон */
+  border-color: transparent; /* Убираем зеленую границу */
+  opacity: 0.6;
+  cursor: not-allowed;
 }
-.animated-border-button:disabled::before,
-.animated-border-button:disabled::after {
-    display: none;
+
+/* Скрываем анимацию, когда кнопка отключена */
+.animated-border-button:disabled::before {
+  display: none;
 }
