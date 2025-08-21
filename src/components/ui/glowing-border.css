@@ -1,76 +1,43 @@
-@keyframes rotate {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .glowing-border {
   position: relative;
-  background: #15803d; /* Зеленый фон */
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  z-index: 1;
-  overflow: hidden;
-  font-family: sans-serif;
-  
-  /* Стили для соответствия макету */
-  width: 100%;
-  height: 3.5rem; /* 56px */
-  font-size: 1.125rem; /* 18px */
-  font-weight: 500;
-  transition: opacity 0.2s ease, background 0.2s ease;
+  z-index: 0;
 }
 
 .glowing-border::before {
   content: "";
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(
-    from 0deg,
-    #fdba74, /* Светло-оранжевый */
-    #f87171, /* Ярко-красный */
-    #fdba74  /* Светло-оранжевый */
-  );
-  animation: rotate 6s linear infinite;
-  z-index: -2;
-  transition: animation-duration 0.3s ease, filter 0.3s ease;
-}
-
-.glowing-border::after {
-  content: "";
-  position: absolute;
-  inset: 4px; /* Толщина границы (увеличено) */
-  background: #16a34a; /* Более светлый зеленый для основной части */
-  border-radius: 6px; /* 10px - 4px */
   z-index: -1;
-  transition: background 0.2s ease;
+  
+  /* Толщина границы увеличена до 4px */
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  
+  /* Цвета изменены на ярко-красный и светло-оранжевый */
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    #ff0000, /* Ярко-красный */
+    #ffa500, /* Светло-оранжевый */
+    #ff0000
+  );
+  
+  /* Радиус скругления, чтобы соответствовать кнопке */
+  border-radius: var(--radius);
+  
+  animation: rotate-glow 4s linear infinite;
 }
 
-.glowing-border:hover:not(:disabled)::after {
-  background: #15803d; /* Затемнение при наведении */
+@keyframes rotate-glow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.glowing-border:hover:not(:disabled)::before {
-  animation-duration: 3s;
-  filter: blur(2px);
-}
-
-/* Состояние Disabled */
-.glowing-border:disabled,
-.glowing-border[data-disabled] {
-  background: #1e4620; /* Приглушенный темно-зеленый */
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.glowing-border:disabled::before,
-.glowing-border[data-disabled]::before,
-.glowing-border:disabled::after,
-.glowing-border[data-disabled]::after {
-  display: none;
+/* Скрываем свечение, когда кнопка неактивна */
+.glowing-border:disabled::before {
+  content: none;
 }
