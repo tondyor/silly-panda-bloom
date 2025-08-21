@@ -1,22 +1,28 @@
-@keyframes glowing-border-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
+@keyframes rotate {
+  to {
     transform: rotate(360deg);
   }
 }
 
 .glowing-border {
   position: relative;
-  color: white;
-  background: transparent; /* Контейнер должен быть прозрачным */
+  background: #111;
+  color: #fff;
   border: none;
-  overflow: hidden;
+  border-radius: 10px;
+  cursor: pointer;
   z-index: 1;
+  overflow: hidden;
+  font-family: sans-serif;
+  
+  /* Стили для соответствия макету */
+  width: 100%;
+  height: 3.5rem; /* 56px */
+  font-size: 1.125rem; /* 18px */
+  font-weight: 500;
+  transition: opacity 0.2s ease, background 0.2s ease;
 }
 
-/* Слой с вращающимся градиентом */
 .glowing-border::before {
   content: "";
   position: absolute;
@@ -24,47 +30,39 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  z-index: -2; /* Находится за маской фона */
-  
-  /* Конический градиент, создающий эффект свечения */
   background: conic-gradient(
-    transparent,
-    transparent,
-    transparent,
-    #34d399, /* Ярко-изумрудный */
-    #a7f3d0, /* Очень светлый зеленый/белый */
-    #34d399,
-    transparent,
-    transparent
+    from 0deg,
+    #00e5ff,
+    #ff00e5,
+    #00e5ff
   );
-  
-  animation: glowing-border-spin 4s linear infinite;
+  animation: rotate 6s linear infinite;
+  z-index: -2;
+  transition: animation-duration 0.3s ease, filter 0.3s ease;
 }
 
-/* Слой с фоном кнопки, который маскирует градиент */
 .glowing-border::after {
   content: "";
   position: absolute;
-  inset: 3px; /* Толщина светящейся границы */
-  z-index: -1; /* Находится поверх градиента, но за текстом */
-  background: #16a34a; /* Основной фон кнопки */
-  border-radius: calc(0.75rem - 3px); /* Скругление = скругление кнопки - толщина границы */
-  transition: background 0.2s ease-in-out;
+  inset: 2px; /* Толщина границы */
+  background: #111;
+  border-radius: 8px; /* 10px - 2px */
+  z-index: -1;
 }
 
-.glowing-border:hover::after {
-    background: #15803d; /* Затемнение фона при наведении */
+.glowing-border:hover:not(:disabled)::before {
+  animation-duration: 3s;
+  filter: blur(2px);
 }
 
-/* Обработка отключенного состояния */
+/* Состояние Disabled */
 .glowing-border:disabled,
 .glowing-border[data-disabled] {
-  background: #9ca3af !important; /* Сплошной серый фон */
+  background: #374151; /* Темно-серый */
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
-/* Скрываем псевдоэлементы, когда кнопка отключена, чтобы убрать анимацию */
 .glowing-border:disabled::before,
 .glowing-border[data-disabled]::before,
 .glowing-border:disabled::after,

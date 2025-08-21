@@ -442,9 +442,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
 
           <Button
             type="submit"
-            className={cn(
-              "w-full h-14 text-lg font-medium rounded-xl shadow-lg glowing-border"
-            )}
+            className="glowing-border"
             disabled={!isButtonActive}
           >
             {isSubmitting ? (
