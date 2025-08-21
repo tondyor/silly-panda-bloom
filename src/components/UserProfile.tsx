@@ -1,11 +1,37 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client"; // Импортируем клиент Supabase
 
 export const UserProfile = () => {
-  const { data, isLoading } = useTelegram();
+  const { data, isLoading, error } = useTelegram();
   const user = data?.user;
+  const initData = data?.initData;
+
+  // Эффект для обновления профиля в Supabase
+  useEffect(() => {
+    const upsertProfile = async () => {
+      if (initData && user && !isLoading && !error) {
+        try {
+          // Вызываем новую Edge Function для upsert профиля
+          const { error: upsertError } = await supabase.functions.invoke("upsert-telegram-profile", {
+            body: { initData },
+          });
+
+          if (upsertError) {
+            console.error("Ошибка при обновлении профиля Telegram в Supabase:", upsertError);
+          } else {
+            console.log("Профиль Telegram успешно обновлен в Supabase.");
+          }
+        } catch (e) {
+          console.error("Непредвиденная ошибка при вызове upsert-telegram-profile:", e);
+        }
+      }
+    };
+
+    upsertProfile();
+  }, [initData, user, isLoading, error]); // Зависимости: initData, user, isLoading, error
 
   if (isLoading || !user) {
     return (

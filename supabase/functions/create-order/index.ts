@@ -240,25 +240,8 @@ serve(async (req) => {
     );
     console.log("Step 4: Supabase client created.");
 
-    // 5. Upsert профиля пользователя Telegram
-    const { error: upsertProfileError } = await supabase
-      .from('telegram_profiles')
-      .upsert({
-        telegram_id: user.id,
-        first_name: user.first_name || null,
-        last_name: user.last_name || null,
-        username: user.username || null,
-        language_code: user.language_code || null,
-        avatar_url: user.photo_url || null,
-        is_premium: user.is_premium || false,
-      }, { onConflict: 'telegram_id' });
-
-    if (upsertProfileError) {
-      console.error("Database Warning: Failed to upsert Telegram profile.", upsertProfileError);
-      // Не прерываем выполнение, но логируем ошибку
-    } else {
-      console.log(`Step 5: Telegram profile for user ${user.id} upserted successfully.`);
-    }
+    // 5. Удалена логика upsert профиля Telegram, теперь она в отдельной функции upsert-telegram-profile
+    // console.log(`Step 5: Telegram profile for user ${user.id} upserted successfully.`);
 
     // 6. Подготовка и сохранение заказа в базу данных
     const publicId = `ORD-${Date.now()}`;
