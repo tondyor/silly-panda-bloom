@@ -123,9 +123,9 @@ const ExchangePage = () => {
           <Link to="/account">
             <Button
               variant="ghost"
-              className="text-white hover:bg-white/20 hover:text-white h-12 w-12 rounded-lg p-0"
+              className="text-white hover:bg-white/20 hover:text-white h-10 w-10 rounded-lg p-1"
             >
-              <History className="h-9 w-9" />
+              <History className="h-8 w-8" />
             </Button>
           </Link>
         </CardHeader>
