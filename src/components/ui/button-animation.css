@@ -10,43 +10,57 @@
 .animated-border-button {
   position: relative;
   overflow: hidden;
-  z-index: 1;
-  background-color: #16a34a; /* Tailwind green-600 */
-  transition: background-color 0.3s ease;
+  /* The background is now handled by the ::after pseudo-element */
+  background-color: transparent;
+  /* A fallback border for when the animation isn't active */
+  border: 1px solid transparent;
+  z-index: 1; /* Create a new stacking context */
 }
 
-.animated-border-button:hover {
-  background-color: #15803d; /* Tailwind green-700 */
-}
-
-/* The glowing, rotating element */
+/* This is the rotating gradient that creates the "firefly" */
 .animated-border-button::before {
   content: '';
   position: absolute;
-  z-index: -1;
-  
-  /* Position it in the center and make it much larger than the button */
-  top: 50%;
-  left: 50%;
-  width: 250%;
-  height: 250%;
-  transform: translate(-50%, -50%);
-  
-  /* A very prominent gradient to create a bright "comet" */
+  z-index: -2;
+  left: -50%;
+  top: -50%;
+  width: 200%;
+  height: 200%;
+  background-repeat: no-repeat;
+  /* A sharp, thin sliver of white to act as the firefly */
   background-image: conic-gradient(
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    transparent,
-    #ffffff, /* A large, bright white section */
-    #ffffff,
-    transparent,
-    transparent
+    from 180deg,
+    transparent 0%,
+    transparent 98%,
+    white 99%,
+    transparent 100%
   );
-  
   animation: rotate 4s linear infinite;
-  
-  /* Add a blur effect to make it look like a soft glow */
-  filter: blur(15px);
+}
+
+/* This is the inner mask that creates the button's color and the 5px track for the firefly */
+.animated-border-button::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  /* Inset by 5px to create the border track */
+  inset: 5px;
+  /* The button's actual background color */
+  background: #16a34a; /* green-600 */
+  /* The border-radius must be smaller than the parent's to look correct */
+  border-radius: 0.5rem; /* rounded-lg, slightly smaller than rounded-xl */
+  transition: background 0.3s ease;
+}
+
+.animated-border-button:hover::after {
+    background: #15803d; /* green-700 */
+}
+
+/* Ensure the disabled state looks correct */
+.animated-border-button:disabled {
+    background-color: #9ca3af; /* gray-400 */
+}
+.animated-border-button:disabled::before,
+.animated-border-button:disabled::after {
+    display: none;
 }
