@@ -93,15 +93,18 @@ const ExchangePage = () => {
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
 
+      {/* Moved title and language switcher outside the Card */}
+      <div className="relative w-full max-w-lg flex justify-between items-center p-4 z-20">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+          {t('headerTitle')}
+        </h1>
+        <LanguageSwitcher />
+      </div>
+
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
         <CardHeader className="flex flex-col p-4 bg-gradient-to-r from-red-600 to-orange-500 text-white">
-          <div className="flex items-center justify-between w-full mb-4"> {/* Top row for title and language switcher */}
-            <CardTitle className="text-2xl sm:text-3xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-              {t('headerTitle')}
-            </CardTitle>
-            <LanguageSwitcher />
-          </div>
-          <UserProfile /> {/* Second row for user profile */}
+          {/* UserProfile remains inside CardHeader */}
+          <UserProfile /> 
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {renderContent()}
