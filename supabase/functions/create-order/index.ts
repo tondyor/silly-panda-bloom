@@ -124,35 +124,35 @@ function formatOrderForTelegram(order: any, forAdmin: boolean): string {
   if (forAdmin) {
     const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
     const details = [
-      `😏 *Новый заказ!*`,
+      `Новый заказ!`,
       ``,
-      `*Номер заказа:* \`#${order.order_id}\``, // Изменено на order_id
-      `*Клиент:* ${clientIdentifier}`,
+      `Номер заказа: #${order.order_id}`,
+      `Клиент: ${clientIdentifier}`,
       `-----------------------------------`,
-      `*Отдает:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `*Получает (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-      `*Курс:* ${order.exchange_rate.toLocaleString('ru-RU')}`,
+      `Отдает: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
+      `Получает (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      `Курс: ${order.exchange_rate.toLocaleString('ru-RU')}`,
       `-----------------------------------`,
-      `*Способ получения:* ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
+      `Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
     ];
 
     if (order.payment_currency === 'USDT') {
-      details.push(`*Сеть USDT:* ${order.usdt_network}`);
+      details.push(`Сеть USDT: ${order.usdt_network}`);
     }
 
     if (order.delivery_method === 'bank') {
-      details.push(`*Банк:* ${order.vnd_bank_name}`);
-      details.push(`*Номер счета:* \`${order.vnd_bank_account_number}\``);
+      details.push(`Банк: ${order.vnd_bank_name}`);
+      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
     } else {
-      details.push(`*Адрес доставки:* ${order.delivery_address}`);
+      details.push(`Адрес доставки: ${order.delivery_address}`);
     }
 
     if (order.contact_phone) {
-      details.push(`*Телефон для связи:* ${order.contact_phone}`);
+      details.push(`Телефон для связи: ${order.contact_phone}`);
     }
     
     details.push(`-----------------------------------`);
-    details.push(`*Статус:* ${order.status}`);
+    details.push(`Статус: ${order.status}`);
 
     return details.join('\n');
   } else {
