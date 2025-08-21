@@ -11,7 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  /* Увеличил размер шрифта */
+  font-size: 1.125rem;
   font-weight: 600;
   color: white;
   background-color: #16a34a; /* A shade of green */
@@ -34,9 +35,7 @@
   right: 0;
   bottom: 0;
   border-radius: inherit;
-  /* Уменьшил толщину границы */
   padding: 3px;
-  /* Обновил цвета на ярко-красный и светло-оранжевый */
   background: conic-gradient(from var(--angle), #ff0000, #ffa500, #ff0000);
   -webkit-mask: 
     linear-gradient(#fff 0 0) content-box, 
