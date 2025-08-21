@@ -115,6 +115,21 @@ async function answerWebAppQuery(queryId: string, result: any): Promise<void> {
 
 // --- Форматирование данных ---
 /**
+ * Экранирует специальные символы Markdown.
+ * @param text Входная строка.
+ * @returns Строка с экранированными символами.
+ */
+function escapeMarkdown(text: string | number | null | undefined): string {
+  if (text === null || text === undefined) return '';
+  const str = String(text);
+  return str
+    .replace(/_/g, '\\_')
+    .replace(/\*/g, '\\*')
+    .replace(/\[/g, '\\[')
+    .replace(/`/g, '\\`');
+}
+
+/**
  * Форматирует детали заказа в читаемую строку для сообщений в Telegram.
  * @param order Полный объект заказа.
  * @param forAdmin Булево значение для переключения между форматами для админа и клиента.
@@ -122,7 +137,8 @@ async function answerWebAppQuery(queryId: string, result: any): Promise<void> {
  */
 function formatOrderForTelegram(order: any, forAdmin: boolean): string {
   if (forAdmin) {
-    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${order.telegram_username || 'N/A'})` : 'Клиент';
+    const safeUsername = escapeMarkdown(order.telegram_username || 'N/A');
+    const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${safeUsername})` : 'Клиент';
     const details = [
       `Новый заказ!`,
       ``,
@@ -137,18 +153,18 @@ function formatOrderForTelegram(order: any, forAdmin: boolean): string {
     ];
 
     if (order.payment_currency === 'USDT') {
-      details.push(`Сеть USDT: ${order.usdt_network}`);
+      details.push(`Сеть USDT: ${escapeMarkdown(order.usdt_network)}`);
     }
 
     if (order.delivery_method === 'bank') {
-      details.push(`Банк: ${order.vnd_bank_name}`);
-      details.push(`Номер счета: ${order.vnd_bank_account_number}`);
+      details.push(`Банк: ${escapeMarkdown(order.vnd_bank_name)}`);
+      details.push(`Номер счета: ${escapeMarkdown(order.vnd_bank_account_number)}`);
     } else {
-      details.push(`Адрес доставки: ${order.delivery_address}`);
+      details.push(`Адрес доставки: ${escapeMarkdown(order.delivery_address)}`);
     }
 
     if (order.contact_phone) {
-      details.push(`Телефон для связи: ${order.contact_phone}`);
+      details.push(`Телефон для связи: ${escapeMarkdown(order.contact_phone)}`);
     }
     
     details.push(`-----------------------------------`);
