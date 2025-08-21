@@ -32,9 +32,9 @@
   height: 200%;
   background: conic-gradient(
     from 0deg,
-    #facc15, /* Желтый */
-    #ffffff, /* Белый */
-    #facc15  /* Желтый */
+    #f97316, /* Оранжевый */
+    #ef4444, /* Красный */
+    #f97316  /* Оранжевый */
   );
   animation: rotate 6s linear infinite;
   z-index: -2;
