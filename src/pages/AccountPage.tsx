@@ -40,7 +40,7 @@ const AccountPage = () => {
               variant="ghost"
               className="text-white hover:bg-white/20 hover:text-white h-12 w-12 rounded-lg p-0"
             >
-              <ArrowRightLeft className="h-10 w-10" />
+              <ArrowRightLeft className="h-7 w-7" />
             </Button>
           </Link>
         </CardHeader>

@@ -1,4 +1,4 @@
-import React, 'useState' from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ExchangeForm } from '@/components/ExchangeForm'
@@ -125,7 +125,7 @@ const ExchangePage = () => {
               variant="ghost"
               className="text-white hover:bg-white/20 hover:text-white h-12 w-12 rounded-lg p-0"
             >
-              <History className="h-10 w-10" />
+              <History className="h-7 w-7" />
             </Button>
           </Link>
         </CardHeader>
