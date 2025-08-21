@@ -12,7 +12,7 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data }) => {
   }
 
   const {
-    orderId,
+    order_id, // Изменено на order_id
     paymentCurrency,
     fromAmount,
     calculatedVND,
@@ -31,7 +31,7 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data }) => {
           <CheckCircle2 className="h-16 w-16 text-green-500" />
         </div>
         <CardTitle className="text-2xl font-bold text-gray-800">
-          Заявка #{orderId} успешно создана!
+          Заявка #{order_id} успешно создана!
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">

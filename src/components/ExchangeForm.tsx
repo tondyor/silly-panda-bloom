@@ -324,7 +324,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
         formData: formDetails,
       };
 
-      const { data, error } = await supabase.functions.invoke("create-order", { // <-- ИЗМЕНЕНО ЗДЕСЬ
+      const { data, error } = await supabase.functions.invoke("create-order", {
         body: payload,
       });
 
@@ -334,7 +334,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
         throw new Error(`Server error: ${error.message}`);
       }
 
-      if (!data || !("public_id" in data)) {
+      if (!data || !("order_id" in data)) { // Изменено на order_id
         setErrorMessage("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
         setIsErrorDialogOpen(true);
         throw new Error("Invalid response from server.");

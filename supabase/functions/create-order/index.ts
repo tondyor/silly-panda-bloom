@@ -126,7 +126,7 @@ function formatOrderForTelegram(order: any, forAdmin: boolean): string {
     const details = [
       `😏 *Новый заказ!*`,
       ``,
-      `*Номер заказа:* \`#${order.public_id}\``,
+      `*Номер заказа:* \`#${order.order_id}\``, // Изменено на order_id
       `*Клиент:* ${clientIdentifier}`,
       `-----------------------------------`,
       `*Отдает:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
@@ -161,7 +161,7 @@ function formatOrderForTelegram(order: any, forAdmin: boolean): string {
     
     const details = [
       title,
-      `*Номер заказа:* \`#${order.public_id}\``,
+      `*Номер заказа:* \`#${order.order_id}\``, // Изменено на order_id
       `-----------------------------------`,
       `*Вы отправляете:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
       `*К получению (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
@@ -240,12 +240,10 @@ serve(async (req) => {
     );
     console.log("Step 4: Supabase client created.");
 
-    // 5. Удалена логика upsert профиля Telegram, теперь она в отдельной функции upsert-telegram-profile
-    // console.log(`Step 5: Telegram profile for user ${user.id} upserted successfully.`);
-
-    // 6. Подготовка и сохранение заказа в базу данных
-    const publicId = `ORD-${Date.now()}`;
+    // 5. Подготовка и сохранение заказа в базу данных
+    const orderId = `ORD-${Date.now()}`; // Генерируем строковый order_id
     const orderToInsert = {
+      order_id: orderId, // Используем сгенерированный строковый ID
       payment_currency: formData.paymentCurrency,
       from_amount: formData.fromAmount,
       calculated_vnd: formData.calculatedVND,
@@ -256,7 +254,6 @@ serve(async (req) => {
       vnd_bank_account_number: formData.vndBankAccountNumber ?? null,
       delivery_address: formData.deliveryAddress ?? null,
       contact_phone: formData.contactPhone ?? null,
-      public_id: publicId,
       status: "Новая заявка",
       telegram_id: user.id,
     };
@@ -271,9 +268,9 @@ serve(async (req) => {
       console.error("Database Error: Failed to insert order.", insertError);
       throw new Error(`Ошибка базы данных: ${insertError.message}`);
     }
-    console.log(`Step 6: Order #${publicId} created successfully in database.`);
+    console.log(`Step 5: Order #${orderId} created successfully in database.`); // Изменено на orderId
 
-    // 7. Подготовка данных для уведомлений
+    // 6. Подготовка данных для уведомлений
     const fullOrderDetailsForNotification = {
         ...insertedOrder,
         telegram_user_first_name: user.first_name,
@@ -282,10 +279,10 @@ serve(async (req) => {
     };
     
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
-    console.log("Step 7: Notification data prepared.");
+    console.log("Step 6: Notification data prepared.");
 
-    // 8. Отправка двойных уведомлений
-    // 8a. Через answerWebAppQuery (если доступен queryId)
+    // 7. Отправка двойных уведомлений
+    // 7a. Через answerWebAppQuery (если доступен queryId)
     if (queryId) {
       await answerWebAppQuery(queryId, {
         type: 'article',
@@ -293,21 +290,21 @@ serve(async (req) => {
         title: 'Заявка успешно создана!',
         input_message_content: { message_text: clientMessageText, parse_mode: 'Markdown' },
       });
-      console.log(`Step 8a: Sent answerWebAppQuery for queryId ${queryId}.`);
+      console.log(`Step 7a: Sent answerWebAppQuery for queryId ${queryId}.`);
     }
 
-    // 8b. Всегда через sendMessage в личный чат пользователя
+    // 7b. Всегда через sendMessage в личный чат пользователя
     await sendMessage(user.id, clientMessageText);
-    console.log(`Step 8b: Sent direct message to user ${user.id}.`);
+    console.log(`Step 7b: Sent direct message to user ${user.id}.`);
 
-    // 8c. (Опционально) Уведомление администратора
+    // 7c. (Опционально) Уведомление администратора
     if (ADMIN_TELEGRAM_CHAT_ID) {
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
       await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
-      console.log(`Step 8c: Sent notification to admin chat.`);
+      console.log(`Step 7c: Sent notification to admin chat.`);
     }
 
-    // 9. Возврат успешного ответа фронтенду
+    // 8. Возврат успешного ответа фронтенду
     console.log("--- create-order function finished successfully ---");
     return new Response(JSON.stringify(insertedOrder), {
       status: 200,
