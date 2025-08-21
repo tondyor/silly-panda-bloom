@@ -219,7 +219,7 @@ serve(async (req) => {
 
     // 3. Парсинг данных пользователя и query_id из initData
     const params = new URLSearchParams(initData);
-    const user = JSON.parse(params.get("user")!); // Это пользователь Telegram
+    const user = JSON.parse(params.get("user")!);
     const queryId = params.get("query_id");
 
     if (!user || !user.id) {
@@ -229,40 +229,39 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
-    console.log(`Step 3: Telegram User data parsed. Telegram User ID: ${user.id}, Username: ${user.username || 'N/A'}`);
+    console.log(`Step 3: User data parsed. User ID: ${user.id}, Username: ${user.username || 'N/A'}`);
 
-    // 4. Создание клиента Supabase с авторизацией из запроса
-    // Используем заголовок Authorization из входящего запроса для получения контекста пользователя Supabase
-    const authHeader = req.headers.get('Authorization');
+    // 4. Создание клиента Supabase с сервисным ключом
     const supabase = createClient(
       // @ts-ignore
       Deno.env.get("SUPABASE_URL")!,
       // @ts-ignore
-      Deno.env.get("SUPABASE_ANON_KEY")!, // Используем ANON_KEY для клиентской авторизации
-      {
-        global: {
-          headers: { Authorization: authHeader! },
-        },
-      }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    console.log("Step 4: Supabase client created.");
 
-    // Получаем ID аутентифицированного пользователя Supabase для проверок RLS на таблице orders
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !authUser) {
-      console.error("Authentication Error: Could not get authenticated Supabase user in Edge Function.", authError);
-      return new Response(JSON.stringify({ error: "Не удалось аутентифицировать пользователя Supabase" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // 5. Upsert профиля пользователя Telegram
+    const { error: upsertProfileError } = await supabase
+      .from('telegram_profiles')
+      .upsert({
+        telegram_id: user.id,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
+        username: user.username || null,
+        language_code: user.language_code || null,
+        avatar_url: user.photo_url || null,
+        is_premium: user.is_premium || false,
+      }, { onConflict: 'telegram_id' });
+
+    if (upsertProfileError) {
+      console.error("Database Warning: Failed to upsert Telegram profile.", upsertProfileError);
+      // Не прерываем выполнение, но логируем ошибку
+    } else {
+      console.log(`Step 5: Telegram profile for user ${user.id} upserted successfully.`);
     }
-    const supabaseUserId = authUser.id; // Это UUID из auth.users
-    console.log(`Step 4: Supabase client created with user context. Supabase User ID: ${supabaseUserId}`);
-
-    // 5. (Удалено) Логика upsert профиля перенесена в клиентский хук useTelegramProfileSync.ts
-    // Этот шаг больше не нужен здесь.
 
     // 6. Подготовка и сохранение заказа в базу данных
-    const publicId = `ORD-${Date.now()}`; // Генерируем уникальный публичный ID
+    const publicId = `ORD-${Date.now()}`;
     const orderToInsert = {
       payment_currency: formData.paymentCurrency,
       from_amount: formData.fromAmount,
@@ -274,15 +273,15 @@ serve(async (req) => {
       vnd_bank_account_number: formData.vndBankAccountNumber ?? null,
       delivery_address: formData.deliveryAddress ?? null,
       contact_phone: formData.contactPhone ?? null,
-      public_id: publicId, // Вставляем сгенерированный public_id
+      public_id: publicId,
       status: "Новая заявка",
-      telegram_id: user.id, // ID пользователя Telegram
+      telegram_id: user.id,
     };
 
     const { data: insertedOrder, error: insertError } = await supabase
       .from("orders")
       .insert(orderToInsert)
-      .select('order_id, public_id, payment_currency, from_amount, calculated_vnd, exchange_rate, delivery_method, usdt_network, vnd_bank_name, vnd_bank_account_number, delivery_address, contact_phone, status, telegram_id') // Выбираем конкретные столбцы
+      .select()
       .single();
 
     if (insertError) {
@@ -316,7 +315,7 @@ serve(async (req) => {
 
     // 8b. Всегда через sendMessage в личный чат пользователя
     await sendMessage(user.id, clientMessageText);
-    console.log(`Step 8b: Sent direct message to Telegram user ${user.id}.`);
+    console.log(`Step 8b: Sent direct message to user ${user.id}.`);
 
     // 8c. (Опционально) Уведомление администратора
     if (ADMIN_TELEGRAM_CHAT_ID) {

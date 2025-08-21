@@ -13,14 +13,10 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTelegram } from "@/hooks/useTelegram";
 import { UserProfile } from "@/components/UserProfile";
-import { useTelegramProfileSync } from "@/hooks/useTelegramProfileSync"; // Импорт нового хука
 
 const ExchangePage = () => {
   const { t } = useTranslation();
   const { data: telegramData, error: telegramError, isLoading: isTelegramLoading } = useTelegram();
-  
-  // Вызов нового хука здесь
-  useTelegramProfileSync();
   
   const [isSummaryView, setIsSummaryView] = useState(false);
   const [submittedOrderData, setSubmittedOrderData] = useState<any>(null);
@@ -95,20 +91,19 @@ const ExchangePage = () => {
         backgroundAttachment: 'fixed',
       }}
     >
-      <div className="absolute inset-0 bg-black/30 z-0"></div>
+      <div 
+        className="absolute inset-0 z-0"
+        style={{ background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%)' }}
+      ></div>
 
-      {/* Moved title and language switcher outside the Card */}
-      <div className="relative w-full max-w-lg flex justify-between items-center p-4 z-20">
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-          {t('headerTitle')}
-        </h1>
-        <LanguageSwitcher />
-      </div>
+      <h1 className="w-full max-w-lg text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)] mb-4 text-center z-10 relative">
+        {t('headerTitle')}
+      </h1>
 
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="flex flex-col p-4 bg-gradient-to-r from-red-600 to-orange-500 text-white">
-          {/* UserProfile remains inside CardHeader */}
-          <UserProfile /> 
+        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
+          <UserProfile />
+          <LanguageSwitcher />
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {renderContent()}
@@ -118,8 +113,8 @@ const ExchangePage = () => {
       {/* Показываем эти секции только когда видна форма */}
       {!isSummaryView && telegramData && (
         <>
-          <WhyChooseUsSection />
           <HowItWorksSection />
+          <WhyChooseUsSection />
         </>
       )}
 
