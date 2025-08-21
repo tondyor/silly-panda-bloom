@@ -241,17 +241,18 @@ serve(async (req) => {
     console.log("Step 4: Supabase client created.");
 
     // 5. Upsert профиля пользователя Telegram
+    // Now telegram_id is the primary key, and 'id' (UUID) is nullable.
     const { error: upsertProfileError } = await supabase
       .from('telegram_profiles')
       .upsert({
-        telegram_id: user.id,
+        telegram_id: user.id, // This is Telegram's user ID (bigint)
         first_name: user.first_name || null,
         last_name: user.last_name || null,
         username: user.username || null,
         language_code: user.language_code || null,
         avatar_url: user.photo_url || null,
         is_premium: user.is_premium || false,
-      }, { onConflict: 'telegram_id' });
+      }, { onConflict: 'telegram_id', ignoreDuplicates: false }); // Use onConflict with telegram_id
 
     if (upsertProfileError) {
       console.error("Database Warning: Failed to upsert Telegram profile.", upsertProfileError);
@@ -261,7 +262,7 @@ serve(async (req) => {
     }
 
     // 6. Подготовка и сохранение заказа в базу данных
-    const publicId = `ORD-${Date.now()}`;
+    const publicId = `ORD-${Date.now()}`; // Generate a unique public ID
     const orderToInsert = {
       payment_currency: formData.paymentCurrency,
       from_amount: formData.fromAmount,
@@ -273,7 +274,7 @@ serve(async (req) => {
       vnd_bank_account_number: formData.vndBankAccountNumber ?? null,
       delivery_address: formData.deliveryAddress ?? null,
       contact_phone: formData.contactPhone ?? null,
-      public_id: publicId,
+      public_id: publicId, // Insert the generated public_id
       status: "Новая заявка",
       telegram_id: user.id,
     };
@@ -281,7 +282,7 @@ serve(async (req) => {
     const { data: insertedOrder, error: insertError } = await supabase
       .from("orders")
       .insert(orderToInsert)
-      .select()
+      .select('order_id, public_id, payment_currency, from_amount, calculated_vnd, exchange_rate, delivery_method, usdt_network, vnd_bank_name, vnd_bank_account_number, delivery_address, contact_phone, status, telegram_id') // Select specific columns
       .single();
 
     if (insertError) {
