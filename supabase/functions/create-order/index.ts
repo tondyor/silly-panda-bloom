@@ -163,7 +163,7 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
   if (forAdmin) {
     const clientUsername = escapeMarkdownV2(order.telegram_username || 'N/A');
     const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} \\(@${clientUsername}\\)` : getTranslation(lang, 'client');
-    const publicId = escapeMarkdownV2(order.public_id);
+    const orderId = escapeMarkdownV2(order.order_id); // Используем order_id
     const bankName = escapeMarkdownV2(order.vnd_bank_name || '');
     const bankAccountNumber = escapeMarkdownV2(order.vnd_bank_account_number || '');
     const deliveryAddress = escapeMarkdownV2(order.delivery_address || '');
@@ -172,7 +172,7 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
     const details = [
       getTranslation(lang, 'adminNewOrder'),
       ``,
-      `${getTranslation(lang, 'orderNumber')} \`#${publicId}\``,
+      `${getTranslation(lang, 'orderNumber')} \`#${orderId}\``, // Используем orderId
       `${getTranslation(lang, 'client')} ${clientIdentifier}`,
       `-----------------------------------`,
       `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
@@ -201,12 +201,12 @@ function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): st
   } else {
     const escapedFirstName = escapeMarkdownV2(order.telegram_user_first_name || '');
     const title = getTranslation(lang, 'orderAcceptedTitle', { firstName: escapedFirstName ? ` ${escapedFirstName}` : '' });
-    const publicId = escapeMarkdownV2(order.public_id);
+    const orderId = escapeMarkdownV2(order.order_id); // Используем order_id
     const depositAddress = escapeMarkdownV2(order.deposit_address || '');
     
     const details = [
       title,
-      `${getTranslation(lang, 'orderNumber')} \`#${publicId}\``,
+      `${getTranslation(lang, 'orderNumber')} \`#${orderId}\``, // Используем orderId
       `-----------------------------------`,
       `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
       `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`,
@@ -266,18 +266,18 @@ serve(async (req) => {
     };
 
     // Вставляем заказ и сразу получаем его обратно с помощью .select().single()
-    // чтобы получить сгенерированный базой данных public_id
+    // чтобы получить сгенерированный базой данных order_id
     const { data: insertedOrder, error: insertError } = await supabase.from("orders").insert(orderToInsert).select().single();
 
     if (insertError) throw new Error(`Ошибка базы данных: ${insertError.message}`);
     
     const fullOrderDetailsForNotification = { ...insertedOrder, telegram_user_first_name: user.first_name, telegram_username: user.username, deposit_address: formData.depositAddress };
     const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false, userLang);
-    const inlineKeyboard = { inline_keyboard: [[{ text: 'RU', callback_data: `lang_ru_${insertedOrder.public_id}` }, { text: 'EN', callback_data: `lang_en_${insertedOrder.public_id}` }, { text: 'VIET', callback_data: `lang_vi_${insertedOrder.public_id}` }]] };
+    const inlineKeyboard = { inline_keyboard: [[{ text: 'RU', callback_data: `lang_ru_${insertedOrder.order_id}` }, { text: 'EN', callback_data: `lang_en_${insertedOrder.order_id}` }, { text: 'VIET', callback_data: `lang_vi_${insertedOrder.order_id}` }]] };
     const clientMessageResponse = await sendMessage(user.id, clientMessageText, inlineKeyboard);
     if (clientMessageResponse?.ok) {
       const messageId = clientMessageResponse.result.message_id;
-      await supabase.from('order_messages').insert({ chat_id: user.id, message_id: messageId, order_id: insertedOrder.id, telegram_id: user.id });
+      await supabase.from('order_messages').insert({ chat_id: user.id, message_id: messageId, order_id: insertedOrder.order_id, telegram_id: user.id }); // Используем order_id
     }
     if (ADMIN_TELEGRAM_CHAT_ID && ADMIN_TELEGRAM_CHAT_ID.trim() !== '') {
       const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true, 'ru');

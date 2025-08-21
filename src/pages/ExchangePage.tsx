@@ -28,8 +28,13 @@ const ExchangePage = () => {
     if (telegramData?.initData) {
       const upsertProfile = async () => {
         try {
+          // Получаем текущий токен сессии Supabase
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+
           const { error } = await supabase.functions.invoke("upsert-telegram-profile", {
             body: { initData: telegramData.initData },
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}, // Передаем токен
           });
           if (error) {
             console.error("Failed to upsert Telegram profile:", error.message);
@@ -53,7 +58,7 @@ const ExchangePage = () => {
     setDepositInfo({ network, address });
 
     const displayData = {
-      orderId: orderData.public_id,
+      order_id: orderData.order_id, // Изменено с public_id на order_id
       paymentCurrency: orderData.payment_currency,
       fromAmount: orderData.from_amount,
       calculatedVND: orderData.calculated_vnd,
@@ -91,15 +96,18 @@ const ExchangePage = () => {
     }
 
     if (telegramData) {
-      if (isSummaryView) {
-        return (
-          <>
-            <ExchangeSummary data={submittedOrderData} />
-            <PostSubmissionInfo depositInfo={depositInfo} formData={submittedOrderData} />
-          </>
-        );
-      }
-      return <ExchangeForm initData={telegramData.initData} onExchangeSuccess={handleExchangeSuccess} />;
+      return (
+        <>
+          {isSummaryView ? (
+            <>
+              <ExchangeSummary data={submittedOrderData} />
+              <PostSubmissionInfo depositInfo={depositInfo} formData={submittedOrderData} />
+            </>
+          ) : (
+            <ExchangeForm initData={telegramData.initData} onExchangeSuccess={handleExchangeSuccess} />
+          )}
+        </>
+      );
     }
 
     return null; // This state should not be reached if loading/error are handled

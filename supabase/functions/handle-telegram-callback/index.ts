@@ -114,12 +114,12 @@ function formatClientOrderMessage(order: any, lang: string): string {
   const locale = lang === 'vi' ? 'vi-VN' : 'ru-RU';
   const escapedFirstName = escapeMarkdownV2(order.telegram_user_first_name || '');
   const title = getTranslation(lang, 'orderAcceptedTitle', { firstName: escapedFirstName ? ` ${escapedFirstName}` : '' });
-  const publicId = escapeMarkdownV2(order.public_id);
+  const orderId = escapeMarkdownV2(order.order_id); // Используем order_id
   const depositAddress = escapeMarkdownV2(order.deposit_address || '');
   
   const details = [
     title,
-    `${getTranslation(lang, 'orderNumber')} \`#${publicId}\``,
+    `${getTranslation(lang, 'orderNumber')} \`#${orderId}\``, // Используем orderId
     `-----------------------------------`,
     `${getTranslation(lang, 'youSend')} ${order.from_amount.toLocaleString(locale)} ${order.payment_currency}`,
     `${getTranslation(lang, 'toReceive')} ${order.calculated_vnd.toLocaleString('vi-VN')}`,
@@ -160,9 +160,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid callback data" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const newLang = parts[1];
-    const orderPublicId = parts[2];
+    const orderIdFromCallback = parts[2]; // Получаем order_id из callback_data
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: order, error: orderError } = await supabase.from('orders').select('*').eq('public_id', orderPublicId).single();
+    const { data: order, error: orderError } = await supabase.from('orders').select('*').eq('order_id', orderIdFromCallback).single(); // Ищем по order_id
     if (orderError || !order) {
       return new Response(JSON.stringify({ error: "Order not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -174,7 +174,7 @@ serve(async (req) => {
     }[order.usdt_network] || "N/A" : "N/A";
     const fullOrderDetails = { ...order, telegram_user_first_name: userProfile?.first_name || from.first_name, telegram_username: userProfile?.username || from.username, deposit_address: depositAddress };
     const updatedMessageText = formatClientOrderMessage(fullOrderDetails, newLang);
-    const inlineKeyboard = { inline_keyboard: [[{ text: 'RU', callback_data: `lang_ru_${orderPublicId}` }, { text: 'EN', callback_data: `lang_en_${orderPublicId}` }, { text: 'VIET', callback_data: `lang_vi_${orderPublicId}` }]] };
+    const inlineKeyboard = { inline_keyboard: [[{ text: 'RU', callback_data: `lang_ru_${order.order_id}` }, { text: 'EN', callback_data: `lang_en_${order.order_id}` }, { text: 'VIET', callback_data: `lang_vi_${order.order_id}` }]] }; // Используем order_id
     await editMessageText(chat.id, messageId, updatedMessageText, inlineKeyboard);
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {

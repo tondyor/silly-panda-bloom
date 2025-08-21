@@ -93,19 +93,36 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
-    console.log(`Step 3: User data parsed. User ID: ${user.id}, Username: ${user.username || 'N/A'}`);
+    console.log(`Step 3: User data parsed. Telegram User ID: ${user.id}, Username: ${user.username || 'N/A'}`);
 
     const supabase = createClient(
       // @ts-ignore
       Deno.env.get("SUPABASE_URL")!,
       // @ts-ignore
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")! // Используем service_role_key для обхода RLS при upsert
     );
     console.log("Step 4: Supabase client created.");
+
+    // Получаем Supabase User ID из JWT, если пользователь аутентифицирован через Supabase Auth
+    const authHeader = req.headers.get('Authorization');
+    let supabaseUserId: string | null = null;
+    if (authHeader) {
+      const token = authHeader.split(' ')[1];
+      const { data: { user: supabaseAuthUser }, error: authError } = await supabase.auth.getUser(token);
+      if (authError) {
+        console.warn("Failed to get Supabase Auth user from token:", authError.message);
+      } else if (supabaseAuthUser) {
+        supabaseUserId = supabaseAuthUser.id;
+        console.log(`Supabase Auth User ID: ${supabaseUserId}`);
+      }
+    } else {
+      console.log("No Authorization header found. Supabase Auth User ID will be null.");
+    }
 
     const { data: profile, error: upsertProfileError } = await supabase
       .from('telegram_profiles')
       .upsert({
+        id: supabaseUserId, // Новый id, ссылающийся на auth.users.id
         telegram_id: user.id,
         first_name: user.first_name || null,
         last_name: user.last_name || null,
@@ -113,7 +130,7 @@ serve(async (req) => {
         language_code: user.language_code || null,
         avatar_url: user.photo_url || null,
         is_premium: user.is_premium || false,
-      }, { onConflict: 'telegram_id' })
+      }, { onConflict: 'telegram_id', ignoreDuplicates: false }) // Конфликт по telegram_id, но upsert по id
       .select()
       .single();
 
