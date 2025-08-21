@@ -86,14 +86,16 @@ const ExchangePage = () => {
         style={{ background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%)' }}
       ></div>
 
-      <h1 className="w-full max-w-lg text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)] mb-4 text-center z-10 relative">
-        {t('headerTitle')}
-      </h1>
+      <div className="w-full max-w-lg flex justify-center items-center gap-x-4 mb-4 z-10 relative">
+        <h1 className="text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)]">
+          {t('headerTitle')}
+        </h1>
+        <LanguageSwitcher />
+      </div>
 
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
+        <CardHeader className="flex flex-row items-center bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
           <UserProfile />
-          <LanguageSwitcher />
         </CardHeader>
         <CardContent className="px-4 py-6 sm:px-6 space-y-6">
           {renderContent()}
