@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRightLeft } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { UserProfile } from '@/components/UserProfile';
+import { Button } from '@/components/ui/button';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const AccountPage = () => {
   return (
@@ -19,16 +22,21 @@ const AccountPage = () => {
         style={{ background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%)' }}
       ></div>
       
+      <div className="w-full max-w-lg flex justify-center items-baseline gap-x-2 mb-4 z-10 relative">
+        <h1 className="text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)]">
+          Личный кабинет
+        </h1>
+        <LanguageSwitcher />
+      </div>
+
       <Card className="w-full max-w-lg mx-auto shadow-2xl rounded-2xl overflow-hidden relative z-10 bg-white/75 backdrop-blur-sm border-4 border-white/60">
-        <CardHeader className="p-4 border-b">
-          <div className="flex items-center relative justify-center">
-            <Link to="/" className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-gray-200/50 transition-colors">
-              <ArrowLeft className="h-6 w-6 text-gray-700" />
-            </Link>
-            <CardTitle className="text-xl font-bold text-center text-gray-800">
-              Личный кабинет
-            </CardTitle>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white p-3">
+          <UserProfile />
+          <Link to="/">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white h-10 w-10 rounded-full">
+              <ArrowRightLeft className="h-6 w-6" />
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent className="text-center text-gray-600 p-6">
           <p>Здесь будет история ваших заявок.</p>
