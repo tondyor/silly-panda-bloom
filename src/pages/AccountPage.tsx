@@ -31,8 +31,8 @@ const AccountPage = () => {
       );
     }
 
-    if (telegramData?.user?.id) {
-      return <OrderHistory telegramId={telegramData.user.id} />;
+    if (telegramData?.initData) {
+      return <OrderHistory initData={telegramData.initData} />;
     }
 
     return (

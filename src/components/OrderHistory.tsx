@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 interface OrderHistoryProps {
-  telegramId: number;
+  initData: string;
 }
 
 interface Order {
@@ -25,13 +25,10 @@ interface Order {
   usdt_network?: string;
 }
 
-const fetchCompletedOrders = async (telegramId: number): Promise<Order[]> => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('telegram_id', telegramId)
-    .eq('status', 'Оплачен')
-    .order('created_at', { ascending: false });
+const fetchCompletedOrders = async (initData: string): Promise<Order[]> => {
+  const { data, error } = await supabase.functions.invoke('get-order-history', {
+    body: { initData },
+  });
 
   if (error) {
     throw new Error(error.message);
@@ -40,11 +37,11 @@ const fetchCompletedOrders = async (telegramId: number): Promise<Order[]> => {
   return data;
 };
 
-export const OrderHistory: React.FC<OrderHistoryProps> = ({ telegramId }) => {
+export const OrderHistory: React.FC<OrderHistoryProps> = ({ initData }) => {
   const { data: orders, isLoading, isError, error } = useQuery<Order[], Error>({
-    queryKey: ['completedOrders', telegramId],
-    queryFn: () => fetchCompletedOrders(telegramId),
-    enabled: !!telegramId,
+    queryKey: ['completedOrders', initData],
+    queryFn: () => fetchCompletedOrders(initData),
+    enabled: !!initData,
   });
 
   if (isLoading) {
