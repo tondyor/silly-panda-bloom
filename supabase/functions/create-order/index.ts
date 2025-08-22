@@ -16,6 +16,99 @@ const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
+// --- Локализованные сообщения ---
+const translations = {
+  ru: {
+    orderAcceptedTitle: "*🥰{firstName}, ваша заявка принята!*",
+    orderNumber: "*Номер заказа:* `{orderId}`",
+    youSend: "*Вы отправляете:* {amount} {currency}",
+    youReceive: "*К получению (VND):* {amountVND}",
+    depositWallet: "*Кошелек для пополнения:*",
+    usdtNetwork: "*Сеть USDT:* {network}",
+    attention: "*Внимание!* Отправляйте средства только на указанный адрес в сети {network}. В противном случае ваши средства могут быть навсегда утеряны.",
+    statusNew: "*Статус:* Новая заявка (Не оплачен)",
+    contactSoon: "Мы скоро свяжемся с вами для подтверждения.",
+    adminNewOrder: "Новый заказ!",
+    adminOrderNumber: "Номер заказа: #{orderId}",
+    adminClient: "Клиент: {clientIdentifier}",
+    adminSends: "Отдает: {amount} {currency}",
+    adminReceives: "Получает (VND): {amountVND}",
+    adminRate: "Курс: {rate}",
+    adminDeliveryMethod: "Способ получения: {method}",
+    adminBank: "Банковский перевод",
+    adminCash: "Наличные",
+    adminUsdtNetwork: "Сеть USDT: {network}",
+    adminBankName: "Банк: {bankName}",
+    adminBankAccountNumber: "Номер счета: {accountNumber}",
+    adminDeliveryAddress: "Адрес доставки: {address}",
+    adminContactPhone: "Телефон для связи: {phone}",
+    adminStatus: "Статус: {status}",
+  },
+  en: {
+    orderAcceptedTitle: "*🥰{firstName}, your application has been accepted!*",
+    orderNumber: "*Order number:* `{orderId}`",
+    youSend: "*You are sending:* {amount} {currency}",
+    youReceive: "*To receive (VND):* {amountVND}",
+    depositWallet: "*Deposit wallet:*",
+    usdtNetwork: "*USDT Network:* {network}",
+    attention: "*Attention!* Send funds only to the specified address on the {network} network. Otherwise, your funds may be lost forever.",
+    statusNew: "*Status:* New application (Unpaid)",
+    contactSoon: "We will contact you shortly for confirmation.",
+    adminNewOrder: "New order!",
+    adminOrderNumber: "Order number: #{orderId}",
+    adminClient: "Client: {clientIdentifier}",
+    adminSends: "Sends: {amount} {currency}",
+    adminReceives: "Receives (VND): {amountVND}",
+    adminRate: "Rate: {rate}",
+    adminDeliveryMethod: "Delivery method: {method}",
+    adminBank: "Bank transfer",
+    adminCash: "Cash",
+    adminUsdtNetwork: "USDT Network: {network}",
+    adminBankName: "Bank: {bankName}",
+    adminBankAccountNumber: "Account number: {accountNumber}",
+    adminDeliveryAddress: "Delivery address: {address}",
+    adminContactPhone: "Contact phone: {phone}",
+    adminStatus: "Status: {status}",
+  },
+  vi: {
+    orderAcceptedTitle: "*🥰{firstName}, đơn đăng ký của bạn đã được chấp nhận!*",
+    orderNumber: "*Mã đơn hàng:* `{orderId}`",
+    youSend: "*Bạn gửi:* {amount} {currency}",
+    youReceive: "*Nhận được (VND):* {amountVND}",
+    depositWallet: "*Ví nạp tiền:*",
+    usdtNetwork: "*Mạng USDT:* {network}",
+    attention: "*Chú ý!* Chỉ gửi tiền đến địa chỉ được chỉ định trên mạng {network}. Nếu không, tiền của bạn có thể bị mất vĩnh viễn.",
+    statusNew: "*Trạng thái:* Đơn mới (Chưa thanh toán)",
+    contactSoon: "Chúng tôi sẽ liên hệ với bạn sớm để xác nhận.",
+    adminNewOrder: "Đơn hàng mới!",
+    adminOrderNumber: "Mã đơn hàng: #{orderId}",
+    adminClient: "Khách hàng: {clientIdentifier}",
+    adminSends: "Gửi: {amount} {currency}",
+    adminReceives: "Nhận (VND): {amountVND}",
+    adminRate: "Tỷ giá: {rate}",
+    adminDeliveryMethod: "Phương thức nhận: {method}",
+    adminBank: "Chuyển khoản ngân hàng",
+    adminCash: "Tiền mặt",
+    adminUsdtNetwork: "Mạng USDT: {network}",
+    adminBankName: "Ngân hàng: {bankName}",
+    adminBankAccountNumber: "Số tài khoản: {accountNumber}",
+    adminDeliveryAddress: "Địa chỉ giao hàng: {address}",
+    adminContactPhone: "Số điện thoại liên hệ: {phone}",
+    adminStatus: "Trạng thái: {status}",
+  }
+};
+
+function getLocalizedMessage(lang: string, key: string, params: Record<string, any> = {}): string {
+  const langCode = lang.split('-')[0]; // Use base language code
+  const messages = translations[langCode as keyof typeof translations] || translations.ru; // Default to Russian
+  let message = messages[key as keyof typeof messages] || key; // Fallback to key if not found
+
+  for (const paramKey in params) {
+    message = message.replace(`{${paramKey}}`, params[paramKey]);
+  }
+  return message;
+}
+
 // --- Безопасность: Валидация данных Telegram WebApp ---
 /**
  * Проверяет подлинность данных от Telegram с помощью HMAC-SHA256.
@@ -80,7 +173,7 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
   try {
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
     });
     if (!response.ok) {
@@ -133,69 +226,70 @@ function escapeMarkdown(text: string | number | null | undefined): string {
  * Форматирует детали заказа в читаемую строку для сообщений в Telegram.
  * @param order Полный объект заказа.
  * @param forAdmin Булево значение для переключения между форматами для админа и клиента.
+ * @param lang Язык для форматирования.
  * @returns Отформатированная строка.
  */
-function formatOrderForTelegram(order: any, forAdmin: boolean): string {
+function formatOrderForTelegram(order: any, forAdmin: boolean, lang: string): string {
   if (forAdmin) {
     const safeUsername = escapeMarkdown(order.telegram_username || 'N/A');
     const clientIdentifier = order.telegram_id ? `ID: ${order.telegram_id} (@${safeUsername})` : 'Клиент';
     const details = [
-      `Новый заказ!`,
+      getLocalizedMessage(lang, 'adminNewOrder'),
       ``,
-      `Номер заказа: #${order.order_id}`,
-      `Клиент: ${clientIdentifier}`,
+      getLocalizedMessage(lang, 'adminOrderNumber', { orderId: order.order_id }),
+      getLocalizedMessage(lang, 'adminClient', { clientIdentifier }),
       `-----------------------------------`,
-      `Отдает: ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `Получает (VND): ${order.calculated_vnd.toLocaleString('vi-VN')}`,
-      `Курс: ${order.exchange_rate.toLocaleString('ru-RU')}`,
+      getLocalizedMessage(lang, 'adminSends', { amount: order.from_amount.toLocaleString('ru-RU'), currency: order.payment_currency }),
+      getLocalizedMessage(lang, 'adminReceives', { amountVND: order.calculated_vnd.toLocaleString('vi-VN') }),
+      getLocalizedMessage(lang, 'adminRate', { rate: order.exchange_rate.toLocaleString('ru-RU') }),
       `-----------------------------------`,
-      `Способ получения: ${order.delivery_method === 'bank' ? 'Банковский перевод' : 'Наличные'}`,
+      getLocalizedMessage(lang, 'adminDeliveryMethod', { method: order.delivery_method === 'bank' ? getLocalizedMessage(lang, 'adminBank') : getLocalizedMessage(lang, 'adminCash') }),
     ];
 
     if (order.payment_currency === 'USDT') {
-      details.push(`Сеть USDT: ${escapeMarkdown(order.usdt_network)}`);
+      details.push(getLocalizedMessage(lang, 'adminUsdtNetwork', { network: escapeMarkdown(order.usdt_network) }));
     }
 
     if (order.delivery_method === 'bank') {
-      details.push(`Банк: ${escapeMarkdown(order.vnd_bank_name)}`);
-      details.push(`Номер счета: ${escapeMarkdown(order.vnd_bank_account_number)}`);
+      details.push(getLocalizedMessage(lang, 'adminBankName', { bankName: escapeMarkdown(order.vnd_bank_name) }));
+      details.push(getLocalizedMessage(lang, 'adminBankAccountNumber', { accountNumber: escapeMarkdown(order.vnd_bank_account_number) }));
     } else {
-      details.push(`Адрес доставки: ${escapeMarkdown(order.delivery_address)}`);
+      details.push(getLocalizedMessage(lang, 'adminDeliveryAddress', { address: escapeMarkdown(order.delivery_address) }));
     }
 
     if (order.contact_phone) {
-      details.push(`Телефон для связи: ${escapeMarkdown(order.contact_phone)}`);
+      details.push(getLocalizedMessage(lang, 'adminContactPhone', { phone: escapeMarkdown(order.contact_phone) }));
     }
     
     details.push(`-----------------------------------`);
-    details.push(`Статус: ${order.status}`);
+    details.push(getLocalizedMessage(lang, 'adminStatus', { status: order.status }));
 
     return details.join('\n');
   } else {
     const firstName = order.telegram_user_first_name ? ` ${order.telegram_user_first_name}` : '';
-    const title = `*🥰${firstName}, ваша заявка принята!*`;
+    const title = getLocalizedMessage(lang, 'orderAcceptedTitle', { firstName });
     
     const details = [
       title,
-      `*Номер заказа:* \`#${order.order_id}\``, // Изменено на order_id
+      getLocalizedMessage(lang, 'orderNumber', { orderId: order.order_id }),
       `-----------------------------------`,
-      `*Вы отправляете:* ${order.from_amount.toLocaleString('ru-RU')} ${order.payment_currency}`,
-      `*К получению (VND):* ${order.calculated_vnd.toLocaleString('vi-VN')}`,
+      getLocalizedMessage(lang, 'youSend', { amount: order.from_amount.toLocaleString('ru-RU'), currency: order.payment_currency }),
+      getLocalizedMessage(lang, 'youReceive', { amountVND: order.calculated_vnd.toLocaleString('vi-VN') }),
     ];
 
     if (order.payment_currency === 'USDT' && order.deposit_address && order.deposit_address !== 'N/A') {
       details.push(``);
-      details.push(`*Кошелек для пополнения:*`);
+      details.push(getLocalizedMessage(lang, 'depositWallet'));
       details.push(`\`${order.deposit_address}\``);
-      details.push(`*Сеть USDT:* ${order.usdt_network}`);
+      details.push(getLocalizedMessage(lang, 'usdtNetwork', { network: order.usdt_network }));
       details.push(``);
-      details.push(`*Внимание!* Отправляйте средства только на указанный адрес в сети ${order.usdt_network}. В противном случае ваши средства могут быть навсегда утеряны.`);
+      details.push(getLocalizedMessage(lang, 'attention', { network: order.usdt_network }));
     }
 
     details.push(`-----------------------------------`);
-    details.push(`*Статус:* Новая заявка (Не оплачен)`);
+    details.push(getLocalizedMessage(lang, 'statusNew'));
     details.push(``);
-    details.push(`Мы скоро свяжемся с вами для подтверждения.`);
+    details.push(getLocalizedMessage(lang, 'contactSoon'));
 
     return details.join('\n');
   }
@@ -256,6 +350,15 @@ serve(async (req) => {
     );
     console.log("Step 4: Supabase client created.");
 
+    // Fetch user's language from telegram_profiles
+    const { data: userProfile, error: profileError } = await supabase
+      .from('telegram_profiles')
+      .select('language_code')
+      .eq('telegram_id', user.id)
+      .single();
+
+    const userLang = userProfile?.language_code || 'ru'; // Default to Russian if not found
+
     // 5. Подготовка и сохранение заказа в базу данных
     // ID заказа (order_id) теперь генерируется базой данных автоматически
     const orderToInsert = {
@@ -294,7 +397,7 @@ serve(async (req) => {
         deposit_address: formData.depositAddress, // Из формы на фронтенде
     };
     
-    const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false);
+    const clientMessageText = formatOrderForTelegram(fullOrderDetailsForNotification, false, userLang); // Pass userLang
     console.log("Step 6: Notification data prepared.");
 
     // 7. Отправка уведомлений
@@ -302,9 +405,9 @@ serve(async (req) => {
     await sendMessage(user.id, clientMessageText);
     console.log(`Step 7: Sent direct message to user ${user.id}.`);
 
-    // 7c. (Опционально) Уведомление администратора
+    // 7c. (Опционально) Уведомление администратора (всегда на русском для админа)
     if (ADMIN_TELEGRAM_CHAT_ID) {
-      const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true);
+      const adminMessage = formatOrderForTelegram(fullOrderDetailsForNotification, true, 'ru'); // Admin messages always in Russian
       await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
       console.log(`Step 7c: Sent notification to admin chat.`);
     }

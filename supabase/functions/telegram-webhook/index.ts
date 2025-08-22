@@ -10,6 +10,60 @@ const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
+// --- Локализованные сообщения ---
+const translations = {
+  ru: {
+    adminOrderNotFound: "❌ Ошибка: Заказ #{orderId} не найден.",
+    adminOrderPaid: "✅ Заказ #{orderId} отмечен как оплаченный.",
+    clientOrderPaid: "✅ Ваша заявка #{orderId} была оплачена и принята в обработку.",
+    conversationClosed: "Диалог с администратором по этому заказу закрыт. Администратор больше не увидит ваши сообщения.",
+    cannotChangeStatus: "⚠️ Невозможно изменить статус заказа #{orderId}. Его текущий статус: *{status}*.",
+    orderCancelledAdmin: "🚫 Заказ #{orderId} отменен.",
+    clientOrderCancelled: "🚫 Ваша заявка #{orderId} была отменена администратором.",
+    cannotSendEmpty: "⚠️ Нельзя отправить пустое сообщение.",
+    messageSent: "✅ Сообщение отправлено клиенту по заказу #{orderId} и сохранено в истории.",
+    adminPrefix: "*Администратор:*",
+    clientMessagePrefix: "*Сообщение от клиента {userFirstName} {userUsername} (ID: `{senderId}`) по заказу #{orderId}:*\n\n",
+  },
+  en: {
+    adminOrderNotFound: "❌ Error: Order #{orderId} not found.",
+    adminOrderPaid: "✅ Order #{orderId} marked as paid.",
+    clientOrderPaid: "✅ Your application #{orderId} has been paid and is being processed.",
+    conversationClosed: "The conversation with the administrator for this order is closed. The administrator will no longer see your messages.",
+    cannotChangeStatus: "⚠️ Cannot change status of order #{orderId}. Its current status is: *{status}*.",
+    orderCancelledAdmin: "🚫 Order #{orderId} cancelled.",
+    clientOrderCancelled: "🚫 Your application #{orderId} has been cancelled by the administrator.",
+    cannotSendEmpty: "⚠️ Cannot send an empty message.",
+    messageSent: "✅ Message sent to client for order #{orderId} and saved in history.",
+    adminPrefix: "*Administrator:*",
+    clientMessagePrefix: "*Message from client {userFirstName} {userUsername} (ID: `{senderId}`) for order #{orderId}:*\n\n",
+  },
+  vi: {
+    adminOrderNotFound: "❌ Lỗi: Không tìm thấy đơn hàng #{orderId}.",
+    adminOrderPaid: "✅ Đơn hàng #{orderId} đã được đánh dấu là đã thanh toán.",
+    clientOrderPaid: "✅ Đơn đăng ký #{orderId} của bạn đã được thanh toán và đang được xử lý.",
+    conversationClosed: "Cuộc trò chuyện với quản trị viên cho đơn hàng này đã đóng. Quản trị viên sẽ không còn thấy tin nhắn của bạn.",
+    cannotChangeStatus: "⚠️ Không thể thay đổi trạng thái đơn hàng #{orderId}. Trạng thái hiện tại của nó là: *{status}*.",
+    orderCancelledAdmin: "🚫 Đơn hàng #{orderId} đã bị hủy.",
+    clientOrderCancelled: "🚫 Đơn đăng ký #{orderId} của bạn đã bị quản trị viên hủy.",
+    cannotSendEmpty: "⚠️ Không thể gửi tin nhắn trống.",
+    messageSent: "✅ Tin nhắn đã được gửi đến khách hàng cho đơn hàng #{orderId} và đã lưu vào lịch sử.",
+    adminPrefix: "*Quản trị viên:*",
+    clientMessagePrefix: "*Tin nhắn từ khách hàng {userFirstName} {userUsername} (ID: `{senderId}`) cho đơn hàng #{orderId}:*\n\n",
+  }
+};
+
+function getLocalizedMessage(lang: string, key: string, params: Record<string, any> = {}): string {
+  const langCode = lang.split('-')[0]; // Use base language code
+  const messages = translations[langCode as keyof typeof translations] || translations.ru; // Default to Russian
+  let message = messages[key as keyof typeof messages] || key; // Fallback to key if not found
+
+  for (const paramKey in params) {
+    message = message.replace(`{${paramKey}}`, params[paramKey]);
+  }
+  return message;
+}
+
 // --- Вспомогательные функции ---
 async function sendMessage(chatId: string | number, text: string): Promise<void> {
   if (!TELEGRAM_BOT_TOKEN) {
@@ -19,7 +73,7 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
   try {
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
     });
     if (!response.ok) {
@@ -94,7 +148,7 @@ serve(async (req) => {
         .single();
 
       if (findError || !order) {
-        await sendMessage(adminId, `❌ Ошибка: Заказ #${orderId} не найден.`);
+        await sendMessage(adminId, getLocalizedMessage('ru', 'adminOrderNotFound', { orderId })); // Admin message always in Russian
         return new Response("OK", { status: 200 });
       }
 
@@ -104,6 +158,21 @@ serve(async (req) => {
         targetTelegramId = String(order.telegram_id);
       }
 
+      // Fetch target user's language for admin replies
+      let targetUserLang = 'ru'; // Default for admin replies
+      if (targetTelegramId) {
+        const { data: targetUserProfile, error: targetProfileError } = await supabase
+          .from('telegram_profiles')
+          .select('language_code')
+          .eq('telegram_id', targetTelegramId)
+          .single();
+        if (targetProfileError) {
+          console.error(`LOG: Failed to fetch target user profile for ID ${targetTelegramId}:`, targetProfileError.message);
+        } else if (targetUserProfile?.language_code) {
+          targetUserLang = targetUserProfile.language_code;
+        }
+      }
+
       const replyText = message.text ? message.text.trim() : "";
       const commandText = replyText.toLowerCase();
 
@@ -111,25 +180,25 @@ serve(async (req) => {
       if (['ok', 'ок'].includes(commandText)) {
         if (order.status === 'Новая заявка') {
           await supabase.from('orders').update({ status: 'Оплачен' }).eq('order_id', orderId);
-          await sendMessage(adminId, `✅ Заказ #${orderId} отмечен как оплаченный.`);
-          await sendMessage(order.telegram_id, `✅ Ваша заявка #${orderId} была оплачена и принята в обработку.`);
+          await sendMessage(adminId, getLocalizedMessage('ru', 'adminOrderPaid', { orderId }));
+          await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'clientOrderPaid', { orderId }));
           if (order.admin_conversation_started) {
-            await sendMessage(order.telegram_id, `Диалог с администратором по этому заказу закрыт. Администратор больше не увидит ваши сообщения.`);
+            await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'conversationClosed'));
           }
         } else {
-          await sendMessage(adminId, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
+          await sendMessage(adminId, getLocalizedMessage('ru', 'cannotChangeStatus', { orderId, status: order.status }));
         }
       }
       else if (['stop', 'стоп'].includes(commandText)) {
         if (order.status === 'Новая заявка') {
           await supabase.from('orders').update({ status: 'Отменен' }).eq('order_id', orderId);
-          await sendMessage(adminId, `🚫 Заказ #${orderId} отменен.`);
-          await sendMessage(order.telegram_id, `🚫 Ваша заявка #${orderId} была отменена администратором.`);
+          await sendMessage(adminId, getLocalizedMessage('ru', 'orderCancelledAdmin', { orderId }));
+          await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'clientOrderCancelled', { orderId }));
           if (order.admin_conversation_started) {
-            await sendMessage(order.telegram_id, `Диалог с администратором по этому заказу закрыт. Администратор больше не увидит ваши сообщения.`);
+            await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'conversationClosed'));
           }
         } else {
-          await sendMessage(adminId, `⚠️ Невозможно отменить заказ #${orderId}. Его текущий статус: *${order.status}*.`);
+          await sendMessage(adminId, getLocalizedMessage('ru', 'cannotChangeStatus', { orderId, status: order.status }));
         }
       }
       else if (replyText.startsWith('/')) { // This is the old /сообщение command
@@ -141,13 +210,13 @@ serve(async (req) => {
               target_order_id: orderId,
               new_message: formattedMessage
           });
-          await sendMessage(targetTelegramId, `*Администратор:*\n${messageToUser}`);
-          await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId} и сохранено в истории.`);
+          await sendMessage(targetTelegramId, `${getLocalizedMessage(targetUserLang, 'adminPrefix')}\n${messageToUser}`);
+          await sendMessage(adminId, getLocalizedMessage('ru', 'messageSent', { orderId }));
           if (!order.admin_conversation_started) {
             await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
           }
         } else {
-          await sendMessage(adminId, `⚠️ Нельзя отправить пустое сообщение.`);
+          await sendMessage(adminId, getLocalizedMessage('ru', 'cannotSendEmpty'));
         }
       }
       else if (replyText) { // This is the new direct reply logic (non-command)
@@ -158,8 +227,8 @@ serve(async (req) => {
             target_order_id: orderId,
             new_message: formattedMessage
         });
-        await sendMessage(targetTelegramId, `*Администратор:*\n${replyText}`);
-        await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId} и сохранено в истории.`);
+        await sendMessage(targetTelegramId, `${getLocalizedMessage(targetUserLang, 'adminPrefix')}\n${replyText}`);
+        await sendMessage(adminId, getLocalizedMessage('ru', 'messageSent', { orderId }));
         if (!order.admin_conversation_started) {
           await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
         }
@@ -197,7 +266,7 @@ serve(async (req) => {
         // 2. Пересылаем сообщение админу
         const userFirstName = message.from.first_name || '';
         const userUsername = message.from.username ? `(@${message.from.username})` : '';
-        const forwardMessage = `*Сообщение от клиента ${userFirstName} ${userUsername} (ID: \`${senderId}\`) по заказу #${activeOrder.order_id}:*\n\n${message.text}`;
+        const forwardMessage = getLocalizedMessage('ru', 'clientMessagePrefix', { userFirstName, userUsername, senderId, orderId: activeOrder.order_id }) + message.text;
         await sendMessage(adminId, forwardMessage);
       } else {
         console.log(`LOG: Для клиента ${senderId} не найдено активных диалогов. Сообщение игнорируется.`);

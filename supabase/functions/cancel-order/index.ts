@@ -15,6 +15,42 @@ const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
+// --- Локализованные сообщения ---
+const translations = {
+  ru: {
+    orderCancelledClient: "Ваша заявка #{orderId} была отменена.",
+    orderCancelledAdmin: "❗️ Клиент (ID: `{userId}`) отменил заявку #{orderId}.",
+    orderNotFound: "Заказ #{orderId} не найден.",
+    noPermission: "У вас нет прав для отмены этого заказа.",
+    cannotCancelStatus: "Этот заказ уже в статусе '{status}' и не может быть отменен.",
+  },
+  en: {
+    orderCancelledClient: "Your application #{orderId} has been cancelled.",
+    orderCancelledAdmin: "❗️ Client (ID: `{userId}`) cancelled application #{orderId}.",
+    orderNotFound: "Order #{orderId} not found.",
+    noPermission: "You do not have permission to cancel this order.",
+    cannotCancelStatus: "This order is already in '{status}' status and cannot be cancelled.",
+  },
+  vi: {
+    orderCancelledClient: "Đơn đăng ký #{orderId} của bạn đã bị hủy.",
+    orderCancelledAdmin: "❗️ Khách hàng (ID: `{userId}`) đã hủy đơn đăng ký #{orderId}.",
+    orderNotFound: "Không tìm thấy đơn hàng #{orderId}.",
+    noPermission: "Bạn không có quyền hủy đơn hàng này.",
+    cannotCancelStatus: "Đơn hàng này đã ở trạng thái '{status}' và không thể hủy.",
+  }
+};
+
+function getLocalizedMessage(lang: string, key: string, params: Record<string, any> = {}): string {
+  const langCode = lang.split('-')[0]; // Use base language code
+  const messages = translations[langCode as keyof typeof translations] || translations.ru; // Default to Russian
+  let message = messages[key as keyof typeof messages] || key; // Fallback to key if not found
+
+  for (const paramKey in params) {
+    message = message.replace(`{${paramKey}}`, params[paramKey]);
+  }
+  return message;
+}
+
 // --- Вспомогательные функции ---
 
 async function sendMessage(chatId: string | number, text: string): Promise<void> {
@@ -25,7 +61,7 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
   try {
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
     });
     if (!response.ok) {
@@ -60,7 +96,7 @@ async function validateTelegramData(initData: string): Promise<boolean> {
   const secretKey = await crypto.subtle.importKey(
     "raw",
     encoder.encode("WebAppData"),
-    { name: "HMAC", hash: "SHA-256" }, // ИСПРАВЛЕНО: SHA-26 -> SHA-256
+    { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
   );
@@ -128,6 +164,15 @@ serve(async (req) => {
     );
     console.log("Step 4: Supabase client created.");
 
+    // Fetch user's language from telegram_profiles
+    const { data: userProfile, error: profileError } = await supabase
+      .from('telegram_profiles')
+      .select('language_code')
+      .eq('telegram_id', user.id)
+      .single();
+
+    const userLang = userProfile?.language_code || 'ru'; // Default to Russian
+
     const { data: order, error: findError } = await supabase
       .from('orders')
       .select('telegram_id, status')
@@ -136,7 +181,7 @@ serve(async (req) => {
 
     if (findError || !order) {
       console.error(`Database Error: Order #${orderId} not found.`, findError);
-      return new Response(JSON.stringify({ error: `Заказ #${orderId} не найден.` }), {
+      return new Response(JSON.stringify({ error: getLocalizedMessage(userLang, 'orderNotFound', { orderId }) }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -145,7 +190,7 @@ serve(async (req) => {
 
     if (order.telegram_id !== user.id) {
       console.error(`Authorization Error: User ${user.id} attempted to cancel order owned by ${order.telegram_id}.`);
-      return new Response(JSON.stringify({ error: "У вас нет прав для отмены этого заказа." }), {
+      return new Response(JSON.stringify({ error: getLocalizedMessage(userLang, 'noPermission') }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -153,7 +198,7 @@ serve(async (req) => {
 
     if (order.status !== 'Новая заявка') {
       console.warn(`Action Conflict: Order #${orderId} has status '${order.status}' and cannot be cancelled.`);
-      return new Response(JSON.stringify({ error: `Этот заказ уже в статусе '${order.status}' и не может быть отменен.` }), {
+      return new Response(JSON.stringify({ error: getLocalizedMessage(userLang, 'cannotCancelStatus', { status: order.status }) }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -174,11 +219,11 @@ serve(async (req) => {
     console.log(`Step 7: Order #${orderId} status updated to 'Отклонен'.`);
 
     // --- Отправка уведомлений ---
-    const clientMessage = `Ваша заявка #${orderId} была отменена.`;
+    const clientMessage = getLocalizedMessage(userLang, 'orderCancelledClient', { orderId });
     await sendMessage(user.id, clientMessage);
 
     if (ADMIN_TELEGRAM_CHAT_ID) {
-      const adminMessage = `❗️ Клиент (ID: \`${user.id}\`) отменил заявку #${orderId}.`;
+      const adminMessage = getLocalizedMessage('ru', 'orderCancelledAdmin', { userId: user.id, orderId });
       await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
     }
     console.log("Step 8: Notifications sent.");
