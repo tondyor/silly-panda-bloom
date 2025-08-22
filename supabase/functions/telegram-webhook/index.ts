@@ -24,6 +24,9 @@ const translations = {
     messageSent: "✅ Сообщение отправлено клиенту по заказу #{orderId} и сохранено в истории.",
     adminPrefix: "*Администратор:*",
     clientMessagePrefix: "*Сообщение от клиента {userFirstName} {userUsername} (ID: `{senderId}`) по заказу #{orderId}:*\n\n",
+    userNotFoundByUsername: "❌ Пользователь с юзернеймом `{username}` не найден в базе данных.",
+    directMessageSent: "✅ Сообщение для `{username}` успешно отправлено.",
+    invalidUsernameFormat: "❌ Неверный формат. Используйте: `@username текст сообщения`.",
   },
   en: {
     adminOrderNotFound: "❌ Error: Order #{orderId} not found.",
@@ -37,6 +40,9 @@ const translations = {
     messageSent: "✅ Message sent to client for order #{orderId} and saved in history.",
     adminPrefix: "*Administrator:*",
     clientMessagePrefix: "*Message from client {userFirstName} {userUsername} (ID: `{senderId}`) for order #{orderId}:*\n\n",
+    userNotFoundByUsername: "❌ User with username `{username}` was not found in the database.",
+    directMessageSent: "✅ Message to `{username}` has been sent successfully.",
+    invalidUsernameFormat: "❌ Invalid format. Use: `@username message text`.",
   },
   vi: {
     adminOrderNotFound: "❌ Lỗi: Không tìm thấy đơn hàng #{orderId}.",
@@ -50,6 +56,9 @@ const translations = {
     messageSent: "✅ Tin nhắn đã được gửi đến khách hàng cho đơn hàng #{orderId} và đã lưu vào lịch sử.",
     adminPrefix: "*Quản trị viên:*",
     clientMessagePrefix: "*Tin nhắn từ khách hàng {userFirstName} {userUsername} (ID: `{senderId}`) cho đơn hàng #{orderId}:*\n\n",
+    userNotFoundByUsername: "❌ Không tìm thấy người dùng có tên người dùng `{username}` trong cơ sở dữ liệu.",
+    directMessageSent: "✅ Đã gửi tin nhắn đến `{username}` thành công.",
+    invalidUsernameFormat: "❌ Định dạng không hợp lệ. Sử dụng: `@username nội dung tin nhắn`.",
   }
 };
 
@@ -109,131 +118,142 @@ serve(async (req) => {
     // --- ЛОГИКА ДЛЯ АДМИНИСТРАТОРА ---
     if (senderId === adminId) {
       console.log("LOG: Сообщение от администратора.");
+      const messageText = message.text ? message.text.trim() : "";
       const repliedToMessage = message.reply_to_message;
-      if (!repliedToMessage || !repliedToMessage.text) {
-        console.log("LOG: Admin message is not a reply or replied-to message has no text. Ignoring.");
-        return new Response("OK", { status: 200 });
-      }
 
-      const originalText = repliedToMessage.text;
-      let orderId: string | null = null;
-      let targetTelegramId: string | null = null; // The user ID to send the message to
+      // НОВАЯ ЛОГИКА: Прямое сообщение по @username
+      if (messageText.startsWith('@')) {
+        console.log("LOG: Admin is sending a direct message via @username.");
+        const parts = messageText.split(/\s+/);
+        const usernameWithAt = parts[0];
+        const username = usernameWithAt.substring(1);
+        const textToSend = parts.slice(1).join(' ');
 
-      // Try to extract orderId and targetTelegramId from a forwarded user message
-      const userMessageMatch = originalText.match(/\(ID: `(\d+)`\) по заказу #(\S+):/);
-      if (userMessageMatch) {
-        targetTelegramId = userMessageMatch[1];
-        orderId = userMessageMatch[2];
-        console.log(`LOG: Admin replied to a user message. Target User ID: ${targetTelegramId}, Order ID: ${orderId}`);
-      } else {
-        // Fallback: Try to extract orderId from an initial order notification (for commands like ok/stop)
-        const orderNotificationMatch = originalText.match(/Номер заказа: #(\S+)/);
-        if (orderNotificationMatch) {
-          orderId = orderNotificationMatch[1];
-          // In this case, targetTelegramId will be fetched from the order itself
-          console.log(`LOG: Admin replied to an order notification. Order ID: ${orderId}`);
+        if (!username) {
+            await sendMessage(adminId, getLocalizedMessage('ru', 'invalidUsernameFormat'));
+            return new Response("OK", { status: 200 });
         }
-      }
+        if (!textToSend) {
+          await sendMessage(adminId, getLocalizedMessage('ru', 'cannotSendEmpty'));
+          return new Response("OK", { status: 200 });
+        }
 
-      if (!orderId) {
-        console.log("LOG: Could not determine order ID from replied-to message. Ignoring.");
-        return new Response("OK", { status: 200 });
-      }
-
-      // Fetch order details to get the actual telegram_id and status
-      const { data: order, error: findError } = await supabase
-        .from('orders')
-        .select('status, telegram_id, admin_conversation_started')
-        .eq('order_id', orderId)
-        .single();
-
-      if (findError || !order) {
-        await sendMessage(adminId, getLocalizedMessage('ru', 'adminOrderNotFound', { orderId })); // Admin message always in Russian
-        return new Response("OK", { status: 200 });
-      }
-
-      // If targetTelegramId was not extracted from the replied-to message (e.g., it was an order notification),
-      // use the order's telegram_id as the target.
-      if (!targetTelegramId) {
-        targetTelegramId = String(order.telegram_id);
-      }
-
-      // Fetch target user's language for admin replies
-      let targetUserLang = 'ru'; // Default for admin replies
-      if (targetTelegramId) {
-        const { data: targetUserProfile, error: targetProfileError } = await supabase
+        // Ищем пользователя в таблице telegram_profiles
+        const { data: profile, error: profileError } = await supabase
           .from('telegram_profiles')
-          .select('language_code')
-          .eq('telegram_id', targetTelegramId)
+          .select('telegram_id')
+          .eq('username', username)
           .single();
-        if (targetProfileError) {
-          console.error(`LOG: Failed to fetch target user profile for ID ${targetTelegramId}:`, targetProfileError.message);
-        } else if (targetUserProfile?.language_code) {
-          targetUserLang = targetUserProfile.language_code;
-        }
-      }
 
-      const replyText = message.text ? message.text.trim() : "";
-      const commandText = replyText.toLowerCase();
+        if (profileError || !profile) {
+          console.error(`LOG: Could not find user with username '${username}'.`, profileError);
+          await sendMessage(adminId, getLocalizedMessage('ru', 'userNotFoundByUsername', { username: usernameWithAt }));
+          return new Response("OK", { status: 200 });
+        }
 
-      // Handle commands first
-      if (['ok', 'ок'].includes(commandText)) {
-        if (order.status === 'Новая заявка') {
-          await supabase.from('orders').update({ status: 'Оплачен' }).eq('order_id', orderId);
-          await sendMessage(adminId, getLocalizedMessage('ru', 'adminOrderPaid', { orderId }));
-          await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'clientOrderPaid', { orderId }));
-          if (order.admin_conversation_started) {
-            await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'conversationClosed'));
-          }
-        } else {
-          await sendMessage(adminId, getLocalizedMessage('ru', 'cannotChangeStatus', { orderId, status: order.status }));
-        }
+        // Пользователь найден, отправляем сообщение
+        const targetTelegramId = profile.telegram_id;
+        await sendMessage(targetTelegramId, textToSend);
+        await sendMessage(adminId, getLocalizedMessage('ru', 'directMessageSent', { username: usernameWithAt }));
       }
-      else if (['stop', 'стоп'].includes(commandText)) {
-        if (order.status === 'Новая заявка') {
-          await supabase.from('orders').update({ status: 'Отменен' }).eq('order_id', orderId);
-          await sendMessage(adminId, getLocalizedMessage('ru', 'orderCancelledAdmin', { orderId }));
-          await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'clientOrderCancelled', { orderId }));
-          if (order.admin_conversation_started) {
-            await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'conversationClosed'));
-          }
+      // СУЩЕСТВУЮЩАЯ ЛОГИКА: Действия через ответ на сообщение
+      else if (repliedToMessage && repliedToMessage.text) {
+        console.log("LOG: Admin is replying to a message.");
+        const originalText = repliedToMessage.text;
+        let orderId: string | null = null;
+        let targetTelegramId: string | null = null;
+
+        const userMessageMatch = originalText.match(/\(ID: `(\d+)`\) по заказу #(\S+):/);
+        if (userMessageMatch) {
+          targetTelegramId = userMessageMatch[1];
+          orderId = userMessageMatch[2];
+          console.log(`LOG: Admin replied to a user message. Target User ID: ${targetTelegramId}, Order ID: ${orderId}`);
         } else {
-          await sendMessage(adminId, getLocalizedMessage('ru', 'cannotChangeStatus', { orderId, status: order.status }));
+          const orderNotificationMatch = originalText.match(/Номер заказа: #(\S+)/);
+          if (orderNotificationMatch) {
+            orderId = orderNotificationMatch[1];
+            console.log(`LOG: Admin replied to an order notification. Order ID: ${orderId}`);
+          }
         }
-      }
-      else if (replyText.startsWith('/')) { // This is the old /сообщение command
-        const messageToUser = replyText.substring(1).trim();
-        if (messageToUser) {
+
+        if (!orderId) {
+          console.log("LOG: Could not determine order ID from replied-to message. Ignoring.");
+          return new Response("OK", { status: 200 });
+        }
+
+        const { data: order, error: findError } = await supabase
+          .from('orders')
+          .select('status, telegram_id, admin_conversation_started')
+          .eq('order_id', orderId)
+          .single();
+
+        if (findError || !order) {
+          await sendMessage(adminId, getLocalizedMessage('ru', 'adminOrderNotFound', { orderId }));
+          return new Response("OK", { status: 200 });
+        }
+
+        if (!targetTelegramId) {
+          targetTelegramId = String(order.telegram_id);
+        }
+
+        let targetUserLang = 'ru';
+        if (targetTelegramId) {
+          const { data: targetUserProfile } = await supabase
+            .from('telegram_profiles')
+            .select('language_code')
+            .eq('telegram_id', targetTelegramId)
+            .single();
+          if (targetUserProfile?.language_code) {
+            targetUserLang = targetUserProfile.language_code;
+          }
+        }
+
+        const replyText = message.text ? message.text.trim() : "";
+        const commandText = replyText.toLowerCase();
+
+        if (['ok', 'ок'].includes(commandText)) {
+          if (order.status === 'Новая заявка') {
+            await supabase.from('orders').update({ status: 'Оплачен' }).eq('order_id', orderId);
+            await sendMessage(adminId, getLocalizedMessage('ru', 'adminOrderPaid', { orderId }));
+            await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'clientOrderPaid', { orderId }));
+            if (order.admin_conversation_started) {
+              await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'conversationClosed'));
+            }
+          } else {
+            await sendMessage(adminId, getLocalizedMessage('ru', 'cannotChangeStatus', { orderId, status: order.status }));
+          }
+        }
+        else if (['stop', 'стоп'].includes(commandText)) {
+          if (order.status === 'Новая заявка') {
+            await supabase.from('orders').update({ status: 'Отменен' }).eq('order_id', orderId);
+            await sendMessage(adminId, getLocalizedMessage('ru', 'orderCancelledAdmin', { orderId }));
+            await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'clientOrderCancelled', { orderId }));
+            if (order.admin_conversation_started) {
+              await sendMessage(order.telegram_id, getLocalizedMessage(targetUserLang, 'conversationClosed'));
+            }
+          } else {
+            await sendMessage(adminId, getLocalizedMessage('ru', 'cannotChangeStatus', { orderId, status: order.status }));
+          }
+        }
+        else if (replyText) {
+          console.log(`LOG: Admin sending direct reply to user ${targetTelegramId} for order #${orderId}.`);
           const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-          const formattedMessage = `[ADMIN - ${timestamp}]: ${messageToUser}`;
+          const formattedMessage = `[ADMIN - ${timestamp}]: ${replyText}`;
           await supabase.rpc('append_to_chat_history', {
               target_order_id: orderId,
               new_message: formattedMessage
           });
-          await sendMessage(targetTelegramId, `${getLocalizedMessage(targetUserLang, 'adminPrefix')}\n${messageToUser}`);
+          await sendMessage(targetTelegramId, `${getLocalizedMessage(targetUserLang, 'adminPrefix')}\n${replyText}`);
           await sendMessage(adminId, getLocalizedMessage('ru', 'messageSent', { orderId }));
           if (!order.admin_conversation_started) {
             await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
           }
         } else {
-          await sendMessage(adminId, getLocalizedMessage('ru', 'cannotSendEmpty'));
+          console.log(`LOG: Admin's reply is empty or not a recognized command. Ignoring.`);
         }
       }
-      else if (replyText) { // This is the new direct reply logic (non-command)
-        console.log(`LOG: Admin sending direct reply to user ${targetTelegramId} for order #${orderId}.`);
-        const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-        const formattedMessage = `[ADMIN - ${timestamp}]: ${replyText}`;
-        await supabase.rpc('append_to_chat_history', {
-            target_order_id: orderId,
-            new_message: formattedMessage
-        });
-        await sendMessage(targetTelegramId, `${getLocalizedMessage(targetUserLang, 'adminPrefix')}\n${replyText}`);
-        await sendMessage(adminId, getLocalizedMessage('ru', 'messageSent', { orderId }));
-        if (!order.admin_conversation_started) {
-          await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
-        }
-      } else {
-        console.log(`LOG: Admin's reply is empty or not a recognized command. Ignoring.`);
+      else {
+        console.log("LOG: Admin message is not a reply and does not start with @. Ignoring.");
       }
     } 
     // --- ЛОГИКА ДЛЯ КЛИЕНТА ---
@@ -255,7 +275,6 @@ serve(async (req) => {
       if (activeOrder) {
         console.log(`LOG: Найден активный диалог для клиента ${senderId} по заказу #${activeOrder.order_id}. Пересылаю и логирую сообщение.`);
         
-        // 1. Логируем сообщение клиента
         const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
         const formattedMessage = `[USER - ${timestamp}]: ${message.text}`;
         await supabase.rpc('append_to_chat_history', {
@@ -263,7 +282,6 @@ serve(async (req) => {
             new_message: formattedMessage
         });
 
-        // 2. Пересылаем сообщение админу
         const userFirstName = message.from.first_name || '';
         const userUsername = message.from.username ? `(@${message.from.username})` : '';
         const forwardMessage = getLocalizedMessage('ru', 'clientMessagePrefix', { userFirstName, userUsername, senderId, orderId: activeOrder.order_id }) + message.text;
