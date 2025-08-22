@@ -53,14 +53,7 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data, depositI
         {paymentCurrency === 'USDT' && depositInfo && (
           <div className="border-t border-gray-200 pt-2 space-y-2">
             <h3 className="font-semibold text-base text-center text-blue-700">Пополнение</h3>
-            <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 p-2 text-xs">
-              <AlertTriangle className="h-4 w-4 !text-red-800" />
-              <AlertTitle className="font-semibold mb-1">Важно!</AlertTitle>
-              <AlertDescription>
-                Отправляйте только USDT в сети {depositInfo.network}. Отправка любой другой монеты или в другой сети приведет к потере средств.
-              </AlertDescription>
-            </Alert>
-
+            
             <div className="space-y-1 text-xs text-gray-700">
               <div className="flex justify-between items-center">
                 <span>Сеть:</span>
@@ -138,7 +131,16 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data, depositI
           </ul>
         </div>
 
-        <div className="border-t border-gray-200 pt-2">
+        <div className="border-t border-gray-200 pt-2 space-y-2">
+          {paymentCurrency === 'USDT' && depositInfo && (
+            <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 p-2 text-xs">
+              <AlertTriangle className="h-4 w-4 !text-red-800" />
+              <AlertTitle className="font-semibold mb-1">Важно!</AlertTitle>
+              <AlertDescription>
+                Отправляйте только USDT в сети {depositInfo.network}. Отправка любой другой монеты или в другой сети приведет к потере средств.
+              </AlertDescription>
+            </Alert>
+          )}
           <Alert className="bg-blue-50 border-blue-200 text-blue-800 p-2 text-xs">
             <Info className="h-4 w-4 !text-blue-800" />
             <AlertTitle className="font-semibold mb-1">
