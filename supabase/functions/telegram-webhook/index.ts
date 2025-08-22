@@ -135,55 +135,52 @@ serve(async (req) => {
       }
       console.log(`Step 8: Order #${orderId} found. Current status: '${order.status}'. Client Telegram ID: ${order.telegram_id}`);
 
-      if (order.status === "Отклонен" || order.status === "Отменен") {
-        console.log("LOG: Order was cancelled. No action needed. Exiting.");
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} был отменен и не может быть выполнен.`);
-        return new Response("OK");
+      switch (order.status) {
+        case 'Отклонен':
+        case 'Отменен':
+          console.log(`LOG: Order #${orderId} has status '${order.status}'. Sending cancellation info to admin.`);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} был отменен и не может быть выполнен.`);
+          break;
+
+        case 'Оплачен':
+          console.log(`LOG: Order #${orderId} is already marked as 'Оплачен'. No action needed.`);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} уже имеет статус 'Оплачен'.`);
+          break;
+
+        case 'Новая заявка': {
+          console.log(`LOG: Order #${orderId} has status 'Новая заявка'. Proceeding with update.`);
+          const { error: updateError } = await supabase
+            .from("orders")
+            .update({ status: "Оплачен" })
+            .eq("order_id", orderId);
+
+          if (updateError) {
+            console.error(`LOG: Database error while updating order #${orderId}. Error:`, updateError);
+            await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка базы данных при обновлении заказа #${orderId}.`);
+            break;
+          }
+          console.log("LOG: Order status updated successfully in the database.");
+
+          const clientTelegramId = order.telegram_id;
+          if (clientTelegramId) {
+            const clientMessage = `✅ Обмен по вашей заявке #${orderId} успешно завершен! Спасибо, что выбрали нас.`;
+            await sendMessage(clientTelegramId, clientMessage);
+          }
+          
+          const adminConfirmation = `✅ Статус заказа #${orderId} изменен на 'Оплачен'. Уведомление клиенту отправлено.`;
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminConfirmation);
+          break;
+        }
+
+        default:
+          console.log(`LOG: Order #${orderId} has an unexpected status: '${order.status}'.`);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Неизвестный статус ('${order.status}') у заказа #${orderId}.`);
+          break;
       }
-
-      if (order.status === "Оплачен") {
-        console.log("LOG: Order is already marked as 'Оплачен'. No action needed. Exiting.");
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} уже имеет статус 'Оплачен'.`);
-        return new Response("OK");
-      }
-
-      // Обновление статуса
-      console.log(`Step 9: Updating order #${orderId} status to 'Оплачен'.`);
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({ status: "Оплачен" })
-        .eq("order_id", orderId);
-
-      if (updateError) {
-        console.error(`LOG: Database error while updating order #${orderId}. Error:`, updateError);
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка базы данных при обновлении заказа #${orderId}.`);
-        return new Response("OK");
-      }
-      console.log("LOG: Order status updated successfully in the database.");
-
-      // --- Уведомления ---
-      console.log("Step 10: Sending notifications.");
-      const clientTelegramId = order.telegram_id;
-
-      // 1. Уведомление клиенту
-      if (clientTelegramId) {
-        const clientMessage = `✅ Обмен по вашей заявке #${orderId} успешно завершен! Спасибо, что выбрали нас.`;
-        console.log(`LOG: Sending confirmation to client at ID ${clientTelegramId}.`);
-        await sendMessage(clientTelegramId, clientMessage);
-      } else {
-        console.log("LOG: No client Telegram ID found for this order. Skipping client notification.");
-      }
-
-      // 2. Подтверждение администратору
-      const adminConfirmation = `✅ Статус заказа #${orderId} изменен на 'Оплачен'. Уведомление клиенту отправлено.`;
-      console.log("LOG: Sending confirmation to admin.");
-      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminConfirmation);
-
     } else {
         console.log("LOG: Logic check FAILED. Message is not a reply or does not contain a trigger word. No action taken.");
     }
 
-    // Всегда возвращаем 200 OK для Telegram
     console.log("--- [END] telegram-webhook function finished successfully ---");
     return new Response("OK");
 
