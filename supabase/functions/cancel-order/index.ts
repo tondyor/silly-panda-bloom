@@ -17,11 +17,6 @@ const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 // --- Вспомогательные функции ---
 
-/**
- * Отправляет сообщение в указанный чат Telegram.
- * @param chatId ID чата для отправки.
- * @param text Текст сообщения с поддержкой Markdown.
- */
 async function sendMessage(chatId: string | number, text: string): Promise<void> {
   if (!TELEGRAM_BOT_TOKEN) {
     console.error("LOG: TELEGRAM_BOT_TOKEN не установлен.");
@@ -65,7 +60,7 @@ async function validateTelegramData(initData: string): Promise<boolean> {
   const secretKey = await crypto.subtle.importKey(
     "raw",
     encoder.encode("WebAppData"),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: "HMAC", hash: "SHA-26" },
     false,
     ["sign"]
   );
@@ -87,13 +82,16 @@ async function validateTelegramData(initData: string): Promise<boolean> {
 }
 
 serve(async (req) => {
+  console.log("--- Invoking cancel-order function ---");
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { initData, orderId } = await req.json();
+    console.log(`Step 1: Received request to cancel order #${orderId}`);
     if (!initData || !orderId) {
+      console.error("Validation Error: Missing initData or orderId.");
       return new Response(JSON.stringify({ error: "Отсутствуют initData или orderId" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -102,21 +100,25 @@ serve(async (req) => {
 
     const isTelegramDataValid = await validateTelegramData(initData);
     if (!isTelegramDataValid) {
+      console.error("Authentication Error: Invalid initData.");
       return new Response(JSON.stringify({ error: "Ошибка аутентификации: неверные initData" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("Step 2: Telegram data validated successfully.");
 
     const params = new URLSearchParams(initData);
     const user = JSON.parse(params.get("user")!);
 
     if (!user || !user.id) {
+        console.error("Data Error: Could not extract user data.");
         return new Response(JSON.stringify({ error: "Не удалось извлечь данные пользователя" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
+    console.log(`Step 3: User identified. Telegram ID: ${user.id}`);
 
     const supabase = createClient(
       // @ts-ignore
@@ -124,6 +126,7 @@ serve(async (req) => {
       // @ts-ignore
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    console.log("Step 4: Supabase client created.");
 
     const { data: order, error: findError } = await supabase
       .from('orders')
@@ -132,13 +135,16 @@ serve(async (req) => {
       .single();
 
     if (findError || !order) {
+      console.error(`Database Error: Order #${orderId} not found.`, findError);
       return new Response(JSON.stringify({ error: `Заказ #${orderId} не найден.` }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log(`Step 5: Found order #${orderId}. Current status: ${order.status}. Owner ID: ${order.telegram_id}`);
 
     if (order.telegram_id !== user.id) {
+      console.error(`Authorization Error: User ${user.id} attempted to cancel order owned by ${order.telegram_id}.`);
       return new Response(JSON.stringify({ error: "У вас нет прав для отмены этого заказа." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -146,11 +152,13 @@ serve(async (req) => {
     }
 
     if (order.status !== 'Новая заявка') {
+      console.warn(`Action Conflict: Order #${orderId} has status '${order.status}' and cannot be cancelled.`);
       return new Response(JSON.stringify({ error: `Этот заказ уже в статусе '${order.status}' и не может быть отменен.` }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("Step 6: All checks passed. Proceeding with cancellation.");
 
     const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
@@ -160,19 +168,20 @@ serve(async (req) => {
       .single();
 
     if (updateError) {
+      console.error(`Database Error: Failed to update order #${orderId}.`, updateError);
       throw new Error(`Ошибка базы данных при отмене заказа: ${updateError.message}`);
     }
+    console.log(`Step 7: Order #${orderId} status updated to 'Отклонен'.`);
 
     // --- Отправка уведомлений ---
-    // 1. Уведомление клиенту
     const clientMessage = `Ваша заявка #${orderId} была отменена.`;
     await sendMessage(user.id, clientMessage);
 
-    // 2. Уведомление администратору
     if (ADMIN_TELEGRAM_CHAT_ID) {
       const adminMessage = `❗️ Клиент (ID: \`${user.id}\`) отменил заявку #${orderId}.`;
       await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
     }
+    console.log("Step 8: Notifications sent.");
 
     return new Response(JSON.stringify(updatedOrder), {
       status: 200,
