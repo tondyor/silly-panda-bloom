@@ -90,10 +90,11 @@ serve(async (req) => {
     }
     console.log(`LOG: Найден заказ #${orderId}. Текущий статус: ${order.status}.`);
 
-    const replyText = message.text ? message.text.toLowerCase().trim() : "";
+    const replyText = message.text ? message.text.trim() : "";
+    const commandText = replyText.toLowerCase();
 
     // --- Обработка команд ---
-    if (['ok', 'ок'].includes(replyText)) {
+    if (['ok', 'ок'].includes(commandText)) {
       console.log("LOG: Получена команда 'ok'.");
       if (order.status === 'Новая заявка') {
         const { error: updateError } = await supabase
@@ -113,7 +114,7 @@ serve(async (req) => {
         console.warn(`LOG: Попытка изменить статус заказа #${orderId}, который уже в статусе '${order.status}'.`);
         await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
       }
-    } else if (['stop', 'стоп'].includes(replyText)) {
+    } else if (['stop', 'стоп'].includes(commandText)) {
       console.log("LOG: Получена команда 'stop'.");
       if (order.status === 'Новая заявка') {
         const { error: updateError } = await supabase
@@ -133,6 +134,16 @@ serve(async (req) => {
         console.warn(`LOG: Попытка отменить заказ #${orderId}, который уже в статусе '${order.status}'.`);
         await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно отменить заказ #${orderId}. Его текущий статус: *${order.status}*.`);
       }
+    } else if (replyText.startsWith('/')) {
+        console.log("LOG: Получена команда отправки сообщения клиенту.");
+        const messageToUser = replyText.substring(1).trim();
+        if (messageToUser) {
+            const formattedMessage = `Администратор: ${messageToUser}`;
+            await sendMessage(order.telegram_id, formattedMessage);
+            await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `✅ Сообщение отправлено клиенту по заказу #${orderId}.`);
+        } else {
+            await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Нельзя отправить пустое сообщение.`);
+        }
     } else {
       console.log(`LOG: Текст ответа "${replyText}" не является командой. Игнорируется.`);
     }
