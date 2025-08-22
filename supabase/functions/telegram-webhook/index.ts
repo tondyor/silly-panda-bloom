@@ -55,21 +55,38 @@ serve(async (req) => {
     // --- ЛОГИКА ДЛЯ АДМИНИСТРАТОРА ---
     if (senderId === adminId) {
       console.log("LOG: Сообщение от администратора.");
-      const isReply = message.reply_to_message && message.reply_to_message.text;
-      if (!isReply) {
-        console.log("LOG: Сообщение не является ответом. Игнорируется.");
+      const repliedToMessage = message.reply_to_message;
+      if (!repliedToMessage || !repliedToMessage.text) {
+        console.log("LOG: Admin message is not a reply or replied-to message has no text. Ignoring.");
         return new Response("OK", { status: 200 });
       }
 
-      const originalText = message.reply_to_message.text;
-      const orderIdMatch = originalText.match(/Номер заказа: #(\S+)/);
-      if (!orderIdMatch || !orderIdMatch[1]) {
-        console.log("LOG: Не удалось найти номер заказа в исходном сообщении.");
+      const originalText = repliedToMessage.text;
+      let orderId: string | null = null;
+      let targetTelegramId: string | null = null; // The user ID to send the message to
+
+      // Try to extract orderId and targetTelegramId from a forwarded user message
+      const userMessageMatch = originalText.match(/\(ID: `(\d+)`\) по заказу #(\S+):/);
+      if (userMessageMatch) {
+        targetTelegramId = userMessageMatch[1];
+        orderId = userMessageMatch[2];
+        console.log(`LOG: Admin replied to a user message. Target User ID: ${targetTelegramId}, Order ID: ${orderId}`);
+      } else {
+        // Fallback: Try to extract orderId from an initial order notification (for commands like ok/stop)
+        const orderNotificationMatch = originalText.match(/Номер заказа: #(\S+)/);
+        if (orderNotificationMatch) {
+          orderId = orderNotificationMatch[1];
+          // In this case, targetTelegramId will be fetched from the order itself
+          console.log(`LOG: Admin replied to an order notification. Order ID: ${orderId}`);
+        }
+      }
+
+      if (!orderId) {
+        console.log("LOG: Could not determine order ID from replied-to message. Ignoring.");
         return new Response("OK", { status: 200 });
       }
-      const orderId = orderIdMatch[1];
-      console.log(`LOG: Администратор работает с заказом #${orderId}`);
 
+      // Fetch order details to get the actual telegram_id and status
       const { data: order, error: findError } = await supabase
         .from('orders')
         .select('status, telegram_id, admin_conversation_started')
@@ -81,35 +98,17 @@ serve(async (req) => {
         return new Response("OK", { status: 200 });
       }
 
+      // If targetTelegramId was not extracted from the replied-to message (e.g., it was an order notification),
+      // use the order's telegram_id as the target.
+      if (!targetTelegramId) {
+        targetTelegramId = String(order.telegram_id);
+      }
+
       const replyText = message.text ? message.text.trim() : "";
       const commandText = replyText.toLowerCase();
 
-      // Команда: /сообщение
-      if (replyText.startsWith('/')) {
-        const messageToUser = replyText.substring(1).trim();
-        if (messageToUser) {
-          // 1. Логируем сообщение администратора
-          const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-          const formattedMessage = `[ADMIN - ${timestamp}]: ${messageToUser}`;
-          await supabase.rpc('append_to_chat_history', {
-              target_order_id: orderId,
-              new_message: formattedMessage
-          });
-
-          // 2. Отправляем сообщение клиенту
-          await sendMessage(order.telegram_id, `*Администратор:*\n${messageToUser}`);
-          await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId} и сохранено в истории.`);
-          
-          // 3. Активируем режим диалога
-          if (!order.admin_conversation_started) {
-            await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
-          }
-        } else {
-          await sendMessage(adminId, `⚠️ Нельзя отправить пустое сообщение.`);
-        }
-      }
-      // Команда: ok/ок
-      else if (['ok', 'ок'].includes(commandText)) {
+      // Handle commands first
+      if (['ok', 'ок'].includes(commandText)) {
         if (order.status === 'Новая заявка') {
           await supabase.from('orders').update({ status: 'Оплачен' }).eq('order_id', orderId);
           await sendMessage(adminId, `✅ Заказ #${orderId} отмечен как оплаченный.`);
@@ -121,7 +120,6 @@ serve(async (req) => {
           await sendMessage(adminId, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
         }
       }
-      // Команда: stop/стоп
       else if (['stop', 'стоп'].includes(commandText)) {
         if (order.status === 'Новая заявка') {
           await supabase.from('orders').update({ status: 'Отменен' }).eq('order_id', orderId);
@@ -134,9 +132,39 @@ serve(async (req) => {
           await sendMessage(adminId, `⚠️ Невозможно отменить заказ #${orderId}. Его текущий статус: *${order.status}*.`);
         }
       }
-      // Неизвестная команда
-      else {
-        console.log(`LOG: Текст ответа "${replyText}" не является командой. Игнорируется.`);
+      else if (replyText.startsWith('/')) { // This is the old /сообщение command
+        const messageToUser = replyText.substring(1).trim();
+        if (messageToUser) {
+          const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+          const formattedMessage = `[ADMIN - ${timestamp}]: ${messageToUser}`;
+          await supabase.rpc('append_to_chat_history', {
+              target_order_id: orderId,
+              new_message: formattedMessage
+          });
+          await sendMessage(targetTelegramId, `*Администратор:*\n${messageToUser}`);
+          await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId} и сохранено в истории.`);
+          if (!order.admin_conversation_started) {
+            await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
+          }
+        } else {
+          await sendMessage(adminId, `⚠️ Нельзя отправить пустое сообщение.`);
+        }
+      }
+      else if (replyText) { // This is the new direct reply logic (non-command)
+        console.log(`LOG: Admin sending direct reply to user ${targetTelegramId} for order #${orderId}.`);
+        const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+        const formattedMessage = `[ADMIN - ${timestamp}]: ${replyText}`;
+        await supabase.rpc('append_to_chat_history', {
+            target_order_id: orderId,
+            new_message: formattedMessage
+        });
+        await sendMessage(targetTelegramId, `*Администратор:*\n${replyText}`);
+        await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId} и сохранено в истории.`);
+        if (!order.admin_conversation_started) {
+          await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
+        }
+      } else {
+        console.log(`LOG: Admin's reply is empty or not a recognized command. Ignoring.`);
       }
     } 
     // --- ЛОГИКА ДЛЯ КЛИЕНТА ---
