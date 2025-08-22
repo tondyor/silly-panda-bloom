@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { AlertCircle, Calendar, Repeat } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, type Locale } from 'date-fns';
 import { ru, en, vi } from 'date-fns/locale'; // Import all necessary locales
 import { useTranslation } from 'react-i18next';
 import { PendingOrders } from './PendingOrders';

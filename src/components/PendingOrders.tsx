@@ -4,7 +4,7 @@ import { Copy, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, type Locale } from 'date-fns';
 import { ru, en, vi } from 'date-fns/locale'; // Import all necessary locales
 import { useTranslation } from 'react-i18next';
 import {
