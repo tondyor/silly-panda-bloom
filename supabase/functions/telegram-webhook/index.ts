@@ -60,13 +60,6 @@ serve(async (req) => {
     }
     console.log("LOG: Сообщение является ответом.");
 
-    const replyText = message.text ? message.text.toLowerCase().trim() : "";
-    if (!['ok', 'ок'].includes(replyText)) {
-      console.log(`LOG: Текст ответа "${replyText}" не является командой. Игнорируется.`);
-      return new Response("OK", { status: 200 });
-    }
-    console.log("LOG: Получена команда 'ok'.");
-
     const originalText = message.reply_to_message.text;
     const orderIdMatch = originalText.match(/Номер заказа: #(\S+)/);
 
@@ -97,23 +90,51 @@ serve(async (req) => {
     }
     console.log(`LOG: Найден заказ #${orderId}. Текущий статус: ${order.status}.`);
 
-    if (order.status === 'Новая заявка') {
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ status: 'Оплачен' })
-        .eq('order_id', orderId);
+    const replyText = message.text ? message.text.toLowerCase().trim() : "";
 
-      if (updateError) {
-        console.error(`LOG: Ошибка обновления заказа #${orderId}.`, updateError);
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка базы данных при обновлении заказа #${orderId}: ${updateError.message}`);
+    // --- Обработка команд ---
+    if (['ok', 'ок'].includes(replyText)) {
+      console.log("LOG: Получена команда 'ok'.");
+      if (order.status === 'Новая заявка') {
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({ status: 'Оплачен' })
+          .eq('order_id', orderId);
+
+        if (updateError) {
+          console.error(`LOG: Ошибка обновления заказа #${orderId}.`, updateError);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка базы данных при обновлении заказа #${orderId}: ${updateError.message}`);
+        } else {
+          console.log(`LOG: Статус заказа #${orderId} успешно изменен на 'Оплачен'.`);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `✅ Заказ #${orderId} успешно отмечен как оплаченный.`);
+          await sendMessage(order.telegram_id, `✅ Ваша заявка #${orderId} была оплачена и принята в обработку.`);
+        }
       } else {
-        console.log(`LOG: Статус заказа #${orderId} успешно изменен на 'Оплачен'.`);
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `✅ Заказ #${orderId} успешно отмечен как оплаченный.`);
-        await sendMessage(order.telegram_id, `✅ Ваша заявка #${orderId} была оплачена и принята в обработку.`);
+        console.warn(`LOG: Попытка изменить статус заказа #${orderId}, который уже в статусе '${order.status}'.`);
+        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
+      }
+    } else if (['stop', 'стоп'].includes(replyText)) {
+      console.log("LOG: Получена команда 'stop'.");
+      if (order.status === 'Новая заявка') {
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({ status: 'Отменен' })
+          .eq('order_id', orderId);
+
+        if (updateError) {
+          console.error(`LOG: Ошибка обновления заказа #${orderId} на 'Отменен'.`, updateError);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка базы данных при отмене заказа #${orderId}: ${updateError.message}`);
+        } else {
+          console.log(`LOG: Статус заказа #${orderId} успешно изменен на 'Отменен'.`);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `🚫 Заказ #${orderId} успешно отменен.`);
+          await sendMessage(order.telegram_id, `🚫 Ваша заявка #${orderId} была отменена администратором.`);
+        }
+      } else {
+        console.warn(`LOG: Попытка отменить заказ #${orderId}, который уже в статусе '${order.status}'.`);
+        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно отменить заказ #${orderId}. Его текущий статус: *${order.status}*.`);
       }
     } else {
-      console.warn(`LOG: Попытка изменить статус заказа #${orderId}, который уже в статусе '${order.status}'.`);
-      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
+      console.log(`LOG: Текст ответа "${replyText}" не является командой. Игнорируется.`);
     }
 
   } catch (e) {
