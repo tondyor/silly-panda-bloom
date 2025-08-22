@@ -94,7 +94,7 @@ const ExchangePage = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden p-2 sm:p-4 lg:p-6"
+      className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden px-2 pb-2 sm:px-4 sm:pb-4 lg:px-6 lg:pb-6"
       style={{
         backgroundImage: "url('/vietnam-background.png')",
         backgroundSize: 'cover',
@@ -110,7 +110,7 @@ const ExchangePage = () => {
         }}
       ></div>
 
-      <div className="w-full max-w-lg flex justify-center items-baseline gap-x-2 mb-4 z-10 relative pt-8">
+      <div className="w-full max-w-lg flex justify-center items-baseline gap-x-2 my-4 z-10 relative">
         <h1 className="text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)]">
           {t('headerTitle')}
         </h1>
