@@ -331,13 +331,13 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
       });
 
       if (error) {
-        setErrorMessage(`Ошибка сервера: ${error.message || 'Неизвестная ошибка'}`);
+        setErrorMessage(`${t("exchangeForm.serverError")}: ${error.message || t("exchangeForm.unknownError")}`);
         setIsErrorDialogOpen(true);
         throw new Error(`Server error: ${error.message}`);
       }
 
       if (!data || !("order_id" in data)) { // Изменено на order_id
-        setErrorMessage("Не удалось создать заказ. Ответ от сервера не содержит ID заказа.");
+        setErrorMessage(t("exchangeForm.noOrderIdError"));
         setIsErrorDialogOpen(true);
         throw new Error("Invalid response from server.");
       }
@@ -373,7 +373,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{t("exchangeForm.loadingRateError")}</AlertTitle>
               <AlertDescription>
-                Не удалось получить актуальный курс USDT. Обмен временно недоступен. Попробуйте обновить страницу.
+                {t("exchangeForm.usdtRateUnavailable")}
               </AlertDescription>
             </Alert>
           )}
@@ -421,7 +421,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
               value={
                 (isUsdtRateUnavailable && paymentCurrency === "USDT") ||
                 (isRubRateUnavailable && paymentCurrency === "RUB")
-                  ? "Расчет..."
+                  ? t("exchangeForm.calculating")
                   : calculatedVND.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
               }
               readOnly
@@ -456,7 +456,7 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
                 {t("exchangeForm.loadingRateButton")}
               </>
             ) : (
-              "Создать заявку"
+              t("exchangeForm.createOrderButton")
             )}
           </Button>
         </form>
@@ -465,12 +465,12 @@ export function ExchangeForm({ initData, onExchangeSuccess }: ExchangeFormProps)
       <AlertDialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ошибка</AlertDialogTitle>
+            <AlertDialogTitle>{t("exchangeForm.errorTitle")}</AlertDialogTitle>
             <AlertDialogDescription>{errorMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Закрыть</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setIsErrorDialogOpen(false)}>Ок</AlertDialogAction>
+            <AlertDialogCancel>{t("exchangeForm.closeButton")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setIsErrorDialogOpen(false)}>{t("exchangeForm.okButton")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

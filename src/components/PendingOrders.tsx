@@ -5,7 +5,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
 import { formatDistanceToNow } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, en, vi } from 'date-fns/locale'; // Import all necessary locales
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,17 +42,20 @@ interface PendingOrdersProps {
   initData: string;
 }
 
-const handleCopyAddress = (address: string) => {
-  navigator.clipboard.writeText(address)
-    .then(() => showSuccess("Адрес скопирован!"))
-    .catch(err => console.error('Failed to copy address: ', err));
+const locales: { [key: string]: Locale } = {
+  ru: ru,
+  en: en,
+  vi: vi,
 };
 
 const TimeLeft: React.FC<{ createdAt: string }> = ({ createdAt }) => {
+  const { t, i18n } = useTranslation();
+  const currentLocale = locales[i18n.language.split('-')[0]] || ru; // Fallback to ru
+
   const calculateTimeLeft = () => {
     const createdDate = new Date(createdAt);
     const expiryDate = new Date(createdDate.getTime() + 60 * 60 * 1000);
-    return formatDistanceToNow(expiryDate, { locale: ru, addSuffix: true });
+    return formatDistanceToNow(expiryDate, { locale: currentLocale, addSuffix: true });
   };
 
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
@@ -62,15 +66,22 @@ const TimeLeft: React.FC<{ createdAt: string }> = ({ createdAt }) => {
     }, 1000 * 60); // Update every minute
 
     return () => clearInterval(timer);
-  }, [createdAt]);
+  }, [createdAt, currentLocale]);
 
-  return <span>Истекает {timeLeft}</span>;
+  return <span>{t('pendingOrders.expiresIn', { timeLeft })}</span>;
 };
 
 export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }) => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
+
+  const handleCopyAddress = (address: string) => {
+    navigator.clipboard.writeText(address)
+      .then(() => showSuccess(t("pendingOrders.addressCopied")))
+      .catch(err => console.error('Failed to copy address: ', err));
+  };
 
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -84,11 +95,11 @@ export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }
       }
     },
     onSuccess: () => {
-      showSuccess("Заказ успешно отменен.");
+      showSuccess(t("pendingOrders.orderCancelledSuccess"));
       queryClient.invalidateQueries({ queryKey: ['orders', initData] });
     },
     onError: (error) => {
-      showError(`Ошибка отмены: ${error.message}`);
+      showError(`${t("pendingOrders.cancelError")} ${error.message}`);
     },
     onSettled: () => {
       setOrderToCancel(null);
@@ -114,7 +125,7 @@ export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }
   return (
     <>
       <div className="p-2 sm:p-4 space-y-4">
-          <h2 className="text-lg font-bold text-center text-gray-800">Активные заявки</h2>
+          <h2 className="text-lg font-bold text-center text-gray-800">{t("pendingOrders.activeOrdersTitle")}</h2>
           {orders.map((order) => {
               const depositAddress = (order.payment_currency === 'USDT' && order.usdt_network) 
                   ? USDT_WALLETS[order.usdt_network] 
@@ -124,7 +135,7 @@ export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }
                   <Card key={order.order_id} className="w-full bg-white/80 backdrop-blur-sm shadow-lg">
                       <CardHeader className="text-center pb-2 pt-4">
                           <CardTitle className="text-lg font-bold text-gray-800">
-                              Заявка #{order.order_id}
+                              {t("pendingOrders.orderIdTitle", { orderId: order.order_id })}
                           </CardTitle>
                           <div className="flex items-center justify-center text-sm text-yellow-600">
                               <Clock className="h-4 w-4 mr-1" />
@@ -134,11 +145,11 @@ export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }
                       <CardContent className="space-y-3 text-sm px-4 pb-4">
                           <ul className="space-y-1 text-xs">
                               <li className="flex justify-between">
-                                  <span className="text-gray-500">Отдаете:</span>
+                                  <span className="text-gray-500">{t("pendingOrders.youSendLabel")}</span>
                                   <span className="font-medium text-gray-800">{order.from_amount} {order.payment_currency}</span>
                               </li>
                               <li className="flex justify-between">
-                                  <span className="text-gray-500">Получаете:</span>
+                                  <span className="text-gray-500">{t("pendingOrders.youReceiveLabel")}</span>
                                   <span className="font-medium text-green-600">
                                       {order.calculated_vnd.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
                                   </span>
@@ -147,16 +158,16 @@ export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }
 
                           {order.payment_currency === 'USDT' && depositAddress && order.usdt_network && (
                               <div className="border-t border-gray-200 pt-2 space-y-2">
-                                  <h3 className="font-semibold text-base text-center text-blue-700">Пополнение</h3>
+                                  <h3 className="font-semibold text-base text-center text-blue-700">{t("pendingOrders.depositSectionTitle")}</h3>
                                   <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 p-2 text-xs">
                                       <AlertTriangle className="h-4 w-4 !text-red-800" />
-                                      <AlertTitle className="font-semibold mb-1">Важно!</AlertTitle>
+                                      <AlertTitle className="font-semibold mb-1">{t("pendingOrders.importantTitle")}</AlertTitle>
                                       <AlertDescription>
-                                          Отправляйте только USDT в сети {order.usdt_network}. Отправка другой монеты или в другой сети приведет к потере средств.
+                                          {t("pendingOrders.usdtWarning", { network: order.usdt_network })}
                                       </AlertDescription>
                                   </Alert>
                                   <div>
-                                      <label className="block text-xs font-medium text-gray-700 mb-1">Адрес для пополнения:</label>
+                                      <label className="block text-xs font-medium text-gray-700 mb-1">{t("pendingOrders.depositAddressLabel")}</label>
                                       <div className="flex items-center space-x-1">
                                           <p className="text-xs font-mono bg-gray-100 p-1.5 rounded-md break-all flex-grow">
                                               {depositAddress}
@@ -176,7 +187,7 @@ export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }
                               disabled={cancelOrderMutation.isPending && cancelOrderMutation.variables === order.order_id}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              {cancelOrderMutation.isPending && cancelOrderMutation.variables === order.order_id ? 'Отменяем...' : 'Отменить заказ'}
+                              {cancelOrderMutation.isPending && cancelOrderMutation.variables === order.order_id ? t("pendingOrders.cancellingButton") : t("pendingOrders.cancelOrderButton")}
                             </Button>
                           </div>
                       </CardContent>
@@ -187,19 +198,19 @@ export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders, initData }
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Подтверждение отмены</AlertDialogTitle>
+            <AlertDialogTitle>{t("pendingOrders.cancelConfirmationTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Вы уверены, что хотите отменить заказ #{orderToCancel}? Это действие необратимо.
+              {t("pendingOrders.cancelConfirmationDescription", { orderId: orderToCancel })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setOrderToCancel(null)}>Назад</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setOrderToCancel(null)}>{t("pendingOrders.backButton")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmCancel}
               disabled={cancelOrderMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {cancelOrderMutation.isPending ? 'Отменяем...' : 'Да, отменить'}
+              {cancelOrderMutation.isPending ? t("pendingOrders.cancellingButton") : t("pendingOrders.confirmCancelButton")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

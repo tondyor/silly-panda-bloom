@@ -8,8 +8,10 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useTelegram } from '@/hooks/useTelegram'
 import { OrderHistory } from '@/components/OrderHistory'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useTranslation } from 'react-i18next'
 
 const AccountPage = () => {
+  const { t } = useTranslation();
   const { data: telegramData, isLoading: isTelegramLoading, error: telegramError } = useTelegram();
 
   const renderContent = () => {
@@ -25,7 +27,7 @@ const AccountPage = () => {
       return (
         <Alert variant="destructive" className="m-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Ошибка</AlertTitle>
+          <AlertTitle>{t("exchangeForm.loadingRateError")}</AlertTitle>
           <AlertDescription>{telegramError}</AlertDescription>
         </Alert>
       );
@@ -37,7 +39,7 @@ const AccountPage = () => {
 
     return (
       <div className="text-center text-gray-600 p-6">
-        <p>Не удалось определить пользователя.</p>
+        <p>{t("accountPage.userNotFound")}</p>
       </div>
     );
   };
@@ -62,7 +64,7 @@ const AccountPage = () => {
 
       <div className="w-full max-w-lg flex justify-center items-baseline gap-x-2 my-4 z-10 relative">
         <h1 className="text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)]">
-          История
+          {t("accountPage.title")}
         </h1>
         <LanguageSwitcher />
       </div>
