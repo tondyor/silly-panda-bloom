@@ -88,9 +88,19 @@ serve(async (req) => {
       if (replyText.startsWith('/')) {
         const messageToUser = replyText.substring(1).trim();
         if (messageToUser) {
+          // 1. Логируем сообщение администратора
+          const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+          const formattedMessage = `[ADMIN - ${timestamp}]: ${messageToUser}`;
+          await supabase.rpc('append_to_chat_history', {
+              target_order_id: orderId,
+              new_message: formattedMessage
+          });
+
+          // 2. Отправляем сообщение клиенту
           await sendMessage(order.telegram_id, `*Администратор:*\n${messageToUser}`);
-          await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId}.`);
-          // Активируем режим диалога
+          await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId} и сохранено в истории.`);
+          
+          // 3. Активируем режим диалога
           if (!order.admin_conversation_started) {
             await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
           }
@@ -146,7 +156,17 @@ serve(async (req) => {
       }
 
       if (activeOrder) {
-        console.log(`LOG: Найден активный диалог для клиента ${senderId} по заказу #${activeOrder.order_id}. Пересылаю сообщение.`);
+        console.log(`LOG: Найден активный диалог для клиента ${senderId} по заказу #${activeOrder.order_id}. Пересылаю и логирую сообщение.`);
+        
+        // 1. Логируем сообщение клиента
+        const timestamp = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+        const formattedMessage = `[USER - ${timestamp}]: ${message.text}`;
+        await supabase.rpc('append_to_chat_history', {
+            target_order_id: activeOrder.order_id,
+            new_message: formattedMessage
+        });
+
+        // 2. Пересылаем сообщение админу
         const userFirstName = message.from.first_name || '';
         const userUsername = message.from.username ? `(@${message.from.username})` : '';
         const forwardMessage = `*Сообщение от клиента ${userFirstName} ${userUsername} (ID: \`${senderId}\`) по заказу #${activeOrder.order_id}:*\n\n${message.text}`;
