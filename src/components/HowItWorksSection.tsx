@@ -1,23 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 
+const steps = [
+  {
+    titleKey: 'howItWorks.step1',
+    descriptionKey: 'howItWorks.step1Description',
+  },
+  {
+    titleKey: 'howItWorks.step2',
+    descriptionKey: 'howItWorks.step2Description',
+  },
+  {
+    titleKey: 'howItWorks.step3',
+    descriptionKey: 'howItWorks.step3Description',
+  },
+];
+
 export const HowItWorksSection = () => {
   const { t } = useTranslation();
-
-  const steps = [
-    {
-      title: t('howItWorks.step1'),
-      description: t('howItWorks.step1Description'),
-    },
-    {
-      title: t('howItWorks.step2'),
-      description: t('howItWorks.step2Description'),
-    },
-    {
-      title: t('howItWorks.step3'),
-      description: t('howItWorks.step3Description'),
-    },
-  ];
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden relative z-10 bg-black/50 backdrop-blur-sm border-2 border-white/10 mt-4">
@@ -31,8 +31,8 @@ export const HowItWorksSection = () => {
               {index + 1}
             </div>
             <div className="text-left">
-              <h3 className="text-base font-semibold text-white">{step.title}</h3>
-              <p className="text-xs text-gray-200">{step.description}</p>
+              <h3 className="text-base font-semibold text-white">{t(step.titleKey)}</h3>
+              <p className="text-xs text-gray-200">{t(step.descriptionKey)}</p>
             </div>
           </div>
         ))}
