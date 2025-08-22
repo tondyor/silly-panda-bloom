@@ -1,12 +1,8 @@
-// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 // --- Переменные окружения ---
-// @ts-ignore
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
-// @ts-ignore
 const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
@@ -24,6 +20,10 @@ const translations = {
     messageSent: "✅ Сообщение отправлено клиенту по заказу #{orderId} и сохранено в истории.",
     adminPrefix: "*Администратор:*",
     clientMessagePrefix: "*Сообщение от клиента {userFirstName} {userUsername} (ID: `{senderId}`) по заказу #{orderId}:*\n\n",
+    // Новые переводы для прямой отправки сообщений по имени пользователя
+    adminUserNotFound: "❌ Ошибка: Пользователь с именем @{username} не найден.",
+    adminMessageSentToUser: "✅ Сообщение отправлено пользователю @{username}.",
+    adminDirectMessagePrefix: "*Сообщение от администратора:*",
   },
   en: {
     adminOrderNotFound: "❌ Error: Order #{orderId} not found.",
@@ -37,6 +37,10 @@ const translations = {
     messageSent: "✅ Message sent to client for order #{orderId} and saved in history.",
     adminPrefix: "*Administrator:*",
     clientMessagePrefix: "*Message from client {userFirstName} {userUsername} (ID: `{senderId}`) for order #{orderId}:*\n\n",
+    // New translations for direct messages by username
+    adminUserNotFound: "❌ Error: User with username @{username} not found.",
+    adminMessageSentToUser: "✅ Message sent to user @{username}.",
+    adminDirectMessagePrefix: "*Message from administrator:*",
   },
   vi: {
     adminOrderNotFound: "❌ Lỗi: Không tìm thấy đơn hàng #{orderId}.",
@@ -50,6 +54,10 @@ const translations = {
     messageSent: "✅ Tin nhắn đã được gửi đến khách hàng cho đơn hàng #{orderId} và đã lưu vào lịch sử.",
     adminPrefix: "*Quản trị viên:*",
     clientMessagePrefix: "*Tin nhắn từ khách hàng {userFirstName} {userUsername} (ID: `{senderId}`) cho đơn hàng #{orderId}:*\n\n",
+    // New translations for direct messages by username
+    adminUserNotFound: "❌ Lỗi: Không tìm thấy người dùng với tên @{username}.",
+    adminMessageSentToUser: "✅ Tin nhắn đã được gửi đến người dùng @{username}.",
+    adminDirectMessagePrefix: "*Tin nhắn từ quản trị viên:*",
   }
 };
 
@@ -74,7 +82,7 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
     const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
+      body: JSON_stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -98,15 +106,50 @@ serve(async (req) => {
 
     const senderId = String(message.from.id);
     const adminId = ADMIN_TELEGRAM_CHAT_ID;
-    
+    const messageText = message.text ? message.text.trim() : "";
+
     const supabase = createClient(
-      // @ts-ignore
       Deno.env.get("SUPABASE_URL")!,
-      // @ts-ignore
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // --- ЛОГИКА ДЛЯ АДМИНИСТРАТОРА ---
+    // --- НОВАЯ ЛОГИКА ДЛЯ АДМИНИСТРАТОРА: ПРЯМАЯ ОТПРАВКА СООБЩЕНИЯ ПО ИМЕНИ ПОЛЬЗОВАТЕЛЯ ---
+    if (senderId === adminId && messageText.startsWith('@') && !message.reply_to_message) {
+      console.log("LOG: Администратор пытается отправить прямое сообщение по имени пользователя.");
+      const parts = messageText.split(' ');
+      const targetUsernameWithAt = parts[0]; // Например, @username
+      const directMessageContent = parts.slice(1).join(' ').trim();
+
+      if (!targetUsernameWithAt || !directMessageContent) {
+        await sendMessage(adminId, getLocalizedMessage('ru', 'cannotSendEmpty'));
+        return new Response("OK", { status: 200 });
+      }
+
+      const targetUsername = targetUsernameWithAt.substring(1); // Удаляем '@'
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('telegram_profiles')
+        .select('telegram_id, language_code')
+        .eq('username', targetUsername)
+        .single();
+
+      if (profileError || !profileData) {
+        console.error(`LOG: Пользователь с именем пользователя ${targetUsername} не найден или ошибка базы данных:`, profileError?.message);
+        await sendMessage(adminId, getLocalizedMessage('ru', 'adminUserNotFound', { username: targetUsername }));
+        return new Response("OK", { status: 200 });
+      }
+
+      const targetTelegramId = profileData.telegram_id;
+      const targetUserLang = profileData.language_code || 'ru'; // Язык пользователя, по умолчанию русский
+
+      await sendMessage(targetTelegramId, `${getLocalizedMessage(targetUserLang, 'adminDirectMessagePrefix')}\n${directMessageContent}`);
+      await sendMessage(adminId, getLocalizedMessage('ru', 'adminMessageSentToUser', { username: targetUsername }));
+      console.log(`LOG: Сообщение отправлено пользователю @${targetUsername} (ID: ${targetTelegramId}) от администратора.`);
+      return new Response("OK", { status: 200 });
+    }
+    // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
+    // --- ЛОГИКА ДЛЯ АДМИНИСТРАТОРА (ОТВЕТЫ НА СООБЩЕНИЯ) ---
     if (senderId === adminId) {
       console.log("LOG: Сообщение от администратора.");
       const repliedToMessage = message.reply_to_message;
