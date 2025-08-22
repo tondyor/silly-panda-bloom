@@ -148,7 +148,7 @@ const ExchangePage = () => {
             <Button
               variant="ghost"
               className={cn(
-                "h-auto p-2 text-white hover:bg-white/20 hover:text-white border-2 border-white/80 rounded-lg relative right-1 transition-colors duration-300",
+                "h-auto p-3 text-white hover:bg-white/20 hover:text-white border-2 border-white/80 rounded-lg relative right-1 transition-colors duration-300",
                 hasPendingOrders && "bg-green-500 border-green-400 hover:bg-green-600 animate-slow-pulse"
               )}
             >
