@@ -8,39 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// --- Переменные окружения ---
 // @ts-ignore
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
-// @ts-ignore
-const ADMIN_TELEGRAM_CHAT_ID = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
-const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
-
-// --- Вспомогательные функции ---
-
-/**
- * Отправляет сообщение в указанный чат Telegram.
- * @param chatId ID чата для отправки.
- * @param text Текст сообщения с поддержкой Markdown.
- */
-async function sendMessage(chatId: string | number, text: string): Promise<void> {
-  if (!TELEGRAM_BOT_TOKEN) {
-    console.error("LOG: TELEGRAM_BOT_TOKEN не установлен.");
-    return;
-  }
-  try {
-    const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`LOG: Ошибка Telegram API (sendMessage) для chatId ${chatId}:`, JSON.stringify(errorData, null, 2));
-    }
-  } catch (e) {
-    console.error(`LOG: Не удалось отправить сообщение в Telegram для ${chatId}:`, e);
-  }
-}
 
 async function validateTelegramData(initData: string): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
@@ -161,17 +130,6 @@ serve(async (req) => {
 
     if (updateError) {
       throw new Error(`Ошибка базы данных при отмене заказа: ${updateError.message}`);
-    }
-
-    // --- Отправка уведомлений ---
-    // 1. Уведомление клиенту
-    const clientMessage = `Ваша заявка #${orderId} была отменена.`;
-    await sendMessage(user.id, clientMessage);
-
-    // 2. Уведомление администратору
-    if (ADMIN_TELEGRAM_CHAT_ID) {
-      const adminMessage = `❗️ Клиент (ID: \`${user.id}\`) отменил заявку #${orderId}.`;
-      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, adminMessage);
     }
 
     return new Response(JSON.stringify(updatedOrder), {
