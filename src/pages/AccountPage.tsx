@@ -79,7 +79,7 @@ const AccountPage = () => {
             </Button>
           </Link>
         </CardHeader>
-        <CardContent className="p-0 bg-gray-100/50">
+        <CardContent className="p-0">
           {renderContent()}
         </CardContent>
       </Card>
