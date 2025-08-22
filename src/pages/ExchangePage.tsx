@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { cn } from '@/lib/utils'
 import { ExchangeForm } from '@/components/ExchangeForm'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { MadeWithDyad } from '@/components/made-with-dyad'
@@ -14,6 +17,20 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { UserProfile } from '@/components/UserProfile'
 import { Button } from '@/components/ui/button'
 
+const fetchPendingOrdersStatus = async (initData: string | undefined): Promise<boolean> => {
+  if (!initData) return false;
+  const { data, error } = await supabase.functions.invoke('get-order-history', {
+    body: { initData },
+  });
+
+  if (error) {
+    console.error("Failed to fetch pending orders status:", error);
+    return false;
+  }
+
+  return data.pendingOrders && data.pendingOrders.length > 0;
+};
+
 const ExchangePage = () => {
   const { t } = useTranslation()
   const {
@@ -21,6 +38,13 @@ const ExchangePage = () => {
     error: telegramError,
     isLoading: isTelegramLoading,
   } = useTelegram()
+
+  const { data: hasPendingOrders } = useQuery({
+    queryKey: ['pendingOrderStatus', telegramData?.initData],
+    queryFn: () => fetchPendingOrdersStatus(telegramData?.initData),
+    enabled: !!telegramData?.initData,
+    refetchInterval: 30000, // Проверять каждые 30 секунд
+  });
 
   const [isSummaryView, setIsSummaryView] = useState(false)
   const [submittedOrderData, setSubmittedOrderData] = useState<any>(null)
@@ -123,7 +147,10 @@ const ExchangePage = () => {
           <Link to="/account">
             <Button
               variant="ghost"
-              className="h-auto p-2 text-white hover:bg-white/20 hover:text-white border-2 border-white/80 rounded-lg relative right-1"
+              className={cn(
+                "h-auto p-2 text-white hover:bg-white/20 hover:text-white border-2 border-white/80 rounded-lg relative right-1 transition-colors duration-300",
+                hasPendingOrders && "bg-green-500 border-green-400 hover:bg-green-600 animate-pulse"
+              )}
             >
               <History className="h-8 w-8" />
             </Button>
