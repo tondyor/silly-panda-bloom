@@ -86,7 +86,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ initData }) => {
 
   return (
     <div>
-      <PendingOrders orders={data?.pendingOrders || []} />
+      <PendingOrders orders={data?.pendingOrders || []} initData={initData} />
 
       {hasCompletedOrders && (
         <div className="p-2 sm:p-4">
