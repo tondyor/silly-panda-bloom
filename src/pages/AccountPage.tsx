@@ -1,12 +1,47 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRightLeft } from 'lucide-react'
+import { ArrowRightLeft, Loader2, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { UserProfile } from '@/components/UserProfile'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useTelegram } from '@/hooks/useTelegram'
+import { OrderHistory } from '@/components/OrderHistory'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const AccountPage = () => {
+  const { data: telegramData, isLoading: isTelegramLoading, error: telegramError } = useTelegram();
+
+  const renderContent = () => {
+    if (isTelegramLoading) {
+      return (
+        <div className="flex justify-center items-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        </div>
+      );
+    }
+
+    if (telegramError) {
+      return (
+        <Alert variant="destructive" className="m-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Ошибка</AlertTitle>
+          <AlertDescription>{telegramError}</AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (telegramData?.user?.id) {
+      return <OrderHistory telegramId={telegramData.user.id} />;
+    }
+
+    return (
+      <div className="text-center text-gray-600 p-6">
+        <p>Не удалось определить пользователя.</p>
+      </div>
+    );
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden px-2 pb-2 sm:px-4 sm:pb-4 lg:px-6 lg:pb-6"
@@ -44,8 +79,8 @@ const AccountPage = () => {
             </Button>
           </Link>
         </CardHeader>
-        <CardContent className="text-center text-gray-600 p-6">
-          <p>Здесь будет история ваших заявок.</p>
+        <CardContent className="p-0 bg-gray-100/50">
+          {renderContent()}
         </CardContent>
       </Card>
     </div>
