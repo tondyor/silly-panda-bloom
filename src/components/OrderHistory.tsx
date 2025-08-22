@@ -6,7 +6,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { AlertCircle, Calendar, Repeat } from 'lucide-react';
 import { format, type Locale } from 'date-fns';
-import { ru, en, vi } from 'date-fns/locale'; // Import all necessary locales
+import { ru } from 'date-fns/locale/ru';
+import { enUS as en } from 'date-fns/locale/en-US';
+import { vi } from 'date-fns/locale/vi';
 import { useTranslation } from 'react-i18next';
 import { PendingOrders } from './PendingOrders';
 

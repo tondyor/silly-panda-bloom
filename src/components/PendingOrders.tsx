@@ -5,7 +5,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
 import { formatDistanceToNow, type Locale } from 'date-fns';
-import { ru, en, vi } from 'date-fns/locale'; // Import all necessary locales
+import { ru } from 'date-fns/locale/ru';
+import { enUS as en } from 'date-fns/locale/en-US';
+import { vi } from 'date-fns/locale/vi';
 import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
