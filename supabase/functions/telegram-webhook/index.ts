@@ -90,11 +90,10 @@ serve(async (req) => {
     }
     console.log(`LOG: Найден заказ #${orderId}. Текущий статус: ${order.status}.`);
 
-    const originalReplyText = message.text ? message.text.trim() : "";
-    const commandText = originalReplyText.toLowerCase();
+    const replyText = message.text ? message.text.toLowerCase().trim() : "";
 
     // --- Обработка команд ---
-    if (['ok', 'ок'].includes(commandText)) {
+    if (['ok', 'ок'].includes(replyText)) {
       console.log("LOG: Получена команда 'ok'.");
       if (order.status === 'Новая заявка') {
         const { error: updateError } = await supabase
@@ -114,7 +113,7 @@ serve(async (req) => {
         console.warn(`LOG: Попытка изменить статус заказа #${orderId}, который уже в статусе '${order.status}'.`);
         await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
       }
-    } else if (['stop', 'стоп'].includes(commandText)) {
+    } else if (['stop', 'стоп'].includes(replyText)) {
       console.log("LOG: Получена команда 'stop'.");
       if (order.status === 'Новая заявка') {
         const { error: updateError } = await supabase
@@ -134,19 +133,8 @@ serve(async (req) => {
         console.warn(`LOG: Попытка отменить заказ #${orderId}, который уже в статусе '${order.status}'.`);
         await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно отменить заказ #${orderId}. Его текущий статус: *${order.status}*.`);
       }
-    } else if (originalReplyText.startsWith('/')) {
-      const messageToUser = originalReplyText.substring(1).trim();
-      if (messageToUser) {
-        console.log(`LOG: Получена команда отправки сообщения пользователю. Текст: "${messageToUser}"`);
-        const finalMessage = `*Администратор:*\n${messageToUser}`;
-        await sendMessage(order.telegram_id, finalMessage);
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `✅ Сообщение отправлено клиенту по заказу #${orderId}.`);
-      } else {
-        console.log("LOG: Команда отправки сообщения пуста. Игнорируется.");
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Вы попытались отправить пустое сообщение по заказу #${orderId}.`);
-      }
     } else {
-      console.log(`LOG: Текст ответа "${commandText}" не является командой. Игнорируется.`);
+      console.log(`LOG: Текст ответа "${replyText}" не является командой. Игнорируется.`);
     }
 
   } catch (e) {
