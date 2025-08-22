@@ -36,14 +36,14 @@ export const DeliveryMethodTabs: React.FC<DeliveryMethodTabsProps> = ({
             className="flex h-auto flex-col items-center justify-center gap-1 rounded-md p-2 text-sm font-medium text-gray-700 transition-all data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Landmark className="h-5 w-5" />
-            <span className="text-sm font-medium">{t("exchangeForm.bankAccount")}</span>
+            <span className="text-sm font-medium whitespace-normal text-center">{t("exchangeForm.bankAccount")}</span>
           </TabsTrigger>
           <TabsTrigger
             value="cash"
             className="flex h-auto flex-col items-center justify-center gap-1 rounded-md p-2 text-sm font-medium text-gray-700 transition-all data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             <HandCoins className="h-5 w-5" />
-            <span className="text-sm font-medium">{t("exchangeForm.cash")}</span>
+            <span className="text-sm font-medium whitespace-normal text-center">{t("exchangeForm.cash")}</span>
           </TabsTrigger>
         </TabsList>
         <TabsContent value="bank" className="mt-2 space-y-2">
