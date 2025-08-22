@@ -135,9 +135,9 @@ serve(async (req) => {
       }
       console.log(`Step 8: Order #${orderId} found. Current status: '${order.status}'. Client Telegram ID: ${order.telegram_id}`);
 
-      if (order.status === "Отклонен") {
-        console.log("LOG: Order was cancelled by the user. No action needed. Exiting.");
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} был отменен клиентом и не может быть выполнен.`);
+      if (order.status === "Отклонен" || order.status === "Отменен") {
+        console.log("LOG: Order was cancelled. No action needed. Exiting.");
+        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} был отменен и не может быть выполнен.`);
         return new Response("OK");
       }
 
