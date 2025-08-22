@@ -60,7 +60,7 @@ async function validateTelegramData(initData: string): Promise<boolean> {
   const secretKey = await crypto.subtle.importKey(
     "raw",
     encoder.encode("WebAppData"),
-    { name: "HMAC", hash: "SHA-26" },
+    { name: "HMAC", hash: "SHA-256" }, // ИСПРАВЛЕНО: SHA-26 -> SHA-256
     false,
     ["sign"]
   );
