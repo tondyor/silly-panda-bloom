@@ -4,7 +4,6 @@ import App from './App.tsx'
 import './globals.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './i18n';
-// import './components/ui/glowing-border.css'; // Удален импорт
 
 const queryClient = new QueryClient()
 
