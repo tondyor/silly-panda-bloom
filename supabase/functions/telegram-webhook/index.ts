@@ -34,10 +34,9 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
 serve(async (req) => {
   try {
     const payload = await req.json();
-    console.log("--- Получен вебхук от Telegram ---", JSON.stringify(payload, null, 2));
+    console.log("--- Получен вебхук от Telegram ---");
 
     const message = payload.message;
-
     if (!message || !message.from) {
       console.log("LOG: Получен вебхук без сообщения или отправителя. Игнорируется.");
       return new Response("OK", { status: 200 });
@@ -45,38 +44,7 @@ serve(async (req) => {
 
     const senderId = String(message.from.id);
     const adminId = ADMIN_TELEGRAM_CHAT_ID;
-    console.log(`LOG: ID отправителя: ${senderId}, ID админа из секрета: ${adminId}`);
-
-    if (senderId !== adminId) {
-      console.log("LOG: Сообщение не от администратора. Игнорируется.");
-      return new Response("OK", { status: 200 });
-    }
-    console.log("LOG: Сообщение от администратора.");
-
-    const isReply = message.reply_to_message && message.reply_to_message.text;
-    if (!isReply) {
-      console.log("LOG: Сообщение не является ответом. Игнорируется.");
-      return new Response("OK", { status: 200 });
-    }
-    console.log("LOG: Сообщение является ответом.");
-
-    const replyText = message.text ? message.text.toLowerCase().trim() : "";
-    if (!['ok', 'ок'].includes(replyText)) {
-      console.log(`LOG: Текст ответа "${replyText}" не является командой. Игнорируется.`);
-      return new Response("OK", { status: 200 });
-    }
-    console.log("LOG: Получена команда 'ok'.");
-
-    const originalText = message.reply_to_message.text;
-    const orderIdMatch = originalText.match(/Номер заказа: #(\S+)/);
-
-    if (!orderIdMatch || !orderIdMatch[1]) {
-      console.log("LOG: Не удалось найти номер заказа в исходном сообщении.");
-      return new Response("OK", { status: 200 });
-    }
-    const orderId = orderIdMatch[1];
-    console.log(`LOG: Найден номер заказа: ${orderId}`);
-
+    
     const supabase = createClient(
       // @ts-ignore
       Deno.env.get("SUPABASE_URL")!,
@@ -84,36 +52,108 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: order, error: findError } = await supabase
-      .from('orders')
-      .select('status, telegram_id')
-      .eq('order_id', orderId)
-      .single();
-
-    if (findError || !order) {
-      console.error(`LOG: Заказ #${orderId} не найден в базе данных.`, findError);
-      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка: Заказ #${orderId} не найден в базе данных.`);
-      return new Response("OK", { status: 200 });
-    }
-    console.log(`LOG: Найден заказ #${orderId}. Текущий статус: ${order.status}.`);
-
-    if (order.status === 'Новая заявка') {
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ status: 'Оплачен' })
-        .eq('order_id', orderId);
-
-      if (updateError) {
-        console.error(`LOG: Ошибка обновления заказа #${orderId}.`, updateError);
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка базы данных при обновлении заказа #${orderId}: ${updateError.message}`);
-      } else {
-        console.log(`LOG: Статус заказа #${orderId} успешно изменен на 'Оплачен'.`);
-        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `✅ Заказ #${orderId} успешно отмечен как оплаченный.`);
-        await sendMessage(order.telegram_id, `✅ Ваша заявка #${orderId} была оплачена и принята в обработку.`);
+    // --- ЛОГИКА ДЛЯ АДМИНИСТРАТОРА ---
+    if (senderId === adminId) {
+      console.log("LOG: Сообщение от администратора.");
+      const isReply = message.reply_to_message && message.reply_to_message.text;
+      if (!isReply) {
+        console.log("LOG: Сообщение не является ответом. Игнорируется.");
+        return new Response("OK", { status: 200 });
       }
-    } else {
-      console.warn(`LOG: Попытка изменить статус заказа #${orderId}, который уже в статусе '${order.status}'.`);
-      await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
+
+      const originalText = message.reply_to_message.text;
+      const orderIdMatch = originalText.match(/Номер заказа: #(\S+)/);
+      if (!orderIdMatch || !orderIdMatch[1]) {
+        console.log("LOG: Не удалось найти номер заказа в исходном сообщении.");
+        return new Response("OK", { status: 200 });
+      }
+      const orderId = orderIdMatch[1];
+      console.log(`LOG: Администратор работает с заказом #${orderId}`);
+
+      const { data: order, error: findError } = await supabase
+        .from('orders')
+        .select('status, telegram_id, admin_conversation_started')
+        .eq('order_id', orderId)
+        .single();
+
+      if (findError || !order) {
+        await sendMessage(adminId, `❌ Ошибка: Заказ #${orderId} не найден.`);
+        return new Response("OK", { status: 200 });
+      }
+
+      const replyText = message.text ? message.text.trim() : "";
+      const commandText = replyText.toLowerCase();
+
+      // Команда: /сообщение
+      if (replyText.startsWith('/')) {
+        const messageToUser = replyText.substring(1).trim();
+        if (messageToUser) {
+          await sendMessage(order.telegram_id, `*Администратор:*\n${messageToUser}`);
+          await sendMessage(adminId, `✅ Сообщение отправлено клиенту по заказу #${orderId}.`);
+          // Активируем режим диалога
+          if (!order.admin_conversation_started) {
+            await supabase.from('orders').update({ admin_conversation_started: true }).eq('order_id', orderId);
+          }
+        } else {
+          await sendMessage(adminId, `⚠️ Нельзя отправить пустое сообщение.`);
+        }
+      }
+      // Команда: ok/ок
+      else if (['ok', 'ок'].includes(commandText)) {
+        if (order.status === 'Новая заявка') {
+          await supabase.from('orders').update({ status: 'Оплачен' }).eq('order_id', orderId);
+          await sendMessage(adminId, `✅ Заказ #${orderId} отмечен как оплаченный.`);
+          await sendMessage(order.telegram_id, `✅ Ваша заявка #${orderId} была оплачена и принята в обработку.`);
+          if (order.admin_conversation_started) {
+            await sendMessage(order.telegram_id, `Диалог с администратором по этому заказу закрыт. Администратор больше не увидит ваши сообщения.`);
+          }
+        } else {
+          await sendMessage(adminId, `⚠️ Невозможно изменить статус заказа #${orderId}. Его текущий статус: *${order.status}*.`);
+        }
+      }
+      // Команда: stop/стоп
+      else if (['stop', 'стоп'].includes(commandText)) {
+        if (order.status === 'Новая заявка') {
+          await supabase.from('orders').update({ status: 'Отменен' }).eq('order_id', orderId);
+          await sendMessage(adminId, `🚫 Заказ #${orderId} отменен.`);
+          await sendMessage(order.telegram_id, `🚫 Ваша заявка #${orderId} была отменена администратором.`);
+          if (order.admin_conversation_started) {
+            await sendMessage(order.telegram_id, `Диалог с администратором по этому заказу закрыт. Администратор больше не увидит ваши сообщения.`);
+          }
+        } else {
+          await sendMessage(adminId, `⚠️ Невозможно отменить заказ #${orderId}. Его текущий статус: *${order.status}*.`);
+        }
+      }
+      // Неизвестная команда
+      else {
+        console.log(`LOG: Текст ответа "${replyText}" не является командой. Игнорируется.`);
+      }
+    } 
+    // --- ЛОГИКА ДЛЯ КЛИЕНТА ---
+    else {
+      console.log(`LOG: Сообщение от клиента ID: ${senderId}.`);
+      const { data: activeOrder, error: activeOrderError } = await supabase
+        .from('orders')
+        .select('order_id')
+        .eq('telegram_id', senderId)
+        .eq('status', 'Новая заявка')
+        .eq('admin_conversation_started', true)
+        .limit(1)
+        .single();
+
+      if (activeOrderError) {
+        console.log(`LOG: Ошибка поиска активного диалога для клиента ${senderId}.`, activeOrderError.message);
+      }
+
+      if (activeOrder) {
+        console.log(`LOG: Найден активный диалог для клиента ${senderId} по заказу #${activeOrder.order_id}. Пересылаю сообщение.`);
+        const userFirstName = message.from.first_name || '';
+        const userUsername = message.from.username ? `(@${message.from.username})` : '';
+        const forwardMessage = `*Сообщение от клиента ${userFirstName} ${userUsername} (ID: \`${senderId}\`) по заказу #${activeOrder.order_id}:*\n\n${message.text}`;
+        await sendMessage(adminId, forwardMessage);
+      } else {
+        console.log(`LOG: Для клиента ${senderId} не найдено активных диалогов. Сообщение игнорируется.`);
+      }
     }
 
   } catch (e) {
