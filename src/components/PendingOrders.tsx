@@ -1,0 +1,124 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Copy, AlertTriangle, Clock } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { showSuccess } from "@/utils/toast";
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
+
+const USDT_WALLETS: Record<string, string> = {
+  BEP20: "0x66095f5be059C3C3e1f44416aEAd8085B8F42F3e",
+  TON: "UQCgn4ztELQZLiGWTtOFcZoN22Lf4B6Vd7IO6WsBZuXM8edg",
+  TRC20: "TAAQEjDBQK5hN1MGumVUjtzX42qRYCjTkB",
+  ERC20: "0x54C7fA815AE5a5DDEd5DAa4A36CFB6903cE7D896",
+  SPL: "9vBe1AP3197jP4PSjC2jUsyadr82Sey3nXbxAT3LSQwm",
+};
+
+interface Order {
+  order_id: string;
+  created_at: string;
+  payment_currency: string;
+  from_amount: number;
+  calculated_vnd: number;
+  usdt_network?: string;
+}
+
+interface PendingOrdersProps {
+  orders: Order[];
+}
+
+const handleCopyAddress = (address: string) => {
+  navigator.clipboard.writeText(address)
+    .then(() => showSuccess("Адрес скопирован!"))
+    .catch(err => console.error('Failed to copy address: ', err));
+};
+
+const TimeLeft: React.FC<{ createdAt: string }> = ({ createdAt }) => {
+  const calculateTimeLeft = () => {
+    const createdDate = new Date(createdAt);
+    const expiryDate = new Date(createdDate.getTime() + 60 * 60 * 1000);
+    return formatDistanceToNow(expiryDate, { locale: ru, addSuffix: true });
+  };
+
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000 * 60); // Update every minute
+
+    return () => clearInterval(timer);
+  }, [createdAt]);
+
+  return <span>Истекает {timeLeft}</span>;
+};
+
+export const PendingOrders: React.FC<PendingOrdersProps> = ({ orders }) => {
+  if (!orders || orders.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="p-2 sm:p-4 space-y-4">
+        <h2 className="text-lg font-bold text-center text-gray-800">Активные заявки</h2>
+        {orders.map((order) => {
+            const depositAddress = (order.payment_currency === 'USDT' && order.usdt_network) 
+                ? USDT_WALLETS[order.usdt_network] 
+                : null;
+
+            return (
+                <Card key={order.order_id} className="w-full bg-white/80 backdrop-blur-sm shadow-lg">
+                    <CardHeader className="text-center pb-2 pt-4">
+                        <CardTitle className="text-lg font-bold text-gray-800">
+                            Заявка #{order.order_id}
+                        </CardTitle>
+                        <div className="flex items-center justify-center text-sm text-yellow-600">
+                            <Clock className="h-4 w-4 mr-1" />
+                            <TimeLeft createdAt={order.created_at} />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm px-4 pb-4">
+                        <ul className="space-y-1 text-xs">
+                            <li className="flex justify-between">
+                                <span className="text-gray-500">Отдаете:</span>
+                                <span className="font-medium text-gray-800">{order.from_amount} {order.payment_currency}</span>
+                            </li>
+                            <li className="flex justify-between">
+                                <span className="text-gray-500">Получаете:</span>
+                                <span className="font-medium text-green-600">
+                                    {order.calculated_vnd.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+                                </span>
+                            </li>
+                        </ul>
+
+                        {order.payment_currency === 'USDT' && depositAddress && order.usdt_network && (
+                            <div className="border-t border-gray-200 pt-2 space-y-2">
+                                <h3 className="font-semibold text-base text-center text-blue-700">Пополнение</h3>
+                                <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 p-2 text-xs">
+                                    <AlertTriangle className="h-4 w-4 !text-red-800" />
+                                    <AlertTitle className="font-semibold mb-1">Важно!</AlertTitle>
+                                    <AlertDescription>
+                                        Отправляйте только USDT в сети {order.usdt_network}. Отправка другой монеты или в другой сети приведет к потере средств.
+                                    </AlertDescription>
+                                </Alert>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Адрес для пополнения:</label>
+                                    <div className="flex items-center space-x-1">
+                                        <p className="text-xs font-mono bg-gray-100 p-1.5 rounded-md break-all flex-grow">
+                                            {depositAddress}
+                                        </p>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopyAddress(depositAddress)}>
+                                            <Copy className="h-4 w-4 text-gray-600" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            );
+        })}
+    </div>
+  );
+};

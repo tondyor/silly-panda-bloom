@@ -103,20 +103,37 @@ serve(async (req) => {
     );
     console.log("Step 4: Supabase service client created.");
 
-    const { data: orders, error } = await supabase
+    // Fetch completed orders
+    const { data: completedOrders, error: completedError } = await supabase
       .from('orders')
       .select('*')
       .eq('telegram_id', user.id)
       .eq('status', 'Оплачен')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Database Error: Failed to fetch orders.", error);
-      throw new Error(`Ошибка базы данных: ${error.message}`);
+    if (completedError) {
+      console.error("Database Error: Failed to fetch completed orders.", completedError);
+      throw new Error(`Ошибка базы данных при получении завершенных заказов: ${completedError.message}`);
     }
-    console.log(`Step 5: Fetched ${orders.length} completed orders for user ${user.id}.`);
 
-    return new Response(JSON.stringify(orders), {
+    // Fetch recent pending orders (created in the last hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: pendingOrders, error: pendingError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('telegram_id', user.id)
+      .eq('status', 'Новая заявка')
+      .gt('created_at', oneHourAgo)
+      .order('created_at', { ascending: false });
+
+    if (pendingError) {
+      console.error("Database Error: Failed to fetch pending orders.", pendingError);
+      throw new Error(`Ошибка базы данных при получении ожидающих заказов: ${pendingError.message}`);
+    }
+
+    console.log(`Step 5: Fetched ${completedOrders.length} completed and ${pendingOrders.length} pending orders for user ${user.id}.`);
+
+    return new Response(JSON.stringify({ completedOrders, pendingOrders }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
