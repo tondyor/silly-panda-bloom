@@ -92,7 +92,7 @@ serve(async (req) => {
     console.log(`Step 4: Logic check. Is it a reply? ${!!isReply}. Is it a trigger word? ${isTriggerWord}.`);
 
     if (isReply && isTriggerWord) {
-      console.log("LOG: Logic check PASSED. Proceeding with order update.");
+      console.log("LOG: Entered main logic block (isReply && isTriggerWord).");
 
       const originalMessageText = isReply.text;
       if (!originalMessageText) {
@@ -100,20 +100,19 @@ serve(async (req) => {
         await sendMessage(ADMIN_TELEGRAM_CHAT_ID, "❌ Не удалось прочитать текст исходного сообщения.");
         return new Response("OK");
       }
-      console.log(`Step 5: Original message text extracted: "${originalMessageText}"`);
+      console.log(`LOG: Original message text found.`);
 
       // --- Извлечение ID заказа ---
       const orderId = parseOrderId(originalMessageText);
-      console.log(`Step 6: Parsing order ID. Result: ${orderId}`);
       if (!orderId) {
-        console.error("LOG: Failed to parse order ID. Exiting.");
+        console.error("LOG: Failed to parse order ID from original message. Exiting.");
         await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Не удалось найти номер заказа в исходном сообщении.`);
         return new Response("OK");
       }
-      console.log("LOG: Order ID parsed successfully.");
+      console.log(`LOG: Parsed Order ID: ${orderId}`);
 
       // --- Взаимодействие с БД ---
-      console.log("Step 7: Connecting to Supabase to find the order.");
+      console.log("LOG: Connecting to Supabase to find the order.");
       const supabase = createClient(
         // @ts-ignore
         Deno.env.get("SUPABASE_URL")!,
@@ -128,27 +127,36 @@ serve(async (req) => {
         .eq("order_id", orderId)
         .single();
 
-      if (findError || !order) {
-        console.error(`LOG: Database error or order not found for ID #${orderId}. Error:`, findError);
+      if (findError) {
+        console.error(`LOG: Supabase findError for order #${orderId}:`, findError);
+        await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка базы данных при поиске заказа #${orderId}.`);
+        return new Response("OK");
+      }
+
+      if (!order) {
+        console.error(`LOG: Order #${orderId} not found in database.`);
         await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `❌ Ошибка: Заказ с номером #${orderId} не найден.`);
         return new Response("OK");
       }
-      console.log(`Step 8: Order #${orderId} found. Current status: '${order.status}'. Client Telegram ID: ${order.telegram_id}`);
+      console.log(`LOG: Order #${orderId} found. Status: '${order.status}'.`);
 
-      switch (order.status) {
+      const currentStatus = order.status;
+      console.log(`LOG: Processing status: '${currentStatus}'`);
+
+      switch (currentStatus) {
         case 'Отклонен':
         case 'Отменен':
-          console.log(`LOG: Order #${orderId} has status '${order.status}'. Sending cancellation info to admin.`);
+          console.log(`LOG: Matched status '${currentStatus}'. Sending 'already cancelled' message.`);
           await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} был отменен и не может быть выполнен.`);
           break;
 
         case 'Оплачен':
-          console.log(`LOG: Order #${orderId} is already marked as 'Оплачен'. No action needed.`);
+          console.log(`LOG: Matched status 'Оплачен'. Sending 'already paid' message.`);
           await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `ℹ️ Заказ #${orderId} уже имеет статус 'Оплачен'.`);
           break;
 
         case 'Новая заявка': {
-          console.log(`LOG: Order #${orderId} has status 'Новая заявка'. Proceeding with update.`);
+          console.log(`LOG: Matched status 'Новая заявка'. Attempting to update.`);
           const { error: updateError } = await supabase
             .from("orders")
             .update({ status: "Оплачен" })
@@ -173,10 +181,11 @@ serve(async (req) => {
         }
 
         default:
-          console.log(`LOG: Order #${orderId} has an unexpected status: '${order.status}'.`);
-          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Неизвестный статус ('${order.status}') у заказа #${orderId}.`);
+          console.log(`LOG: Unmatched status: '${currentStatus}'. Sending 'unknown status' message.`);
+          await sendMessage(ADMIN_TELEGRAM_CHAT_ID, `⚠️ Неизвестный статус ('${currentStatus}') у заказа #${orderId}.`);
           break;
       }
+      console.log(`LOG: Finished processing order #${orderId}.`);
     } else {
         console.log("LOG: Logic check FAILED. Message is not a reply or does not contain a trigger word. No action taken.");
     }
