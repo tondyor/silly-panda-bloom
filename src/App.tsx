@@ -1,5 +1,4 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import ExchangePage from "./pages/ExchangePage";
@@ -8,8 +7,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useEffect, useState } from "react";
 import i18n from "./i18n";
-
-const queryClient = new QueryClient();
 
 const App = () => {
   const { data: telegramData, isLoading: isTelegramLoading } = useTelegram();
@@ -40,19 +37,17 @@ const App = () => {
   }, [telegramData, isTelegramLoading]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<ExchangePage />} />
-            <Route path="/account" element={<AccountPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <TooltipProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<ExchangePage />} />
+          <Route path="/account" element={<AccountPage />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+      <Toaster />
+    </TooltipProvider>
   );
 };
 
