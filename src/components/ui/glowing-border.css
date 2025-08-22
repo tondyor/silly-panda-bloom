@@ -37,7 +37,7 @@
   background-repeat: no-repeat;
   background-size: 50% 50%, 50% 50%;
   background-position: 0 0, 100% 0, 100% 100%, 0 100%;
-  background-image: conic-gradient(from 180deg, #FFFFFF, #F97316);
+  background-image: conic-gradient(from 180deg, #FFFFFF, #F97316, #FFFFFF);
   animation: rotate 4s linear infinite;
 }
 
