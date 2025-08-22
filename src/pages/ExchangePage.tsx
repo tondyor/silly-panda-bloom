@@ -136,7 +136,7 @@ const ExchangePage = () => {
 
       <div className="w-full max-w-lg flex justify-center items-baseline gap-x-2 my-4 z-10 relative">
         <h1 className="text-5xl sm:text-7xl font-extrabold text-white drop-shadow-[0_4px_5px_rgba(0,0,0,0.9)]">
-          {t('headerTitle')}
+          VIET SWAP
         </h1>
         <LanguageSwitcher />
       </div>
