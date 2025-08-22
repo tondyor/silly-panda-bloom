@@ -50,42 +50,6 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data, depositI
           Мы свяжемся с вами в Telegram для подтверждения и завершения обмена.
         </p>
         
-        {paymentCurrency === 'USDT' && depositInfo && (
-          <div className="border-t border-gray-200 pt-2 space-y-2">
-            <h3 className="font-semibold text-base text-center text-blue-700">Пополнение</h3>
-            <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 p-2 text-xs">
-              <AlertTriangle className="h-4 w-4 !text-red-800" />
-              <AlertTitle className="font-semibold mb-1">Важно!</AlertTitle>
-              <AlertDescription>
-                Отправляйте только USDT в сети {depositInfo.network}. Отправка любой другой монеты или в другой сети приведет к потере средств.
-              </AlertDescription>
-            </Alert>
-
-            <div className="space-y-1 text-xs text-gray-700">
-              <div className="flex justify-between items-center">
-                <span>Сеть:</span>
-                <span className="font-semibold bg-gray-200 px-2 py-0.5 rounded">{depositInfo.network}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Сумма:</span>
-                <span className="font-semibold">{fromAmount} USDT</span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Адрес для пополнения:</label>
-              <div className="flex items-center space-x-1">
-                <p className="text-xs font-mono bg-gray-100 p-1.5 rounded-md break-all flex-grow">
-                  {depositInfo.address}
-                </p>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopyAddress(depositInfo.address)}>
-                  <Copy className="h-4 w-4 text-gray-600" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="border-t border-gray-200 pt-2">
           <h3 className="font-semibold text-base mb-1 text-gray-700 text-center">Детали заявки:</h3>
           <ul className="space-y-1 text-xs">
@@ -137,6 +101,42 @@ export const ExchangeSummary: React.FC<ExchangeSummaryProps> = ({ data, depositI
             )}
           </ul>
         </div>
+
+        {paymentCurrency === 'USDT' && depositInfo && (
+          <div className="border-t border-gray-200 pt-2 space-y-2">
+            <h3 className="font-semibold text-base text-center text-blue-700">Пополнение</h3>
+            <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 p-2 text-xs">
+              <AlertTriangle className="h-4 w-4 !text-red-800" />
+              <AlertTitle className="font-semibold mb-1">Важно!</AlertTitle>
+              <AlertDescription>
+                Отправляйте только USDT в сети {depositInfo.network}. Отправка любой другой монеты или в другой сети приведет к потере средств.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-1 text-xs text-gray-700">
+              <div className="flex justify-between items-center">
+                <span>Сеть:</span>
+                <span className="font-semibold bg-gray-200 px-2 py-0.5 rounded">{depositInfo.network}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Сумма:</span>
+                <span className="font-semibold">{fromAmount} USDT</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Адрес для пополнения:</label>
+              <div className="flex items-center space-x-1">
+                <p className="text-xs font-mono bg-gray-100 p-1.5 rounded-md break-all flex-grow">
+                  {depositInfo.address}
+                </p>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopyAddress(depositInfo.address)}>
+                  <Copy className="h-4 w-4 text-gray-600" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-gray-200 pt-2">
           <Alert className="bg-blue-50 border-blue-200 text-blue-800 p-2 text-xs">
